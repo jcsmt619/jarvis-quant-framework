@@ -1,0 +1,22 @@
+{
+  "generated_at": "2026-07-02T08:31:20.073705+00:00",
+  "tickers": [
+    "SPY",
+    "BTC-USD",
+    "TLT"
+  ],
+  "rows": {
+    "SPY": {
+      "raw_rows": 3770,
+      "stress_rows": 3770
+    },
+    "BTC-USD": {
+      "raw_rows": 4307,
+      "stress_rows": 4307
+    },
+    "TLT": {
+      "raw_rows": 3770,
+      "stress_rows": 3770
+    }
+  }
+}

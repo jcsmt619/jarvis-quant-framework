@@ -1,0 +1,103 @@
+# regime-trader configuration
+# All risk thresholds are read by core.risk_manager.RiskLimits.from_settings().
+# Values here follow the course's "Survival First" doctrine (skool_dump.txt,
+# Risk Management & Sizing): 1-2% risk per trade, fractional Kelly, hard
+# circuit breakers. Aligned 2026-07-02 on explicit user order (drift fix).
+
+risk:
+  # --- portfolio-level exposure (survival-first caps) ---
+  max_total_exposure: 1.0        # 100% of portfolio: no gross leverage at book level
+  max_single_position: 0.20      # 20% cap for any single position
+  max_concurrent: 5              # diversify instead of concentrating
+  max_daily_trades: 20
+  max_leverage: 1.5              # modest intraday headroom only
+  max_overnight_leverage: 1.0    # flat leverage overnight (gap risk)
+
+  # --- dynamic leverage matrix ---
+  crypto_max_leverage: 1.5       # confirmed low-vol breakout only
+  letf_max_leverage: 1.0         # LETFs already carry 3x internal leverage
+  win_rate_floor: 0.42           # below this -> force 1.0x / cash
+  equity_gap_atr_mult: 3.0       # equities: 3x ATR buffer vs overnight gaps
+
+  # --- kelly sizing (fractional, per course: full Kelly = brutal drawdowns) ---
+  kelly_fraction: 0.5            # HALF Kelly as mandated by the course
+  risk_per_trade: 0.015          # cap loss per trade at 1.5% of equity (1-2% rule)
+  min_trades: 20
+  lookback: 100
+  warmup_fraction: 0.10
+  min_position_usd: 100.0
+
+  # --- circuit breakers (absolute hard stops) ---
+  daily_dd_reduce: 0.04          # >4% daily DD -> halve sizes rest of day
+  daily_dd_halt: 0.06            # >6% daily DD -> close all, halt rest of day
+  weekly_dd_reduce: 0.10         # >10% weekly DD -> halve sizes rest of week
+  weekly_dd_halt: 0.15           # >15% weekly DD -> close all, halt rest of week
+  peak_dd_lock: 0.25             # >25% peak DD -> hard lock file (manual delete)
+  reduce_factor: 0.50
+
+  # --- order validation ---
+  max_spread: 0.01               # reject if bid-ask spread > 1.0%
+  dup_window_seconds: 10         # block duplicate symbol+direction within 10s
+
+  # --- correlation spectrum ---
+  corr_threshold: 0.85           # >0.85 rolling correlation triggers the guard
+  corr_reduce: 0.25              # reduce aggregate sizing by 25% when co-holding
+
+# Proactive tail-risk monitor (risk/tail_monitor.py, Meridian L5 pattern).
+# De-grosses on CONDITIONS (implied vol) before losses are realized; the
+# reactive circuit breakers above remain as the second line of defense.
+tail_risk:
+  caution_vix: 25.0              # VIX > 25 -> gross exposure capped at 80%
+  danger_vix: 35.0               # VIX > 35 -> capped at 50%
+  crisis_vix: 50.0               # VIX > 50 -> fully to cash
+  caution_cap: 0.80
+  danger_cap: 0.50
+  crisis_cap: 0.00
+
+# Parallel strategy registry (core.strategy_registry / core.registered_strategies).
+# enabled toggles a strategy without a restart; weight_min/max bound its capital.
+strategies:
+  hmm_regime:
+    enabled: true
+    symbols: [SPY, QQQ]
+    weight_min: 0.10
+    weight_max: 0.50
+  momentum_breakout:
+    enabled: true
+    symbols: [AAPL, NVDA, TSLA]
+    weight_min: 0.05
+    weight_max: 0.30
+  mean_reversion:
+    enabled: false  # stub for later
+    symbols: [XLU, XLP]
+    weight_min: 0.05
+    weight_max: 0.25
+
+# Capital allocator (core.capital_allocator). Sets each strategy's capital
+# fraction on a weekly schedule; never overrides individual trade decisions.
+allocator:
+  approach: inverse_vol          # equal_weight | inverse_vol | risk_parity | performance_weighted
+  reserve: 0.10                  # cash always held back
+  vol_window: 60
+  corr_window: 60
+  corr_merge_threshold: 0.80     # pairs above this are treated as one strategy
+  rebalance_threshold: 0.05      # min absolute weight change to act
+  daily_dd_halve: 0.02           # portfolio kill switch: halve all allocations
+  daily_dd_zero: 0.03            # portfolio kill switch: zero all allocations
+  rebalance_weekday: 6           # Sunday (Mon=0 .. Sun=6)
+
+# Portfolio-level risk manager (core.risk_manager.PortfolioRiskManager) -- sits
+# ABOVE the per-strategy risk managers with additional veto power.
+portfolio_risk:
+  max_aggregate_exposure: 0.80   # gross positions across all strategies <= 80%
+  max_single_symbol: 0.15        # aggregate per-symbol cap across strategies
+  max_portfolio_leverage: 1.25   # gross leverage cap regardless of allocations
+  daily_dd_reduce: 0.02          # portfolio daily DD -> halve new sizes
+  daily_dd_zero: 0.03            # portfolio daily DD -> block new orders
+  peak_dd_halt: 0.10             # portfolio peak DD -> halt + lock file
+  corr_window: 60
+  corr_cluster_threshold: 0.80
+  max_cluster_exposure: 0.30     # combined correlated-cluster exposure cap
+
+
+

@@ -1,0 +1,20 @@
+# credentials -- NEVER commit
+.env
+credentials.yaml
+
+# runtime state & locks
+state_snapshot.json
+*.CORRUPT.*.json
+logs/trading_halted.lock
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# data & logs (large / regenerable)
+logs/
+data/raw/
+data/intraday/
+node_modules/

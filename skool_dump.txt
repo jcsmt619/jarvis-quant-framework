@@ -1,0 +1,2854 @@
+Build a Monte Carlo Simulation Dashboard as a Streamlit app. Import and use the design system from design_system.py.
+
+FUNCTIONALITY:
+
+1. Input: Accept a CSV upload of backtest results with columns: date, trade_return. If no CSV is uploaded, generate realistic sample backtest data for demonstration (about 200 trades, mix of winners and losers, slightly positive edge, some clustering of losses).
+
+2. Simulation:
+
+   - Run 1,000 iterations
+
+   - For each iteration: randomly shuffle trade order AND add random noise (up to +/- 0.3%) to each trade return
+
+   - Calculate equity curve for each iteration starting from $100,000
+
+   - Track max drawdown for each iteration
+
+3. Statistics to calculate:
+
+   - Median final portfolio value
+
+   - 5th percentile and 95th percentile final values
+
+   - Probability of ending with less than starting capital
+
+   - Probability of hitting 20% drawdown at any point
+
+   - Probability of hitting 30% drawdown at any point
+
+   - Max drawdown distribution: 5th, 25th, 50th, 75th, 95th percentile
+
+   - Where the original backtest result falls in the distribution (percentile)
+
+4. Overfitting detection:
+
+   - If original backtest is above 90th percentile of simulations, flag warning
+
+LAYOUT:
+
+Top row — 4 metric cards using metric_card() styling:
+
+- "Probability of Loss" — colored red if above 30%, amber 10-30%, green below 10%
+
+- "Median Return" — colored by sign
+
+- "Worst 5% Max Drawdown" — always red tinted
+
+- "Overfitting Risk" — "LOW" in green, "MEDIUM" in amber, or "HIGH" in red based on where original falls in distribution
+
+Main chart — THE FAN CHART (this is the visual hero of the entire video):
+
+- Full width, tall chart
+
+- Plot all 1,000 equity curves with very low opacity (0.015-0.02) creating a glowing cloud effect
+
+- 5th-95th percentile band as a shaded region in soft blue
+
+- 25th-75th percentile as a slightly more opaque inner band
+
+- Median curve as a bold line in ACCENT_CYAN
+
+- Original backtest as a bold white line that stands out from the cloud
+
+- The overlapping low-opacity curves should create a natural gradient/glow effect — this is what makes it visually stunning
+
+- Use get_plotly_layout() as base
+
+Below — two side-by-side charts:
+
+- Left: Histogram of final portfolio values — dark bars with ACCENT_CYAN edges, vertical white dashed line showing original result
+
+- Right: Histogram of max drawdowns — dark bars with ACCENT_RED edges
+
+Bottom — Interpretation card:
+
+- Dark card with section_header("Analysis")
+
+- Plain English: "Based on 1,000 simulations, there is a X% chance of losing money, a Y% chance of a 20%+ drawdown, and the median outcome is Z% return. Your original backtest returned W%, which falls in the Nth percentile."
+
+- If overfitting warning: amber-bordered card with warning text
+
+Sidebar:
+
+- CSV upload
+
+- Starting capital input (default $100,000)
+
+- Number of simulations slider (default 1,000, max 5,000)
+
+- "Run Simulation" button
+
+The fan chart MUST look cinematic. When 1,000 semi-transparent curves overlap, it should create a beautiful glowing probability cloud that immediately grabs attention in a YouTube thumbnail.Build a Sensitivity Analysis Dashboard as a Streamlit app. Import and use the design system from design_system.py.
+
+FUNCTIONALITY:
+
+1. Include a built-in demo strategy: Simple moving average crossover on SPY (fast MA crosses above slow MA = buy, crosses below = sell). Default parameters:
+
+   - fast_ma: base=10, test range 5-30, step 1
+
+   - slow_ma: base=50, test range 20-100, step 5
+
+   - stop_loss_pct: base=2.0, test range 0.5-5.0, step 0.5
+
+   - take_profit_pct: base=4.0, test range 1.0-10.0, step 0.5
+
+2. For each parameter:
+
+   - Hold all others at base value
+
+   - Sweep target parameter across its range
+
+   - Run backtest for each value
+
+   - Record: total return, Sharpe ratio, max drawdown, win rate
+
+3. Robustness scoring:
+
+   - For each parameter: score 0-100 based on coefficient of variation of performance across the range
+
+   - Overall robustness: average of all parameter scores
+
+   - Classify: above 70 = "Robust", 40-70 = "Moderate", below 40 = "Fragile"
+
+4. Data: Download SPY daily data via yfinance, default last 5 years
+
+LAYOUT:
+
+Top — Overall robustness score:
+
+- Large circular gauge or arc meter
+
+- Colored: green above 70, amber 40-70, red below 40
+
+- Score number in center, large and bold
+
+- Label "STRATEGY ROBUSTNESS" above
+
+Main visual — Summary heatmap:
+
+- Parameters on Y axis, metrics on X axis
+
+- Each cell colored:
+
+  - Deep green (#00c853 at 80%): within 10% of base performance
+
+  - Cyan (#00d4ff at 60%): within 20%
+
+  - Amber (#ffc107 at 60%): within 40%
+
+  - Red (#ff1744 at 60%): beyond 40% degradation
+
+- Cell values shown in small monospace text
+
+- This should be immediately readable — green = robust, red = fragile
+
+Below — Per-parameter detail charts:
+
+- One plotly line chart per parameter
+
+- X axis: parameter value, Y axis: performance metric
+
+- Base value marked with vertical dashed cyan line
+
+- "Stable zone" (within 20% of base) shown as a subtle green-tinted background band
+
+- Performance line in white
+
+- Chart title: parameter name + robustness score
+
+Bottom — per-parameter interpretation:
+
+- Cards with: "fast_ma is Robust (82/100) — performance stays stable across 5-30 range"
+
+- Or: "stop_loss_pct is Fragile (28/100) — small changes cause large performance swings, possible overfitting"
+
+- Green left border for robust, red for fragile
+
+Sidebar:
+
+- Ticker selection
+
+- Date range
+
+- Option to customize parameter ranges
+
+- "Run Analysis" button Build a Multi-Asset Regime Backtester Dashboard as a Streamlit app. Import and use the design system from design_system.py.
+
+FUNCTIONALITY:
+
+1. Default assets: SPY, BTC-USD, GLD, TLT. Allow user to add/remove tickers via sidebar.
+
+2. For each asset independently:
+
+   - Download daily data via yfinance (default last 5 years)
+
+   - Train separate HMM regime detector using forward algorithm only (no look-ahead bias)
+
+   - Apply same allocation rules: 95% allocation in low-vol regimes, 60% in high-vol, scale linearly between
+
+   - Run walk-forward backtest: train on 1 year, test on 6 months, roll forward
+
+3. Benchmarks per asset:
+
+   - Buy and hold
+
+   - 200-day SMA trend following (long above SMA, flat below)
+
+4. Stress test mode:
+
+   - Isolate performance during specific crisis windows:
+
+     - 2008 Financial Crisis: Sep 2008 - Mar 2009
+
+     - 2020 Covid: Feb 2020 - Apr 2020
+
+     - 2022 Rate Hikes: Jan 2022 - Oct 2022
+
+   - Show strategy vs buy-and-hold during each crisis specifically
+
+5. Rank assets by Sharpe ratio improvement over buy and hold
+
+LAYOUT:
+
+Top — Asset tabs:
+
+- Each asset gets its own color: SPY=ACCENT_CYAN, BTC-USD=ACCENT_AMBER, GLD=#FFD700 (gold), TLT=ACCENT_VIOLET
+
+- Show small summary under each tab: strategy return, Sharpe improvement, thumbs up/down icon
+
+Hero section — Equity curves:
+
+- For selected asset: strategy line in the asset's color, buy-and-hold as muted gray dashed line
+
+- Full width, clean, using get_plotly_layout()
+
+- Clear visual separation between strategy and benchmark
+
+Middle — Regime Timeline Strips (THIS IS THE VISUAL HOOK):
+
+- All assets stacked vertically as horizontal colored bars
+
+- Each bar divided into segments colored by regime (using REGIME_COLORS)
+
+- So you see 4 parallel bars showing how SPY, BTC, GLD, TLT shift between regimes at different times
+
+- This should be visually intuitive — you can immediately see correlations and divergences in regime timing across assets
+
+- Label each bar with the asset name on the left
+
+Below — Comparison table:
+
+- Dark styled table showing all assets side by side
+
+- Columns: Asset, Strategy Return (ann.), Buy&Hold Return (ann.), Strategy Max DD, Buy&Hold Max DD, Strategy Sharpe, Buy&Hold Sharpe, Sharpe Improvement
+
+- Color code Sharpe Improvement: green if positive, red if negative
+
+- Highlight the best performing asset row with a subtle glow border
+
+Bottom — Stress test results:
+
+- Three columns, one per crisis period
+
+- Each shows a mini bar chart: strategy drawdown vs buy-and-hold drawdown per asset
+
+- Strategy bars in asset color, buy-and-hold bars in gray
+
+Sidebar:
+
+- Asset list management (add/remove tickers)
+
+- Date range
+
+- Walk-forward window sizes (train period, test period)
+
+- "Run Backtest" button
+
+Summary text: "Regime detection added the most value for [ASSET] with a Sharpe improvement of X. It struggled most with [ASSET], suggesting regime detection may not suit this asset class as well." Build a Portfolio Risk Dashboard as a Streamlit app. Import and use the design system from design_system.py.
+
+FUNCTIONALITY:
+
+1. Portfolio Data:
+
+   - Since we may not have an Alpaca account connected, build this to work in DEMO MODE with sample positions:
+
+     - SPY: 100 shares, entry $540, current $558
+
+     - QQQ: 50 shares, entry $480, current $495
+
+     - AAPL: 75 shares, entry $210, current $218
+
+     - GLD: 40 shares, entry $235, current $242
+
+     - TLT: 60 shares, entry $88, current $85
+
+   - Allow user to edit positions in sidebar or upload a CSV
+
+   - Also include option to connect to Alpaca API via keys in sidebar (optional, not required)
+
+2. Regime Overlay:
+
+   - For each position, run HMM regime detection (forward algorithm, download data via yfinance)
+
+   - Show current regime, confidence, and days in current regime per position
+
+3. Correlation Matrix:
+
+   - Calculate 60-day rolling correlation between all positions
+
+   - Flag pairs above 0.85 with warning
+
+4. Stress Testing:
+
+   - Apply historical drawdowns from 3 periods to current positions:
+
+     - 2008: SPY -56%, QQQ -54%, AAPL -61%, GLD +21%, TLT +33%
+
+     - 2020: SPY -34%, QQQ -28%, AAPL -31%, GLD -3%, TLT +21%
+
+     - 2022: SPY -25%, QQQ -33%, AAPL -30%, GLD -4%, TLT -31%
+
+   - For any ticker not in the defaults, use SPY drawdown as approximation
+
+   - Show estimated portfolio loss in $ and %
+
+LAYOUT:
+
+Top bar (full width, premium feel):
+
+- Total portfolio value: HUGE text, 48-56px, bold white, subtle cyan text-shadow
+
+- Total P&L: large, colored green/red with up/down arrow
+
+- Number of positions
+
+- Portfolio regime health: "X of Y positions in favorable regimes"
+
+- Market status: green dot + "Market Open" or red dot + "Market Closed"
+
+Left column (60% width) — Positions:
+
+- Each position as a dark card/row:
+
+  - Ticker name bold 18px
+
+  - regime_badge() with glow showing current regime + confidence
+
+  - Entry price, current price
+
+  - P&L as a mini horizontal bar: extends right (green) for gains, left (red) for losses
+
+  - Days in current regime as small muted text
+
+- The P&L bars give instant visual read of the whole portfolio
+
+Right column (40% width) — stacked panels:
+
+Panel 1 — Correlation Heatmap:
+
+- Square heatmap, dark cells
+
+- Color scale: deep navy (low) → ACCENT_CYAN (moderate) → white (high)
+
+- Cells above 0.85: red border + warning indicator
+
+- Number in each cell in small monospace
+
+- section_header("Correlation Risk")
+
+Panel 2 — Stress Test:
+
+- Three rows for 2008, 2020, 2022
+
+- Each: scenario name, estimated $ loss (large, colored), percentage loss
+
+- Horizontal bar showing severity
+
+- Green tint if loss under 10%, amber 10-20%, red over 20%
+
+- section_header("Stress Test")
+
+Panel 3 — Regime Watchlist:
+
+- Allow user to add extra tickers to monitor (sidebar input)
+
+- Show: ticker, current price (from yfinance), regime_badge(), confidence bar
+
+- Sort by confidence descending
+
+- section_header("Watchlist")
+
+Sidebar:
+
+- Position editor (add/remove/edit positions)
+
+- CSV upload option
+
+- Optional Alpaca API key fields
+
+- Watchlist ticker input
+ 
+- Refresh button Build a Sentiment Analysis Dashboard as a Streamlit app. Import and use the design system from design_system.py.
+
+FUNCTIONALITY:
+
+1. Data Sources (use whichever works, try in order):
+
+   - Try NewsAPI (newsapi.org) if user provides API key in sidebar
+
+   - Fall back to Google News RSS feeds (no API key needed): fetch RSS from https://news.google.com/rss/search?q={ticker}+stock for each ticker
+
+   - For each article capture: title, source, published date, snippet
+
+2. Sentiment Scoring:
+
+   - Use VADER from nltk (install nltk and download vader_lexicon)
+
+   - Score each article from -1 (bearish) to +1 (bullish) using compound score
+
+   - Aggregate per ticker: weighted average with more recent articles weighted 2x
+
+   - Sentiment momentum: compare current score to average of articles older than 3 days
+
+3. Key Drivers:
+
+   - For each ticker, show top 5 articles by absolute sentiment score
+
+   - Display: headline, source, date, sentiment score
+
+4. Default tickers: SPY, AAPL, NVDA, TSLA, BTC-USD (configurable in sidebar)
+
+5. Show disclaimer at bottom: "Sentiment scores are based on automated text analysis and may misinterpret context. Use as one input among many."
+
+LAYOUT — This should look like a professional morning briefing:
+
+Top bar:
+
+- "MARKET SENTIMENT BRIEFING" title
+
+- Current date and time
+
+- Number of articles analyzed
+
+- Styled like a newsroom or financial terminal header
+
+Ticker cards (horizontal row, equal width):
+
+- Each ticker gets its own card:
+
+  - Ticker name large and bold at top
+
+  - Sentiment gauge: semicircular arc from -1 to +1
+
+    - Left side deep red, center gray, right side deep green
+
+    - Needle/indicator positioned at current sentiment score
+
+    - Needle and score number glow in the corresponding color
+
+    - The gauge should look like an instrument panel — this is the visual hook
+
+  - Below gauge: sentiment direction arrow (↑ or ↓) with "Improving" or "Declining" text
+
+  - Article count in small muted text at bottom
+
+Detail panel (appears below when user clicks/selects a ticker):
+
+- section_header("Key Drivers — {TICKER}")
+
+- Top 5 articles as dark cards:
+
+  - Source name and date (small, muted)
+
+  - Headline (bold, white)
+
+  - Sentiment score as a small colored dot (green/red/gray)
+
+  - Green left border for bullish articles, red for bearish
+
+Bottom — Aggregate bar:
+
+- Single horizontal stacked bar showing overall market sentiment
+
+- Each ticker's contribution as a colored segment
+
+- Centered at 0 — bullish tickers extend right, bearish extend left
+
+- Ticker labels on each segment
+
+Sidebar:
+
+- Ticker list management
+
+- Optional NewsAPI key input
+
+- Article lookback period (default 3 days)
+
+- "Refresh" button
+
+The sentiment gauges are the hero visual. They should look like cockpit instruments — dark background, glowing indicators, precise typography. Immediately readable at a glance. Build a Regime-Based Market Screener Dashboard as a Streamlit app. Import and use the design system from design_system.py.
+
+FUNCTIONALITY:
+
+1. Universe of tickers to scan — use these defaults (configurable in sidebar):
+
+   - Large cap: AAPL, MSFT, GOOGL, AMZN, NVDA, META, TSLA, JPM, V, UNH
+
+   - ETFs: SPY, QQQ, IWM, DIA, XLF, XLE, XLK, GLD, TLT, HYG
+
+   - Crypto: BTC-USD, ETH-USD, SOL-USD
+
+   - Allow user to add custom tickers
+
+2. For each ticker:
+
+   - Download last 2 years daily data via yfinance
+
+   - Run HMM regime detection (forward algorithm only, 3-5 regimes via BIC)
+
+   - Classify current regime
+
+   - Calculate: current regime confidence, days in current regime, 50-day SMA position (above/below), 20-day volume trend (increasing/decreasing)
+
+3. Filtering:
+
+   - Filter by regime: show only Low Vol, only High Vol, etc.
+
+   - Filter by confidence: minimum confidence threshold slider
+
+   - Filter by SMA: only above 50 SMA, only below
+
+   - Filter by volume: only increasing volume
+
+   - Sort by: confidence (default), days in regime, ticker name
+
+4. Summary stats:
+
+   - How many tickers in each regime category
+
+   - Average confidence across the universe
+
+   - Which sector/category has the most favorable regimes right now
+
+LAYOUT:
+
+Top — Summary bar:
+
+- 3-4 metric cards showing: "X tickers in Low Vol", "Y tickers in High Vol", "Average Confidence: Z%", "Strongest Regime: [name]"
+
+- Color each card by the regime it references
+
+Main — Screener results table:
+
+- Dark styled table, full width
+
+- Columns: Ticker, Current Price, Regime (as regime_badge()), Confidence (as a thin colored progress bar), Days in Regime, vs 50 SMA (↑ green or ↓ red), Volume Trend (↑ or ↓)
+
+- Rows sortable by clicking column headers
+
+- Regime badges should use the standard regime colors with glow
+
+- Highlight rows where ALL filters align (low vol + above SMA + increasing volume) with a subtle cyan left border — these are the "cleanest setups"
+
+- Alternating subtle row shading for readability
+
+Right panel or expandable row — Quick chart:
+
+- When user clicks a ticker, show a small price chart with regime background bands (same style as the main regime detection dashboard)
+
+- Below the chart: regime history for this ticker — what percentage of time in each regime over the last year
+
+Bottom — Regime distribution:
+
+- Horizontal stacked bar chart showing the universe breakdown: what % of tickers are in Low Vol vs Medium vs High Vol vs Uncertain
+
+- Colored by REGIME_COLORS
+
+- This gives an instant read on overall market conditions
+
+Sidebar:
+
+- Ticker universe management
+
+- Filter controls (regime, confidence, SMA, volume)
+
+- Sort selection
+
+- "Scan Market" button (this triggers the full analysis)
+
+- Show a progress bar while scanning since it processes many tickers
+
+Loading: Since scanning 30+ tickers takes time, show a progress bar with "Scanning {ticker}..." as it processes each one. Cache results so the dashboard is responsive after initial scan.Build a Correlation Break Detector Dashboard as a Streamlit app. Import and use the design system from design_system.py.
+
+FUNCTIONALITY:
+
+1. Default asset pairs to monitor (configurable in sidebar):
+
+   - SPY / QQQ (large cap equity)
+
+   - GLD / TLT (safe haven)
+
+   - SPY / IWM (large cap vs small cap)
+
+   - BTC-USD / ETH-USD (crypto majors)
+
+   - SPY / EEM (US vs emerging markets)
+
+   - Allow user to add custom pairs
+
+2. Data:
+
+   - Download daily data via yfinance for all assets (default last 3 years)
+
+   - Calculate rolling correlations at 20-day and 60-day windows
+
+   - Calculate historical mean and standard deviation of each pair's 60-day rolling correlation
+
+3. Break Detection:
+
+   - Calculate z-score: (current_correlation - historical_mean) / historical_std
+
+   - Classify:
+
+     - "Normal": z-score above -1.5
+
+     - "Notable": z-score between -1.5 and -2.0
+
+     - "Significant": z-score between -2.0 and -2.5
+
+     - "Extreme": z-score below -2.5
+
+4. Historical Context:
+
+   - When a break is detected (Notable or worse), find all previous periods with similar z-scores
+
+   - For each historical instance, record what happened to each asset 5, 10, and 20 trading days after
+
+   - Calculate average forward returns across all instances
+
+   - Include note: "Past correlation breaks do not guarantee similar outcomes. Correlations can drift without signaling directional moves."
+
+5. Save alerts to a JSON file with timestamp, pair, z-score, severity
+
+LAYOUT:
+
+Top — Status overview (horizontal row of cards, one per pair):
+
+- Each card shows:
+
+  - Pair name (e.g., "SPY / QQQ") bold
+
+  - Current 60-day correlation as large number
+
+  - Z-score in smaller text below
+
+  - Status badge:
+
+    - Normal: dark gray pill, muted text, visually subdued
+
+    - Notable: amber pill with subtle glow
+
+    - Significant: orange pill with medium glow and border
+
+    - Extreme: red pill with pulsing glow animation (use CSS animation)
+
+- Cards in Normal status should be visually quiet
+
+- Cards in break status should visually POP — they're what matters
+
+- This row is the visual hook: mostly calm gray with one or two glowing warnings
+
+Main chart (for selected pair):
+
+- Rolling 60-day correlation over time as a line chart
+
+- Historical mean as horizontal dashed line in ACCENT_CYAN
+
+- -2 standard deviation threshold as horizontal dashed line in ACCENT_RED
+
+- Area between correlation line and threshold:
+
+  - Green tinted when above threshold (normal)
+
+  - Red tinted when below threshold (break)
+
+- Background shading on historical break periods at low red opacity
+
+- Current correlation clearly marked
+
+- Use get_plotly_layout() as base
+
+Below chart — 20-day and 60-day comparison:
+
+- Two small line charts side by side showing both rolling windows
+
+- Helps identify if this is a short-term blip (20-day breaks but 60-day stable) or a sustained shift (both breaking)
+
+Bottom panel (only visible when a pair is in Notable/Significant/Extreme status):
+
+- section_header("Historical Context")
+
+- Table of previous break instances:
+
+  - Date of break, z-score at the time
+
+  - Asset 1 return after 5/10/20 days (colored green/red)
+
+  - Asset 2 return after 5/10/20 days (colored green/red)
+
+- Average outcomes row at bottom, bold
+
+- Caveat text in muted italic below the table
+
+Sidebar:
+
+- Pair management (add/remove pairs)
+
+- Correlation window selector (20-day, 60-day, 120-day)
+
+- Z-score threshold for alerting (default -2.0)
+
+- Date range
+
+- "Check Correlations" button
+
+Alert log:
+
+- Expandable section at the very bottom showing recent alerts from the JSON log
+
+- Each alert: timestamp, pair, z-score, severity badge 
+AI Pathways
+
+Search
+
+
+
+Community
+Classroom
+Calendar
+Members
+Leaderboards
+About
+Search
+
+
+
+B. ALL ABOUT BACKTESTING
+0%
+Backtesting Concepts
+Backtesting & Validation
+Prompt Library
+Risk Management & Sizing
+Trade Review
+Sample trades (CSV)
+Backtesting Concepts
+
+Everything you need to test a trading system. The deck covers every validation method, the tool lets you analyze your own trades, and the sample data lets you try it in seconds. The backtest is the most optimistic version of your results. This module is how you find out what's real before you fund it.
+
+
+
+Resources
+Backtesting
+Backtesting Concepts - B. ALL ABOUT BACKTESTING · AI Pathways
+Backtesting
+
+
+
+AI Pathways
+
+Search
+
+
+
+Community
+Classroom
+Calendar
+Members
+Leaderboards
+About
+Search
+
+
+
+B. ALL ABOUT BACKTESTING
+0%
+Backtesting Concepts
+Backtesting & Validation
+Prompt Library
+Risk Management & Sizing
+Trade Review
+Sample trades (CSV)
+Backtesting & Validation
+
+A full walkthrough of how to trust a backtest. It covers why backtests lie, what overfitting is and how to spot it, drawdown and the recovery math, then the methods one by one: in-sample, walk-forward, Monte Carlo, sensitivity, purged cross-validation, noise tests, regime testing, and paper trading. It finishes with the metrics that matter and their thresholds, a robust-vs-overfit checklist, costs and data quality, and a worked example of reading a real result. Start here, then use the tool on your own numbers.
+
+
+
+Resources
+Backtesting Guide
+Backtesting & Validation - B. ALL ABOUT BACKTESTING · AI Pathways
+Backtesting Guide
+
+
+
+AI Pathways
+
+Search
+
+
+
+Community
+Classroom
+Calendar
+Members
+Leaderboards
+About
+Search
+
+
+
+B. ALL ABOUT BACKTESTING
+0%
+Backtesting Concepts
+Backtesting & Validation
+Prompt Library
+Risk Management & Sizing
+Trade Review
+Sample trades (CSV)
+Backtesting & Validation
+
+A full walkthrough of how to trust a backtest. It covers why backtests lie, what overfitting is and how to spot it, drawdown and the recovery math, then the methods one by one: in-sample, walk-forward, Monte Carlo, sensitivity, purged cross-validation, noise tests, regime testing, and paper trading. It finishes with the metrics that matter and their thresholds, a robust-vs-overfit checklist, costs and data quality, and a worked example of reading a real result. Start here, then use the tool on your own numbers.
+
+
+
+Resources
+Backtesting Guide
+Backtesting & Validation - B. ALL ABOUT BACKTESTING · AI Pathways
+Backtesting Guide
+
+
+
+AI Pathways
+
+Search
+
+
+
+Community
+Classroom
+Calendar
+Members
+Leaderboards
+About
+Search
+
+
+
+B. ALL ABOUT BACKTESTING
+0%
+Backtesting Concepts
+Backtesting & Validation
+Prompt Library
+Risk Management & Sizing
+Trade Review
+Sample trades (CSV)
+Backtesting & Validation
+
+A full walkthrough of how to trust a backtest. It covers why backtests lie, what overfitting is and how to spot it, drawdown and the recovery math, then the methods one by one: in-sample, walk-forward, Monte Carlo, sensitivity, purged cross-validation, noise tests, regime testing, and paper trading. It finishes with the metrics that matter and their thresholds, a robust-vs-overfit checklist, costs and data quality, and a worked example of reading a real result. Start here, then use the tool on your own numbers.
+
+
+
+Resources
+Backtesting Guide
+Backtesting & Validation - B. ALL ABOUT BACKTESTING · AI Pathways
+Backtesting Guide
+
+
+Backtesting & Validation Prompt
+Library
+A Claude Code build library for Track B · B6
+These are copy-paste prompts for Claude Code. Each one builds a real piece of the backtesting and validation
+toolkit that the B6 deck teaches. Paste a prompt into Claude Code, let it build the tooling, then focus on reading the
+results.
+Work through them roughly in order. The early prompts scaffold the engine; the later ones add the validation layers
+(walk-forward, purged CV, CPCV, deflated Sharpe, Monte Carlo, robustness, costs) and the final report. Every
+prompt assumes paper-first discipline and references your CLAUDE.md rules.
+How to use a prompt: fill in anything in [brackets] with your specifics, paste it into Claude Code, and verify each
+piece works before moving to the next. Ask Claude Code to run the tests it writes.
+Prompt 1 — The Backtester Scaffold
+Build the core engine everything else plugs into.
+AI Pathways · 2026 Track B · B6
+C L A U D E C O D E P R O M P T
+Build a backtesting engine in Python for a trading strategy, structured as a clean,
+separate module I can extend. Create this structure:
+backtest/
+ engine.py # the core event-driven backtest loop
+ data_handler.py # loads and serves historical OHLCV data, point-in-time
+ strategy_base.py # abstract base class strategies inherit from
+ portfolio.py # tracks positions, cash, and equity over time
+ metrics.py # computes performance metrics from the equity curve
+ costs.py # models commissions, spread, and slippage
+ results.py # stores and summarizes a backtest run
+Requirements:
+- The engine must be strictly point-in-time: at each step, a strategy can only see
+data up to and including the current bar, never future bars. Enforce this in
+data_handler so look-ahead is structurally impossible.
+- data_handler serves bars one at a time in chronological order.
+- portfolio tracks the full equity curve, not just the final value.
+- Every trade records entry time, exit time, size, entry price, exit price, and
+PnL.
+- Include a simple example strategy (a moving-average crossover) so I can run the
+engine end to end immediately.
+- Write unit tests for the engine, and a test that fails if any strategy tries to
+access a future bar.
+Explain the design as you build it, and keep the components separate so I can swap
+strategies and add validation layers later.
+Prompt 2 — The Look-Ahead Test
+The single most important safety check. Build it early and run it on everything.
+AI Pathways · 2026 Track B · B6
+C L A U D E C O D E P R O M P T
+Add a look-ahead bias detector to my backtesting engine. This is the most important
+validation tool, so make it strict.
+Build backtest/look_ahead_test.py that:
+- Runs the strategy normally and records every decision and the data available at
+that moment.
+- Verifies that no feature, indicator, or signal at time T uses any data from after
+time T. This includes checking that rolling calculations, normalization, and
+scaling use only past data.
+- Specifically tests for the classic mistakes: using the current bar's close to
+make a decision that would execute at the current bar's open, and computing any
+statistic (mean, std, min, max) over a window that includes future data.
+- Includes a deliberately broken strategy with look-ahead bias, and confirms the
+test catches it.
+- Fails loudly with a clear message identifying exactly where the leak is.
+Make this runnable as part of my test suite so I can run it on any strategy before
+trusting its backtest. Explain what each check is catching.
+Prompt 3 — Realistic Cost Modeling
+A backtest without costs is fiction. Make costs realistic and configurable.
+C L A U D E C O D E P R O M P T
+Improve the cost model in my backtesting engine so results are net of realistic
+trading costs. In backtest/costs.py, model:
+- Commissions: a configurable per-trade and/or per-share fee.
+- Bid-ask spread: assume I cross the spread on entry and exit (buy at ask, sell at
+bid), with a configurable spread in basis points or based on the data if available.
+- Slippage: a configurable model where my fill is worse than the decision price,
+optionally scaling with volatility or order size.
+Requirements:
+- Make all cost parameters configurable in one place so I can test sensitivity to
+them.
+- Apply costs to every trade automatically in the engine.
+- Add a summary that shows performance both gross and net of costs, so I can see
+how much costs eat.
+- Add a quick report of total costs paid and costs as a percentage of gross profit.
+Then run my example strategy and show me the before-and-after. Explain how
+sensitive the strategy is to the cost assumptions.
+AI Pathways · 2026 Track B · B6
+Prompt 4 — Performance Metrics
+Compute the metrics that actually tell you if a system is sound.
+C L A U D E C O D E P R O M P T
+Build a comprehensive performance metrics module (backtest/metrics.py) that takes
+an equity curve and trade list and computes:
+- Total and annualized return
+- Maximum drawdown, and average drawdown
+- Time in drawdown (how long spent below a prior peak)
+- Sharpe ratio (annualized)
+- Sortino ratio (downside-only risk)
+- Calmar ratio (return over max drawdown)
+- Win rate, average win, average loss, and the win/loss ratio
+- Profit factor (gross profit over gross loss)
+- Recovery factor
+- Number of trades and average holding period
+Requirements:
+- Make it work on any equity curve, not just my example.
+- Produce a clean printed summary table.
+- Flag clearly when there are too few trades for the metrics to be statistically
+meaningful (warn below a configurable threshold, default 100 trades).
+Explain what each metric tells me and which ones matter most for judging whether a
+strategy is real versus overfit.
+Prompt 5 — Train/Test Split & Out-of-Sample Discipline
+Reserve unseen data and protect it.
+AI Pathways · 2026 Track B · B6
+C L A U D E C O D E P R O M P T
+Add proper data-splitting to my backtesting workflow so I never tune on data I then
+test on. Build backtest/splitter.py that:
+- Splits historical data chronologically into a training set and a test set, with a
+configurable ratio (default 70/30).
+- Optionally reserves a final hold-out slice that I touch only once, at the very
+end.
+- Provides a clean interface to run a strategy on the training set (where I'm
+allowed to tune) versus the test set (which I treat as unseen).
+- Tracks and warns me how many times I've evaluated against the test set, because
+every peek risks turning it into training data.
+Requirements:
+- The split must respect time order; no shuffling.
+- Make it obvious in the code and output which results are in-sample versus out-ofsample.
+Explain why out-of-sample discipline matters and how to avoid accidentally leaking
+the test set into my tuning.
+Prompt 6 — Walk-Forward Analysis
+The core out-of-sample validation. Build it carefully.
+C L A U D E C O D E P R O M P T
+Build a walk-forward analysis framework (backtest/walk_forward.py) for my strategy.
+It should:
+- Split history into sequential windows. For each step: train/tune on an in-sample
+window, then test on the next, unseen out-of-sample window, then roll forward and
+repeat.
+- Support both rolling (fixed-length, sliding) and anchored (expanding) training
+windows, configurable.
+- Collect the out-of-sample results from every step and stitch them into a single
+combined out-of-sample equity curve and metric set.
+- Report, for each window: in-sample performance, out-of-sample performance, and
+the gap between them.
+- Produce a summary that highlights the in-sample vs out-of-sample gap across all
+windows, since a large gap signals overfitting.
+Requirements:
+- Make window sizes and the train/test ratio configurable.
+- Clearly separate the out-of-sample results (which I trust) from the in-sample
+results (which I don't).
+After building it, run it on my strategy and walk me through reading the output,
+especially the in-sample vs out-of-sample gap.
+AI Pathways · 2026 Track B · B6
+Prompt 7 — Purged & Embargoed Cross-Validation
+Cross-validation that respects time and removes overlap.
+C L A U D E C O D E P R O M P T
+Build purged and embargoed k-fold cross-validation for my strategy (backtest/
+purged_cv.py), suitable for financial time-series data with overlapping labels.
+Implement:
+- Standard k-fold splitting, but with purging: remove from the training set any
+samples whose label/outcome window overlaps the test fold's time range.
+- Embargoing: add a configurable buffer gap after each test fold, dropping training
+samples in that buffer to handle serial correlation.
+- A clear interface that takes my data, the label horizon (how many bars forward
+each outcome is measured over), and the embargo size, and yields purged, embargoed
+train/test splits.
+Requirements:
+- Explain in comments exactly which samples are being purged and why, for each
+fold.
+- Include a small worked check that shows the overlap being correctly removed.
+- Report performance across the folds.
+Walk me through why standard k-fold leaks information on financial data and how
+purging and embargoing fix it.
+Prompt 8 — Combinatorial Purged Cross-Validation (CPCV)
+Go from a single path to a distribution of results.
+AI Pathways · 2026 Track B · B6
+C L A U D E C O D E P R O M P T
+Build Combinatorial Purged Cross-Validation (CPCV) on top of my purged CV code
+(backtest/cpcv.py).
+Implement:
+- Split the data into N blocks. Generate the combinations of choosing k blocks as
+the test set and the rest as training, for all such combinations, producing many
+distinct train/test paths.
+- Apply purging and embargoing to every path, as in the purged CV module.
+- Run the strategy across all paths and collect a distribution of out-of-sample
+performance (returns, Sharpe, drawdown), not a single number.
+- Summarize the distribution: median, spread, best and worst paths, and the
+fraction of paths that are profitable.
+Requirements:
+- Make N and k configurable.
+- Produce a clear summary of the distribution, and flag when only a small fraction
+of paths are profitable (a sign the edge depends on luck).
+Explain how reading a distribution of results is more honest than a single
+backtest, and what a healthy versus worrying distribution looks like.
+Prompt 9 — Deflated & Probabilistic Sharpe Ratio
+Discount your results for how much you searched.
+AI Pathways · 2026 Track B · B6
+C L A U D E C O D E P R O M P T
+Build the Deflated Sharpe Ratio and Probabilistic Sharpe Ratio (backtest/
+deflated_sharpe.py).
+Implement:
+- Probabilistic Sharpe Ratio: given an observed Sharpe, the track length, and the
+returns' skew and kurtosis, compute the probability that the true Sharpe exceeds a
+chosen benchmark (default zero).
+- Deflated Sharpe Ratio: adjust the observed Sharpe for the number of independent
+trials I ran while searching for the strategy, so the result accounts for multiple
+comparisons. Take the trial count as an input.
+- A function where I pass in my best strategy's Sharpe and the number of variations
+I tested, and it returns the deflated Sharpe and an interpretation.
+Requirements:
+- Make the trial count an explicit, required input, since honest deflation depends
+on it.
+- Include a worked example: a Sharpe of 2.4 found after 300 trials, showing how
+much it deflates.
+- Print a plain-language interpretation of whether the edge likely survives the
+search.
+Explain why a high Sharpe from heavy searching is inflated and how deflation
+corrects for it.
+Prompt 10 — Monte Carlo Simulation
+Stress-test the sequence of trades to see the full range of outcomes.
+AI Pathways · 2026 Track B · B6
+C L A U D E C O D E P R O M P T
+Build a Monte Carlo simulation tool for my strategy's results (backtest/
+monte_carlo.py).
+Implement:
+- Take the list of trade returns from a backtest.
+- Run many simulations (default 10,000), each one reshuffling the trade order and/
+or resampling trades with replacement, to build a distribution of possible equity
+curves.
+- From the distribution, compute: the median final return, the 5th and 95th
+percentile outcomes, the distribution of maximum drawdowns, the worst-case
+drawdown, and the probability of a drawdown worse than a threshold I set (risk of
+ruin).
+- Optionally let me set a position size and report how the worst-case drawdown
+changes with size, so I can use it to size positions.
+Requirements:
+- Make the number of simulations and the drawdown threshold configurable.
+- Produce a clear summary, and if possible a simple text histogram or percentile
+table of outcomes.
+Walk me through using the worst-case drawdown to decide a position size I can
+actually survive.
+Prompt 11 — Robustness & Parameter Sensitivity
+Check whether the edge survives small changes, or depends on a magic number.
+AI Pathways · 2026 Track B · B6
+C L A U D E C O D E P R O M P T
+Build a robustness and parameter sensitivity testing tool (backtest/robustness.py).
+Implement:
+- Parameter sensitivity: take a strategy parameter and a range of values around my
+chosen setting, run the backtest at each, and report performance across the range.
+I want to see whether there's a broad plateau of good performance or a single
+lonely peak.
+- Noise test: add small random perturbations to the price data, re-run the strategy
+multiple times, and check whether the edge survives. Report how much performance
+degrades.
+- Optionally test the strategy across different sub-periods of the data to see if
+it depends on one regime.
+Requirements:
+- For parameter sensitivity, produce a clear table or simple plot of parameter
+value versus performance, so I can see plateau versus peak at a glance.
+- Flag clearly when results look fragile (a sharp peak, or collapse under small
+noise).
+Explain what a robust result looks like versus a fragile, overfit one, and why a
+plateau is what I want.
+Prompt 12 — Regime & Benchmark Testing
+Know which conditions your strategy needs, and whether it beats the obvious alternative.
+C L A U D E C O D E P R O M P T
+Build a regime and benchmark testing tool (backtest/regime_benchmark.py).
+Implement:
+- Regime split: divide the history into different market conditions (for example
+trending vs choppy, and high vs low volatility, using simple, transparent rules),
+and report the strategy's performance separately in each. I want to know which
+regimes it needs and which it bleeds in.
+- Benchmark comparison: compare the strategy against simple baselines, buy-and-hold
+of the underlying, and a basic moving-average rule, on a risk-adjusted basis
+(Sharpe, max drawdown, total return).
+Requirements:
+- Make the regime definitions simple and transparent, not a black box.
+- Produce a clear side-by-side comparison of the strategy versus the benchmarks.
+- Flag clearly if a simple benchmark matches or beats my strategy risk-adjusted.
+Explain why a strategy that only works in one regime is a hidden bet on that
+regime, and why beating a simple benchmark is the minimum bar for a system to be
+worth running.
+AI Pathways · 2026 Track B · B6
+Prompt 13 — The Validation Report
+Tie it all together into one clear scorecard.
+C L A U D E C O D E P R O M P T
+Build a single validation report generator (backtest/validation_report.py) that
+runs my full validation suite on a strategy and produces one consolidated report.
+The report should run and summarize:
+- The look-ahead test (pass/fail, prominently at the top)
+- In-sample vs out-of-sample performance, and the gap
+- Walk-forward results across windows
+- Purged CV and CPCV distribution summaries
+- The deflated Sharpe, with the trial count I provide
+- Monte Carlo worst-case drawdown and risk of ruin
+- Parameter sensitivity (plateau vs peak)
+- Performance net of realistic costs
+- Regime breakdown and benchmark comparison
+- The key metrics: max drawdown, Sharpe, Sortino, Calmar, profit factor, win rate,
+number of trades
+Requirements:
+- End with a clear, honest verdict section that walks through the robust-vs-overfit
+checklist and flags every red flag found.
+- Make it export to a readable file (markdown or HTML) so I can keep it as a record
+for each strategy.
+- Do not sugarcoat. If the strategy fails any major test, say so plainly at the
+top.
+Explain how to read the report and what combination of results would make a
+strategy worth paper trading versus sending back to the drawing board.
+How this fits
+Concepts live in the B6 deck. These prompts build the tools that put those concepts to work. Run a strategy
+through prompt 13's full report before you ever paper trade it, and keep the report as your validation record.
+One rule, everywhere: nothing goes live until it passes. Build the tools, run them rigorously, and trust only what
+survives.
+AI Pathways · 2026 Track B · B6 T R A C K B · F O U N D A T I O N
+Risk Management & Sizing
+The discipline that keeps you in the game. How much to bet, where to stop, and how to make
+sure no single trade or bad streak can ruin you.
+AI Pathways 2026
+R U L E Z E R O
+Survival Comes First
+You can be right often and still blow up if one trade is sized to ruin you.
+This is the most important discipline in trading, and the most ignored. Great analysis and a real edge
+mean nothing if a single bad trade can wipe you out. Professionals obsess over not losing far more
+than over winning, because you can't compound returns if you're out of the game. Everything here
+serves one goal: make sure no trade, and no losing streak, can take you out.
+Protect the downside first. The upside takes care of itself.
+AI Pathways 2026 Track B · Foundation
+S E C T I O N 0 1
+Position Sizing
+How much to bet on any single trade
+AI Pathways 2026 Track B · Foundation
+T H E C O R E R U L E
+Risk a Small, Fixed Amount
+Decide what you'll lose on a trade before you take it, and keep it small.
+The foundation of sizing is simple: cap the loss on any single trade at a small, fixed slice of your
+account, commonly 1-2%. Not the position size, the loss if your stop is hit. This one rule means a string
+of losers is a flesh wound, not a fatal blow. It's boring, and it's the single most important habit
+separating traders who last from those who don't.
+1-2% risk per trade means it takes a long, unlucky streak to do real damage. That's the point.
+AI Pathways 2026 Track B · Foundation
+T H E M E T H O D S
+Ways to Size a Position
+Several standard approaches, from simple to sophisticated.
+Fixed fractional
+Risk a fixed % of the account each trade. Simple,
+robust, the common default.
+Volatility-based
+Size inversely to volatility, so each trade carries similar
+risk.
+ATR sizing
+Use ATR to set size from stop distance. Bigger stop,
+smaller size.
+Risk parity
+Across many strategies, balance risk contribution, not
+dollar amounts.
+Most people should start with fixed fractional. The others refine it as you grow.
+AI Pathways 2026 Track B · Foundation
+A W O R K E D E X A M P L E
+Sizing a Trade, Step by Step
+The same math every time. Stop distance sets the size.
+The setup
+Account: $20,000 · Risk per trade: 1% = $200 max loss
+Buy at $50, stop at $47 → risk is $3 per share
+The math
+$200 max loss ÷ $3 risk per share = 66 shares
+66 shares × $50 = $3,300 position (about 16% of the account)
+The point: the stop distance decides the size, not a gut feel about how much to put in.
+AI Pathways 2026 Track B · Foundation
+S E C T I O N 0 2
+The Kelly Criterion
+The math of optimal bet size, and why you use a fraction
+AI Pathways 2026 Track B · Foundation
+T H E F A M O U S F O R M U L A
+What Kelly Says
+A mathematical answer to how much to bet, given your edge and your odds.
+The Kelly Criterion calculates the bet size that maximizes long-run growth, based on your edge and the
+payoff odds. Bigger edge, bigger bet. It's elegant and it's the theoretical optimum. But it assumes you
+know your true win rate and payoff exactly, which in trading you never do, and that gap is why full
+Kelly is dangerous in practice.
+Kelly is the theoretical best, under assumptions that don't quite hold in real trading.
+AI Pathways 2026 Track B · Foundation
+W H Y Y O U C U T I T D O W N
+Fractional Kelly
+Use a fraction of what Kelly suggests. You capture most of the growth with far less risk.
+Full Kelly's problem
+• Wildly volatile in practice
+• Assumes you know your true edge exactly
+• One bad estimate and it oversizes badly
+• Drawdowns that few can stomach
+Fractional Kelly (half, quarter)
+• Far smoother equity curve
+• Forgiving of estimate errors
+• Captures most of the long-run growth
+• Survival over theoretical optimality
+Half or quarter Kelly is the practical choice. Full Kelly is a fast way to a brutal drawdown.
+AI Pathways 2026 Track B · Foundation
+S E C T I O N 0 3
+Stops & Kill Switches
+Pre-committed exits that protect you
+AI Pathways 2026 Track B · Foundation
+T H E P E R - T R A D E E X I T
+Stop Losses
+The price where your trade is wrong. Set it before you enter, honor it without fail.
+Fixed stop
+A set price or percent. Simple and unambiguous.
+Volatility / ATR stop
+Distance scales with volatility, wider in chaos, tighter
+in calm.
+Trailing stop
+Follows price up to lock in gains as a trend runs.
+Regime-aware stop
+Adapts to the current market state, since each needs
+different room.
+A stop you set before entering is discipline. A stop you move because of hope is how accounts bleed.
+AI Pathways 2026 Track B · Foundation
+T H E A C C O U N T - L E V E L B A C K S T O P
+The Kill Switch
+A hard limit that halts everything before a bad day becomes a catastrophe.
+What triggers it
+• Daily or weekly loss exceeds a limit
+• Drawdown crosses a hard threshold
+• Unusual behavior or repeated errors
+• A data or connection failure
+What it does
+• Stops opening new positions immediately
+• Optionally flattens what's open
+• Alerts you and waits for review
+• Stops a runaway loss while you're away
+Layered protection: per-trade stops, then portfolio limits, then the kill switch as the final backstop.
+AI Pathways 2026 Track B · Foundation
+M A N A G E T O T A L E X P O S U R E
+Portfolio Heat
+It's not just per-trade risk. Watch how much total risk is on at once.
+You might risk only 1% per trade, but if you have ten correlated positions open, your real risk is far
+higher than 1%, they can all go wrong together. Portfolio heat is the total risk across everything you
+hold. Cap it: limit how many positions are open, and watch for hidden concentration where 'different'
+trades are really the same bet in disguise.
+Ten positions that all move together aren't diversification. They're one big trade wearing ten hats.
+AI Pathways 2026 Track B · Foundation
+S E C T I O N 0 4
+The Math of Survival
+Why losses hurt more than gains help
+AI Pathways 2026 Track B · Foundation
+T H E A S Y M M E T R Y
+The Recovery Problem
+Losses and gains aren't symmetric. The deeper the hole, the harder the climb out.
+The recovery math
+• Down 10% needs +11% to get back
+• Down 25% needs +33% to get back
+• Down 50% needs +100% to get back
+• Down 75% needs +300% to get back
+What it means
+• Avoiding big losses beats chasing big wins
+• One -50% trade undoes years of gains
+• Small, controlled losses are recoverable
+• This is why sizing is everything
+You don't need huge wins to do well. You need to avoid the catastrophic loss. That's the whole game.
+AI Pathways 2026 Track B · Foundation
+S T R E S S - T E S T T H E S E Q U E N C E
+Monte Carlo for Risk
+Reshuffle your trades thousands of times to see the worst case, not just the average.
+Your historical drawdown is just the one path that happened. Monte Carlo reshuffles your trade order
+thousands of times to show the full range: the typical drawdown, the worst plausible one, and the
+odds of ruin. A strategy with a great average can still hide a sequence that wipes you out. This finds it
+before the market does, so you can size to survive the bad runs.
+Size your risk for the bad sequence Monte Carlo reveals, not the smooth average you hope for.
+AI Pathways 2026 Track B · Foundation
+K E E P I N G R I S K S T E A D Y
+Target Volatility
+Scale your exposure so the portfolio's risk stays roughly constant over time.
+Markets swing between calm and chaotic. With a fixed position size, your real risk balloons in volatile
+periods and shrinks in calm ones. A target-volatility approach scales position size to keep portfolio risk
+roughly constant: smaller when volatility is high, larger when it's low. The result is a smoother, more
+controlled equity curve and fewer nasty surprises.
+Constant dollar size means swinging risk. Constant risk means adjusting size as volatility changes.
+AI Pathways 2026 Track B · Foundation
+S E C T I O N 0 5
+Discipline & Recap
+The human side, and the rules to keep
+AI Pathways 2026 Track B · Foundation
+T H E H A R D E S T P A R T T O C O N T R O L
+Risk Rules Beat Willpower
+The reason to set these rules in advance: in the moment, emotion wins.
+Revenge trading
+Forcing a trade after a loss to win it back. Pre-set
+limits stop you.
+FOMO sizing
+Going too big because you're afraid of missing out.
+The rule caps you.
+Moving stops
+Hope says 'give it room.' A fixed stop says no. Honor
+the rule.
+The fix is rules
+Decide everything before the trade, when you're calm
+and rational.
+You won't be disciplined in the heat of a trade. That's exactly why you decide the rules beforehand.
+AI Pathways 2026 Track B · Foundation
+B U I L T I N T O Y O U R S Y S T E M S
+Risk Lives in Code, Too
+In Track B, these rules aren't willpower, they're wired into the system.
+The beauty of a built system is that risk rules become code that can't be overridden by emotion.
+Position sizing, stops, portfolio heat limits, the kill switch, all enforced automatically, exactly the same
+way every time. The base template and your CLAUDE.md rules bake these in. A disciplined human is
+hard; a disciplined system is just good engineering.
+This is a quiet superpower of building: your risk discipline runs even when your willpower doesn't.
+AI Pathways 2026 Track B · Foundation
+K E E P T H E S E A L W A Y S
+The Risk Rules Recap
+Everything here comes back to these. Internalize them.
+Small, fixed risk
+Cap the loss per trade at 1-2%. No single trade can
+hurt you.
+Always use stops
+Set the exit before you enter. Honor it without
+negotiation.
+Watch portfolio heat
+Limit total and correlated risk across everything you
+hold.
+Size to survive
+Avoid the catastrophic loss above all. Survival enables
+compounding.
+AI Pathways 2026 Track B · Foundation
+F O U N D A T I O N M O D U L E
+Risk Is the Foundation
+Remember: Risk management isn't a topic you study once, it's the discipline underneath every trade and
+every system you build. Carry it into the Build tier and bake it into everything. The traders who last are the
+ones who never let a single trade threaten the account.
+Protect the downside first. Survive long enough to let your edge play out.
+AI Pathways 2026 Market-Neutral Cheat Code (Statistical Arbitrage)
+
+99% of retail traders only know how to make money if the market goes in the direction they guessed. If they buy a stock and the whole market crashes, they lose money.
+
+Quants build "Market Neutral" strategies. The most famous is Statistical Arbitrage (Pairs Trading).
+
+Instead of betting on one stock, we find two stocks that are historically glued together—like Visa (V) and Mastercard (MA), or Coca-Cola (KO) and Pepsi (PEP). Because they are in the exact same sector with the exact same macro headwinds, their price action is highly correlated.
+
+But sometimes, due to random market noise or an institutional block trade, their prices temporarily snap apart. One goes up, the other goes down.
+
+Quants view this like a stretched rubber band. They know the math dictates these two stocks must eventually snap back together. So, they Short the one that went up, and Buy the one that went down. * If the whole market crashes, the short position makes money, covering the long.
+
+If the whole market rockets up, the long position makes money, covering the short. You are completely insulated from market direction. You only profit from the spread closing.
+
+To do this, we don't just look at a chart. We use a heavy statistical test called Co-integration and calculate the Z-Score of their price spread.
+
+How to use this: Copy and paste this prompt into Claude Code or ChatGPT. It will build a Python dashboard that allows you to input any two tickers, test if they are mathematically co-integrated, and plot the exact exact moment the "rubber band" is stretched far enough to take a trade.
+
+The Master Prompt:
+
+"Act as a Quantitative Developer. Write a Python script using streamlit, yfinance, statsmodels, and plotly to build a Statistical Arbitrage (Pairs Trading) Co-integration Scanner.
+
+The Inputs: Create sidebar inputs for Ticker A, Ticker B, and a Lookback Period (e.g., last 2 years). The Math Engine: > 1. Download daily Adjusted Close prices for both tickers using yfinance. 2. Run an Ordinary Least Squares (OLS) regression to calculate the Hedge Ratio. 3. Calculate the Price Spread: Spread = Ticker A - (Hedge Ratio * Ticker B). 4. Run the Augmented Dickey-Fuller (ADF) test on the spread to check for Co-integration. 5. Calculate the rolling Z-Score of the spread (using a 21-day rolling mean and standard deviation). The Dashboard UI:
+
+Display a massive metric card showing the 'P-Value' from the ADF test. If it is below 0.05, highlight it in green and print 'CO-INTEGRATED: TRADEABLE PAIR'. If above 0.05, highlight in red and print 'WARNING: DO NOT TRADE'.
+
+Plot the Z-Score on a large interactive Plotly chart.
+
+Add horizontal dashed lines at +2.0 and -2.0 on the Z-score chart.
+
+Add logic to color the Z-score line red when it spikes above +2.0 (Signal to Short A / Long B) and green when it drops below -2.0 (Signal to Long A / Short B). Keep the UI dark-themed and professional." Machine Learning Alpha Discovery
+
+If you go on TradingView right now, you have over 100,000 community indicators to choose from. Retail traders will spend years jumping from RSI, to MACD, to Bollinger Bands, to Ichimoku Clouds, hoping to find the "magic" combination that prints money.
+
+Quants don’t guess. They use Machine Learning to force the data to confess.
+
+Instead of testing indicators one by one, we are going to use a Random Forest algorithm. We will calculate 50 different technical indicators all at once, feed them into the AI, and tell the model to predict whether the stock will go up or down tomorrow.
+
+The AI will build thousands of decision trees, test every single indicator, and then spit out a Feature Importance Rank.
+
+It will literally rank every indicator from 1 to 50, showing you exactly which mathematical formulas actually have predictive power for that specific asset, and which ones are just retail noise. If RSI is ranked #48, you immediately know to stop wasting your time building strategies around it.
+
+How to use this: Drop this prompt into Claude or ChatGPT. It will build a Python app that automatically generates dozens of technical indicators, trains a Machine Learning model, and outputs the ultimate "Alpha Cheat Sheet" for any ticker you want.
+
+The Master Prompt:
+
+"Act as a Machine Learning Quant Researcher. Write a Python script using streamlit, yfinance, pandas_ta, scikit-learn, and plotly to build a Random Forest Feature Hunter.
+
+The Inputs: Sidebar inputs for Ticker, Date Range, and a slider for 'Number of Trees' (default to 100). Data & Feature Engineering:
+
+Download daily data using yfinance.
+
+Use the pandas_ta library to automatically generate a massive feature set. Include momentum (RSI, MACD, Stochastic), volatility (ATR, Bollinger Band Width), and trend (ADX, EMAs) indicators.
+
+The Target Variable: Create a binary target column: 1 if tomorrow's Close is strictly greater than today's Close, and 0 if it is lower. CRITICAL: Shift the target variable correctly to ensure absolute zero look-ahead bias.
+
+Drop all NaN values created by the indicators. The Machine Learning Engine:
+
+Split the data into Train (80%) and Test (20%). CRITICAL: Set shuffle=False to respect the time-series chronological order and prevent data leakage.
+
+Train a RandomForestClassifier on the training data.
+
+Extract the feature_importances_ array from the trained model. The Dashboard UI:
+
+Display the model's overall accuracy on the blind Test set in a massive metric card.
+
+Create a clean Plotly horizontal bar chart titled 'Predictive Alpha Ranking'. Sort the chart so the most important indicators (features) are at the top, and the useless ones are at the bottom. Color the top 5 bars in neon green so the user knows exactly what to build their next strategy around." T R A C K B · A D V A N C E D
+Machine Learning & Edge Discovery
+Finding, validating, and deploying ML edges with Claude Code. The model will fit noise as readily
+as signal, so most of this is about telling them apart.
+The advanced edge-discovery layer AI Pathways · 2026
+R E A D T H I S F I R S T
+ML Will Fit Noise as Readily as Signal
+The most dangerous tool in here, and not because the math is hard.
+Give ML enough features and enough freedom and it will fit a pattern in pure noise, match it
+perfectly to the past, and produce a backtest equity curve that means nothing live. Overfit models
+lose more retail accounts than weak strategies do.
+Half of this module is telling real patterns from noise. That's the point.
+AI Pathways · 2026 1
+T H E M I N D S E T
+Edge Discovery Is Adversarial
+You hunt for an edge, then attack it until it breaks. Trust only what survives.
+An edge is something you try to KILL
+Not something you fall in love with. Default assumption: it's noise until proven otherwise.
+The model agrees with your data
+ML's version of sycophancy. The optimizer confirms whatever's in your sample, including chance patterns.
+Be the adversary the optimizer isn't
+Don't ask 'did it work?' Ask 'what would prove this is fake, and have I run that test?'
+AI Pathways · 2026 2
+T H E C A P A B I L I T Y M A P
+What ML Is Good At, and Where People Die
+Frame your problem right or it's hopeless from the start.
+Good at
+• Ranking & classification
+• Regime identification (your HMM)
+• Conditional probability over a horizon
+• Finding structure in features
+Where people die
+• Predicting price directly
+• Very short horizons (no infrastructure)
+• Regimes it has never seen
+Frame as ranking or probability, never price prediction.
+AI Pathways · 2026 3
+W H E R E T H E E D G E L I V E S
+Features, Not the Algorithm
+Same features + different models = similar results. The inputs are the edge.
+Stationarity
+Returns and ratios, never raw price. A model trained
+at $100 is lost at $400.
+Train-only scaling
+Fit scaling on training data and apply forward. Scaling
+on all data leaks the future.
+Predictive vs coincident
+Would knowing this BEFORE the move have helped,
+or does it only look useful in hindsight?
+Feature decay
+A feature that worked in 2019 may be dead now.
+Features have shelf lives.
+AI Pathways · 2026 4
+T H E M O D E L S U R V E Y
+Simpler Usually Wins
+Complexity isn't edge. It's more ways to overfit and harder validation.
+Tree ensembles
+Your workhorse. Gradient boosting & random forests on
+tabular signals.
+Regularized linear
+The baseline. If Lasso/Ridge finds nothing, be skeptical of
+fancier models.
+HMM / regime
+The context layer you already know. Always condition on
+regime.
+Unsupervised
+Clustering & PCA for discovery, not prediction. A cluster is a
+question.
+Deep learning / LSTM
+Advanced. Powerful on rich data; needs more data and tighter
+validation. Own module.
+Reinforcement learning
+Advanced. Built for sequential decisions; demands realistic
+environments. Own module.
+AI Pathways · 2026 5
+T H E C O R E
+Validation: The Ways ML Lies
+Longer and harder than normal backtesting, because ML adds failure modes. Skip this and you will deploy
+an overfit model and lose money.
+AI Pathways · 2026 6
+T H E T W O M A I N F A I L U R E M O D E S
+Leakage & Multiple Comparisons
+The two errors most likely to fake an edge.
+Feature leakage
+Future information reaching the model. Using the same
+bar's close for an open decision. Scaling on all data. It
+produces strong backtest results that are entirely fake,
+and it's easy to do by accident.
+Multiple comparisons
+Test 500 features and 1,000 combinations and some will
+score well by chance alone. A plain backtest can't
+separate a real edge from the best of a thousand coinflips. This is the main edge-discovery failure mode.
+AI Pathways · 2026 7
+D O N E R I G H T
+Validation That Respects Time
+Standard k-fold is wrong for trading. It leaks. Use these instead.
+Walk-forward
+Train on the past, test forward, roll. The baseline
+method.
+Purged CV
+Remove training samples whose label windows
+overlap the test set.
+Embargo
+Drop a buffer after the test set to handle serial
+correlation.
+Combinatorial purged CV
+Many train/test paths → a distribution of
+performance, not one lucky number.
+AI Pathways · 2026 8
+A D J U S T F O R T H E S E A R C H
+Deflate the Sharpe, Expect Small
+A raw backtest Sharpe is almost always inflated.
+Deflated Sharpe haircuts your Sharpe for how many variants you tried. A 'Sharpe 2.5' discovery routinely
+deflates to 'probably no real edge' once the search is accounted for. That number tells the truth.
+What a real edge looks like:
+Small
+A modest tilt, not a 90% win
+rate
+Noisy
+Drawdowns and ugly stretches.
+Smooth = red flag
+Decaying
+Edges erode. They have shelf
+lives
+Costly
+Validate net of spreads and
+slippage
+AI Pathways · 2026 9
+W I T H C L A U D E C O D E
+The Full Workflow
+Claude Code builds every step. You supply the discipline.
+1 Hypothesize (with a why) 2 Engineer features, audit leakage
+3 Label properly (triple-barrier) 4 Baseline (regularized linear)
+5 Model (boosted trees + regime) 6 Validate (purged + CPCV)
+7 Deflated Sharpe, full trial count 8 Hold-out test, then paper the live pipeline
+AI Pathways · 2026 10
+T H E B O T T O M L I N E
+Most Edges Die. That's Success.
+The point of hard validation is to kill false edges before they cost you money, so a high kill rate is what
+success looks like. Find ten patterns, run them through the process, and if eight were flukes, one
+decayed in paper, and one is a small real edge worth trading, you did the job perfectly.
+The model will always agree with your data. Be the adversary that proves it wrong before the market does it for
+you, expensively.
+AI Pathways · 2026 T R A C K B · A D V A N C E D
+Machine Learning & Edge Discovery
+Finding, validating, and deploying ML edges with Claude Code. The model will fit noise as readily
+as signal, so most of this is about telling them apart.
+The advanced edge-discovery layer AI Pathways · 2026
+R E A D T H I S F I R S T
+ML Will Fit Noise as Readily as Signal
+The most dangerous tool in here, and not because the math is hard.
+Give ML enough features and enough freedom and it will fit a pattern in pure noise, match it
+perfectly to the past, and produce a backtest equity curve that means nothing live. Overfit models
+lose more retail accounts than weak strategies do.
+Half of this module is telling real patterns from noise. That's the point.
+AI Pathways · 2026 1
+T H E M I N D S E T
+Edge Discovery Is Adversarial
+You hunt for an edge, then attack it until it breaks. Trust only what survives.
+An edge is something you try to KILL
+Not something you fall in love with. Default assumption: it's noise until proven otherwise.
+The model agrees with your data
+ML's version of sycophancy. The optimizer confirms whatever's in your sample, including chance patterns.
+Be the adversary the optimizer isn't
+Don't ask 'did it work?' Ask 'what would prove this is fake, and have I run that test?'
+AI Pathways · 2026 2
+T H E C A P A B I L I T Y M A P
+What ML Is Good At, and Where People Die
+Frame your problem right or it's hopeless from the start.
+Good at
+• Ranking & classification
+• Regime identification (your HMM)
+• Conditional probability over a horizon
+• Finding structure in features
+Where people die
+• Predicting price directly
+• Very short horizons (no infrastructure)
+• Regimes it has never seen
+Frame as ranking or probability, never price prediction.
+AI Pathways · 2026 3
+W H E R E T H E E D G E L I V E S
+Features, Not the Algorithm
+Same features + different models = similar results. The inputs are the edge.
+Stationarity
+Returns and ratios, never raw price. A model trained
+at $100 is lost at $400.
+Train-only scaling
+Fit scaling on training data and apply forward. Scaling
+on all data leaks the future.
+Predictive vs coincident
+Would knowing this BEFORE the move have helped,
+or does it only look useful in hindsight?
+Feature decay
+A feature that worked in 2019 may be dead now.
+Features have shelf lives.
+AI Pathways · 2026 4
+T H E M O D E L S U R V E Y
+Simpler Usually Wins
+Complexity isn't edge. It's more ways to overfit and harder validation.
+Tree ensembles
+Your workhorse. Gradient boosting & random forests on
+tabular signals.
+Regularized linear
+The baseline. If Lasso/Ridge finds nothing, be skeptical of
+fancier models.
+HMM / regime
+The context layer you already know. Always condition on
+regime.
+Unsupervised
+Clustering & PCA for discovery, not prediction. A cluster is a
+question.
+Deep learning / LSTM
+Advanced. Powerful on rich data; needs more data and tighter
+validation. Own module.
+Reinforcement learning
+Advanced. Built for sequential decisions; demands realistic
+environments. Own module.
+AI Pathways · 2026 5
+T H E C O R E
+Validation: The Ways ML Lies
+Longer and harder than normal backtesting, because ML adds failure modes. Skip this and you will deploy
+an overfit model and lose money.
+AI Pathways · 2026 6
+T H E T W O M A I N F A I L U R E M O D E S
+Leakage & Multiple Comparisons
+The two errors most likely to fake an edge.
+Feature leakage
+Future information reaching the model. Using the same
+bar's close for an open decision. Scaling on all data. It
+produces strong backtest results that are entirely fake,
+and it's easy to do by accident.
+Multiple comparisons
+Test 500 features and 1,000 combinations and some will
+score well by chance alone. A plain backtest can't
+separate a real edge from the best of a thousand coinflips. This is the main edge-discovery failure mode.
+AI Pathways · 2026 7
+D O N E R I G H T
+Validation That Respects Time
+Standard k-fold is wrong for trading. It leaks. Use these instead.
+Walk-forward
+Train on the past, test forward, roll. The baseline
+method.
+Purged CV
+Remove training samples whose label windows
+overlap the test set.
+Embargo
+Drop a buffer after the test set to handle serial
+correlation.
+Combinatorial purged CV
+Many train/test paths → a distribution of
+performance, not one lucky number.
+AI Pathways · 2026 8
+A D J U S T F O R T H E S E A R C H
+Deflate the Sharpe, Expect Small
+A raw backtest Sharpe is almost always inflated.
+Deflated Sharpe haircuts your Sharpe for how many variants you tried. A 'Sharpe 2.5' discovery routinely
+deflates to 'probably no real edge' once the search is accounted for. That number tells the truth.
+What a real edge looks like:
+Small
+A modest tilt, not a 90% win
+rate
+Noisy
+Drawdowns and ugly stretches.
+Smooth = red flag
+Decaying
+Edges erode. They have shelf
+lives
+Costly
+Validate net of spreads and
+slippage
+AI Pathways · 2026 9
+W I T H C L A U D E C O D E
+The Full Workflow
+Claude Code builds every step. You supply the discipline.
+1 Hypothesize (with a why) 2 Engineer features, audit leakage
+3 Label properly (triple-barrier) 4 Baseline (regularized linear)
+5 Model (boosted trees + regime) 6 Validate (purged + CPCV)
+7 Deflated Sharpe, full trial count 8 Hold-out test, then paper the live pipeline
+AI Pathways · 2026 10
+T H E B O T T O M L I N E
+Most Edges Die. That's Success.
+The point of hard validation is to kill false edges before they cost you money, so a high kill rate is what
+success looks like. Find ten patterns, run them through the process, and if eight were flukes, one
+decayed in paper, and one is a small real edge worth trading, you did the job perfectly.
+The model will always agree with your data. Be the adversary that proves it wrong before the market does it for
+you, expensively.
+AI Pathways · 2026  Machine Learning
+& Edge Discovery
+The Claude Code build prompts that implement the edge-discovery workflow:
+feature pipelines, regime-conditioned models, purged and combinatorial
+validation, deflated Sharpe, and decay monitoring. Every prompt built out in full.
+AI PATHWAYS · 2026 · CLAUDE CODE BUILD LIBRARY
+These are the prompts that implement the workflow from the foundations document with Claude Code. They assume a
+Python stack (scikit-learn for the core, XGBoost or LightGBM for boosting, pandas/numpy for data), and they mention
+other tools where relevant. Pair every build with your CLAUDE.md hard rules so the safety guardrails (no live trading by
+default, no look-ahead, validation required) carry over.
+Each prompt has the same structure as the rest of the classroom: when to use it, what it protects you from, the prompt
+to copy, what good output looks like, the red flags that mean it went wrong, and what to chain next.
+PROMPT — copy this
+These build real code that can lose real money if deployed carelessly. Every prompt assumes paper-first, validationgated deployment. Do not skip the validation prompts to get to a live signal faster.
+A. Setup and data
+1. Scaffold the project structure
+When to use it: The very start of any ML edge-discovery project, before you write a line of modeling code.
+What it protects you from: The mess of a disorganized project where data prep, features, models, and validation bleed
+together, which is exactly how leakage creeps in unnoticed.
+Fill in: your asset/universe, your data source.
+The prompt:
+PROMPT — copy this
+Set up a clean, modular Python project structure for an ML edge-discovery workflow on [ASSET / UNIVERSE], using data
+from [SOURCE, e.g. a CSV of OHLCV, a Databento feed, an IBKR export]. I want clear separation between: raw data
+ingestion, feature engineering, labeling, model training, validation, and signal generation, so that information can't
+accidentally leak between stages.
+Use a standard stack: pandas and numpy for data, scikit-learn for the core ML and pipelines, and XGBoost or LightGBM
+for gradient boosting. Set up the project so that every transformation (scaling, etc.) is fit on training data only and
+applied forward, never on the full dataset. Include a README explaining the leakage-safety design of the structure.
+Reference my CLAUDE.md rules and make sure the structure enforces no-live-trading-by-default.
+Before writing code, walk me through the structure you're proposing and why each piece is separated the way it is.
+What good output looks like: A modular structure with clear stage separation, an explanation of how the separation
+prevents leakage, scaling/transforms designed to fit-on-train-only, and a README documenting the safety design. It
+should explain its reasoning before coding.
+Red flags that it failed: It dumps everything into one script, or it sets up transforms that fit on the full dataset. Send
+back: "This structure lets transformations see the whole dataset, which leaks. Redesign so every fit happens on training
+data only and explain how the separation prevents leakage."
+Chain next: - Prompt #2 to build the feature pipeline within this structure.
+AI Pathways · 2026 Page 1
+2. Build a leakage-safe feature pipeline
+When to use it: After the project is scaffolded, to build the features that (if anything does) carry the edge.
+What it protects you from: Look-ahead and normalization leakage, the most common ways a feature pipeline produces
+fake results.
+Fill in: your candidate features, your decision timing.
+The prompt:
+PROMPT — copy this
+Build a feature engineering pipeline for my project. I make my trading decision at [e.g. the open of each day / the close
+of each bar], so every feature must use ONLY information available strictly before that decision point. Candidate
+features I want to start with: [LIST, e.g. momentum over multiple lookbacks, volatility measures, RSI, volume ratios,
+distance from moving averages, regime state from my existing HMM].
+Critical requirements: - Transform raw price into stationary features (returns, ratios, normalized indicators), never raw
+price levels. - Any scaling or z-scoring must be fit on training data only and applied forward. Show me exactly where this
+happens so I can verify it. - For each feature, add a one-line comment on whether it's predictive or merely coincident,
+and flag any you think are coincident dressed up as predictive. - Make it easy to add and remove features so I can test
+their individual contribution later.
+After building it, explicitly walk me through every point where future information could possibly leak in, and how the
+pipeline prevents it. Assume I will not catch leakage myself, so you have to.
+What good output looks like: A pipeline that uses only pre-decision information, stationary transforms, train-only
+scaling clearly marked, per-feature predictive-vs-coincident notes, and an explicit leakage walkthrough. The proactive
+leakage audit is the sign it's doing the job.
+Red flags that it failed: It uses same-bar close for an open decision, or scales on the full dataset, or skips the leakage
+walkthrough. Send back: "Trace every feature against my decision timing of [timing]. Which ones use information I
+wouldn't have yet, and where does scaling see the future?"
+Chain next: - Prompt #3 to label the data properly. - Later, prompt #8 to audit the whole pipeline for leakage as a
+dedicated check.
+3. Label with the triple-barrier method
+When to use it: Before training, to define what the model predicts in a way that reflects real trading.
+What it protects you from: Naive fixed-horizon labels that ignore the path and teach the model to solve the wrong
+problem.
+Fill in: your target/stop logic, horizon.
+The prompt:
+AI Pathways · 2026 Page 2
+PROMPT — copy this
+Implement triple-barrier labeling for my dataset. For each potential entry, the label should reflect what happens first:
+price hits a profit target, hits a stop loss, or runs out of time over a maximum holding period. Use [my target and stop
+logic, e.g. targets and stops set as multiples of recent volatility, or fixed percentages, specify], and a maximum holding
+period of [N bars].
+Requirements: - The barriers must be set using only information available at entry time, no look-ahead. - Make the
+target/stop/time parameters easy to adjust so I can test sensitivity later. - Output the label plus useful metadata (which
+barrier was hit, holding time, realized return) so I can analyze the label distribution. - Warn me if the resulting labels are
+badly imbalanced (e.g. almost all time-outs), since that signals my barriers are mis-set.
+Explain how this labeling differs from a naive "did it go up over N bars" label and why it better reflects how I'd actually
+trade.
+What good output looks like: A correct triple-barrier implementation with no look-ahead in barrier-setting, adjustable
+parameters, useful metadata, an imbalance warning, and a clear explanation of why it beats naive labeling.
+Red flags that it failed: It builds a fixed-horizon label instead, or sets barriers using future data. Send back: "That's a
+fixed-horizon label or it's using future info to set barriers. Implement proper triple-barrier where each barrier is set only
+from data available at entry."
+Chain next: - Prompt #4 for the baseline model.
+B. Modeling
+4. Fit the baseline first
+When to use it: Before any complex model, to establish whether a simple model finds anything at all.
+What it protects you from: Jumping to a complex model that overfits, when you have no idea if there's even a linear
+signal to find.
+Fill in: nothing beyond your prepared data.
+The prompt:
+PROMPT — copy this
+Before we try anything complex, fit a regularized linear baseline on my labeled, featured dataset. Use a Lasso or Ridge
+(or logistic regression with regularization if this is a classification label), with the regularization strength chosen by
+proper time-series cross-validation, not random k-fold.
+Report: the out-of-sample performance, which features the model kept versus zeroed out (for Lasso), and your honest
+read on whether there's any signal here at all. Be blunt: if the baseline finds essentially nothing out of sample, tell me
+that a more complex model is very unlikely to find real edge and is more likely to just overfit. I want this as a reality
+check before I invest in fancier models, so don't soften the result to keep me motivated.
+What good output looks like: A regularized linear model validated with time-series CV (not random k-fold), a featureretention report, and an honest verdict on whether there's signal, including a willingness to say "nothing here, stop."
+AI Pathways · 2026 Page 3
+Red flags that it failed: It uses random k-fold CV, or it's encouraging about a baseline that actually found nothing. Send
+back: "Use time-series CV, not random k-fold, and tell me honestly whether the out-of-sample result is actually
+distinguishable from noise."
+Chain next: - If the baseline shows promise, prompt #5 for the gradient-boosted model. - If it finds nothing, reconsider
+your features (prompt #2) before adding model complexity.
+5. Train a regime-conditioned gradient-boosted model
+When to use it: After the baseline shows there may be signal, to train your workhorse model.
+What it protects you from: Building a signal model that ignores regime (fragile) and overfitting through unconstrained
+complexity.
+Fill in: your regime source, classification or regression.
+The prompt:
+PROMPT — copy this
+Train a gradient-boosted tree model (LightGBM or XGBoost) on my featured, labeled dataset, conditioned on market
+regime. Feed my existing HMM regime state in as a feature so the model can learn regime-dependent behavior, and
+also let me optionally compare against training separate models per regime.
+Requirements: - All hyperparameter tuning must use proper time-series cross-validation (purged if labels overlap),
+never random k-fold. - Keep the model deliberately constrained against overfitting: sensible depth limits, regularization,
+early stopping on a time-ordered validation set. Explain the anti-overfit choices you make. - Report out-of-sample
+performance honestly, and compare it to the linear baseline. If it doesn't clearly beat the baseline out of sample, tell
+me the added complexity is buying overfitting, not edge.
+Do not optimize the model to maximize the in-sample or backtest number; optimize for honest out-of-sample
+robustness.
+What good output looks like: A regime-conditioned boosted model with time-series (ideally purged) CV, explicit antioverfit constraints explained, and an honest baseline comparison that's willing to say the complexity isn't paying off.
+Red flags that it failed: It uses random k-fold, chases the in-sample score, or doesn't compare to the baseline. Send
+back: "You're optimizing the backtest number with leaky CV. Use purged time-series CV, constrain against overfit, and
+tell me honestly if this beats the linear baseline out of sample."
+Chain next: - Prompt #6 for feature importance. - Prompt #9 for the full purged/combinatorial validation.
+6. Feature importance, interpreted skeptically
+When to use it: After training, to understand what the model is using, and to sanity-check it isn't leaning on something
+suspicious.
+What it protects you from: Trusting a model whose "importance" is concentrated in a feature that's secretly leaking, or
+in noise.
+Fill in: nothing.
+The prompt:
+AI Pathways · 2026 Page 4
+PROMPT — copy this
+Generate feature importance for my trained model using a robust method (permutation importance on out-of-sample
+data, and SHAP values if practical), not just the default tree-gain importance which can mislead.
+Then interpret it skeptically for me: Is the model leaning heavily on one or two features in a way that worries you? Do
+the important features make economic sense, or is it relying on something that hints at leakage? Are any features I
+expected to matter contributing nothing, and what might that mean? I want you to actively look for signs that the
+importance pattern is a red flag rather than reassuring me it looks fine.
+What good output looks like: Permutation/SHAP importance on out-of-sample data, plus a genuinely skeptical
+interpretation that flags over-reliance, economic nonsense, or leakage hints. A strong note: "The model gets most of its
+signal from one feature, which is fragile, and that feature is suspiciously close to your label, I'd audit it for leakage
+before trusting any of this."
+Red flags that it failed: It only gives default tree importance, or it reassures you without scrutiny. Send back: "Use
+permutation importance on out-of-sample data, and actively look for whether the top feature might be leaking rather
+than telling me it looks fine."
+Chain next: - If a top feature looks suspicious, prompt #8 (leakage audit) focused on it.
+C. Validation (the core)
+7. Set up purged, embargoed cross-validation
+When to use it: As the foundation of honest validation, replacing any naive CV.
+What it protects you from: The leakage that standard and even simple time-series CV leave behind when labels
+overlap.
+Fill in: your label window length.
+The prompt:
+PROMPT — copy this
+Implement purged and embargoed cross-validation for my model, appropriate for financial data with overlapping labels
+(my labels span up to [N bars] because of the triple-barrier holding period).
+Specifically: - Purge training samples whose label windows overlap the test set, so information can't leak across the
+boundary. - Add an embargo period after each test set, dropping training samples just after it, to handle serial
+correlation. - Explain, in comments and to me, exactly why each of these steps is necessary and what leakage it
+prevents. - Make the purge and embargo lengths configurable and tie their defaults to my label window length.
+Then re-evaluate my model under this proper CV and compare the result to whatever I got from naive CV earlier. I
+expect the honest number to be lower; if it isn't, be suspicious and tell me why.
+What good output looks like: Correct purging and embargoing tied to the label window, clear explanations of what
+each prevents, configurable parameters, and a re-evaluation that's honest about the (usually lower) result.
+AI Pathways · 2026 Page 5
+Red flags that it failed: It implements plain k-fold or a simple split with no purge/embargo. Send back: "That doesn't
+purge overlapping label windows or embargo for serial correlation. Implement proper purged + embargoed CV tied to
+my label length and explain what each step prevents."
+Chain next: - Prompt #9 to go further with combinatorial purged CV.
+8. Dedicated leakage audit
+When to use it: Any time a result looks too good, and as a mandatory check before trusting any model. Run it even
+when nothing looks wrong.
+What it protects you from: Every form of leakage, the single biggest cause of fake results.
+Fill in: nothing.
+The prompt:
+PROMPT — copy this
+Audit my entire pipeline for data leakage, end to end, as a hostile reviewer who assumes I've made a mistake. Check
+specifically for: - Look-ahead in features: any feature using information from at or after my decision point. -
+Normalization leakage: any scaling, z-scoring, or transformation fit on data that includes the future or the test set. -
+Label leakage: targets built with information not available at entry, or overlapping label windows crossing CV splits. -
+Survivorship/selection bias: a universe that silently excludes delisted or failed instruments. - Any other subtle path by
+which information from the future reaches a past decision.
+Go through my code stage by stage and tell me every place leakage could enter, rank them by how badly they'd inflate
+results, and tell me how to fix each. Do not give me a clean bill of health unless you've genuinely traced every stage; if
+you're unsure about something, flag it as needing my manual check.
+What good output looks like: A stage-by-stage hostile audit covering all the leakage types, ranked by impact, with fixes,
+and honesty about what needs manual verification. It should not casually declare the pipeline clean.
+Red flags that it failed: It glances over the code and says "looks fine." Send back: "Go stage by stage as if I definitely
+made a leakage mistake somewhere. Where specifically could future information reach a past decision?"
+Chain next: - Fix anything found, then re-run validation (#7, #9) on the corrected pipeline.
+9. Combinatorial purged CV and the performance distribution
+When to use it: For the most rigorous validation, to get a distribution of out-of-sample performance rather than a
+single lucky number.
+What it protects you from: Trusting a single backtest path that may simply be lucky, and the multiple-comparisons
+illusion.
+Fill in: nothing.
+The prompt:
+AI Pathways · 2026 Page 6
+PROMPT — copy this
+Implement combinatorial purged cross-validation (CPCV) for my strategy. Instead of one train/test path, systematically
+create many train/test combinations from purged, embargoed blocks, and produce a full distribution of out-of-sample
+performance across all the paths, not just a single number.
+Then show me: the distribution of returns/Sharpe across the CPCV paths (not just the mean), how much the result
+varies depending on which periods were tested, and your honest read on whether this looks like a robust edge (a tight,
+healthy distribution) or a fluke (a result that depends heavily on which periods happened to be in the test set). A wide
+or frequently-negative distribution means the single backtest I saw earlier was probably luck. Tell me straight if that's
+what this shows.
+What good output looks like: A correct CPCV implementation producing a performance distribution, a clear
+presentation of that distribution and its variability, and an honest robustness verdict that's willing to call the earlier
+single backtest lucky.
+Red flags that it failed: It produces a single number again, or only reports the mean of the paths. Send back: "I need the
+full distribution across CPCV paths, not the mean. How much does performance depend on which periods were tested,
+and does that pattern look like edge or luck?"
+Chain next: - Prompt #10 to deflate the Sharpe for how much you searched.
+10. Deflated Sharpe with an honest trial count
+When to use it: Before believing any backtest Sharpe from a search, to haircut it for multiple comparisons and nonnormality.
+What it protects you from: The inflated Sharpe that makes a fluke look like an edge after you've tested many variants.
+Fill in: how many configurations you tried.
+The prompt:
+PROMPT — copy this
+Compute the probabilistic Sharpe ratio and the deflated Sharpe ratio for my strategy. For the deflated version, account
+for the fact that I tested roughly [N] different configurations/features/variants before arriving at this one, this is my
+honest trial count and I want the deflation to reflect it. Also account for the non-normality (skew and kurtosis) of my
+returns.
+Report: the raw Sharpe, the probabilistic Sharpe (probability the true Sharpe exceeds zero given my track-record length
+and return distribution), and the deflated Sharpe given my trial count. Then interpret it bluntly: after accounting for
+how much I searched and the fat tails, is there credible evidence of a real edge, or has my impressive raw Sharpe
+deflated toward nothing? If it's the latter, say so clearly, that's the most important thing you can tell me.
+What good output looks like: Raw, probabilistic, and deflated Sharpe computed with the honest trial count and nonnormality adjustment, plus a blunt verdict that's willing to say the edge deflated to nothing. A strong line: "Raw Sharpe
+2.4, but accounting for the 800 variants you tried, the deflated Sharpe is 0.3, that's weak evidence of a real edge, and
+you should treat this as probably a product of the search rather than a discovery."
+AI Pathways · 2026 Page 7
+Red flags that it failed: It computes a raw Sharpe only, or uses a trial count of 1 when you searched many. Send back:
+"Deflate it for the [N] variants I actually tried and adjust for non-normal returns. What's the honest deflated number,
+and does a real edge survive it?"
+Chain next: - If the edge survives deflation, prompt #11 to integrate and paper-test. If not, kill it and return to
+hypothesis generation.
+D. Deployment
+11. Wire a validated signal into the regime-aware framework
+When to use it: Only after a signal has survived purged CV, leakage audit, CPCV, and deflated Sharpe. Never before.
+What it protects you from: Bolting a model onto live execution without the risk controls and regime awareness the rest
+of your system uses.
+Fill in: your existing framework details.
+The prompt:
+PROMPT — copy this
+My ML signal has survived full validation (purged CV, leakage audit, CPCV, and a deflated Sharpe that still shows a real
+edge). Now integrate it into my existing regime-aware trading framework as a signal source, not as a standalone
+autotrader.
+Requirements: - The signal feeds into my existing position sizing and risk management, it does not bypass them. -
+Respect my CLAUDE.md hard rules: no live trading by default, kill switches intact, regime filter active. - Keep the model
+inference cleanly separated so I can monitor and swap it without touching execution. - Default the whole thing to paper
+mode and make going live an explicit, deliberate step I have to take, never the default.
+Walk me through how the signal flows through to a sized, risk-checked, regime-filtered order in paper, and show me
+where the safety gates are.
+What good output looks like: Clean integration where the signal respects existing sizing/risk/regime controls,
+CLAUDE.md rules honored, paper-by-default, and a clear walkthrough of the safety gates.
+Red flags that it failed: It builds a standalone autotrader, bypasses your risk management, or defaults to live. Send
+back: "This bypasses my risk controls and/or defaults to live. Route the signal through my existing sizing and regime
+filter, keep kill switches intact, and make live an explicit non-default step."
+Chain next: - Prompt #12 to set up decay monitoring before any live consideration.
+12. Set up decay monitoring and retraining discipline
+When to use it: Before going live, and running continuously after, to catch an edge that has stopped working.
+What it protects you from: Trading a dead edge, the model keeps running long after the market has adapted and the
+edge has eroded.
+Fill in: your validated performance expectations.
+The prompt:
+AI Pathways · 2026 Page 8
+PROMPT — copy this
+Set up monitoring to detect when my deployed model's edge is decaying. My validated performance expectation is
+roughly [the CPCV distribution / Sharpe range from validation]. Build monitoring that tracks: - Live performance versus
+that validated distribution, flagging when results fall persistently below the bottom of the expected range. - Feature
+distribution drift: whether the live feature values are drifting away from what the model trained on. - Regime context:
+whether we've moved into a regime the model handled poorly in validation.
+Then propose a retraining discipline: a sensible cadence, a requirement to re-validate with the same rigor (purged CV,
+deflated Sharpe) on each retrain, and clear criteria for when to pull the model entirely rather than retrain. Emphasize
+that a retrained model is a new hypothesis that must re-earn its place, not an automatic continuation. Tell me honestly
+what the warning signs are that I should just retire this edge.
+What good output looks like: Monitoring for performance decay, feature drift, and regime context against validated
+expectations, plus a retraining discipline that requires full re-validation and includes kill criteria. It should frame
+retraining as re-earning, not continuation.
+Red flags that it failed: It sets up retraining on a blind schedule with no re-validation, or no kill criteria. Send back: "Add
+the requirement that every retrain re-validates with purged CV and deflated Sharpe, and give me explicit criteria for
+when to kill the edge entirely instead of retraining."
+Chain next: - Paper-trade the full live pipeline for a meaningful period before any real-money consideration, then
+review with the same discipline as the rest of Track B.
+How this fits the classroom
+This module is the advanced edge-discovery layer of Track B. It builds on the regime detection you already know
+(HMMs become the context layer here) and uses the same validation-gated, paper-first, CLAUDE.md-governed
+discipline as the rest of the systems track. The difference is that ML multiplies both the power and the ways to produce
+a false result, so the validation bar is higher. Discover hypotheses, test them hard, trust only what survives, and
+remember that the model will fit whatever is in your data, so your job is to prove a result is real before the market does
+it for you.T R A C K B · A D V A N C E D
+Machine Learning
+& Edge Discovery
+Technical foundations for finding, validating, and deploying machine-learning
+edges with Claude Code. The adversarial mindset, the model survey, and the
+savage validation that keeps you from fooling yourself.
+AI PATHWAYS · 2026 · FOUNDATIONS
+This is an advanced Track B module. It assumes you've worked through the Foundation tier, you're comfortable building
+with Claude Code, and you already understand regime detection (HMMs) from the earlier material. We won't re-teach
+regimes here; they're a building block you'll layer on top of.
+A warning before anything else. Machine learning is the single most dangerous tool in this entire classroom, and not
+because the math is hard. It's dangerous because it fits noise as readily as signal. Give it enough features and enough
+freedom and it will fit a pattern in pure noise, match it perfectly to the past, and produce a backtest equity curve that
+means nothing live. Overfit ML models lose more retail accounts than weak strategies do. At least half of this module is
+about telling real patterns from noise, because a module that only taught you to train models would do more harm
+than good.
+Read the foundations in order. Keep the build library open when you're working with Claude Code.
+PART 1 — THE MINDSET: EDGE DISCOVERY IS ADVERSARIAL
+1. What "edge discovery" actually is (and isn't)
+The name oversells it. You are not discovering a money printer. You are searching a large space of hypotheses for
+something that might have a small, fragile, decaying statistical edge, and then trying as hard as you possibly can to
+prove that edge is fake before you risk a dollar on it.
+That reframe is the entire module. An edge is something you try to kill, not something you fall in love with. Every step
+that follows, feature engineering, model selection, validation, serves one question: is this real, or is it noise? If you take
+nothing else from this module: the default assumption for any discovered edge is "it's noise until proven otherwise,"
+and the burden of proof is high.
+The reason this matters so much in ML specifically: a simple rule-based strategy has limited degrees of freedom, so
+there's only so much it can overfit. An ML model with hundreds of features and flexible structure has enormous
+degrees of freedom. It can memorize the past in ways that look exactly like learning. The flexibility that makes ML
+powerful is the same flexibility that makes it lie.
+2. The quant cousin of sycophancy
+If you've gone through the web app module, you know Claude will tend to agree with you if you let it, and that you
+have to actively make it argue against you. ML has the exact same failure mode in a different costume: the model
+agrees with your data.
+You bring a dataset and a hope. The model's job, as far as its optimizer is concerned, is to fit that data as well as
+possible. It has no concept of "this pattern is spurious" or "I wouldn't have known this in real time." It will happily
+confirm whatever structure exists in your sample, including structure that exists purely by chance. Your job is to be the
+adversary the optimizer isn't, to assume every result is a false positive and design tests specifically to expose it.
+So the same discipline carries over: don't ask "did it work?" Ask "what would prove this is fake, and have I run that
+test?"
+AI Pathways · 2026 Page 1
+3. Why most retail ML trading fails
+It's worth being concrete about the common failure paths, because you'll recognize yourself heading down them:
+Trying to predict price directly. The most common beginner move and the fastest path to ruin. Price is close to a
+random walk at short horizons; predicting its direction reliably is nearly impossible, and a model that appears to do
+it is almost certainly leaking or overfitting.
+Feature leakage. Accidentally feeding the model information that wouldn't have existed at decision time. Easy to
+do, and it produces strong-looking results that are entirely fake.
+The multiple-comparisons trap. Testing hundreds of features and thousands of combinations, then getting excited
+about the ones that look great, when some were guaranteed to look great by chance alone.
+Backtest overfitting. Tuning the model and strategy until the historical curve looks great, with no real out-of-sample
+test, so you've just memorized the past.
+Ignoring decay. Treating a discovered edge as permanent when edges erode as the market adapts, often within
+months.
+Underestimating costs. A signal with a tiny edge gets eaten alive by spreads, slippage, and commissions the
+backtest ignored.
+Every one of these is preventable. Most of this module is the prevention.
+PART 2 — WHAT ML IS ACTUALLY GOOD FOR
+4. The capability map
+ML in trading is good at some things and terrible at others. Knowing the difference is most of the battle.
+What it's useful for: - Ranking and classification. Of these 50 setups that fired today, which are most likely to work? Is
+this signal strong or weak? These are problems ML handles well because you're sorting and scoring, not forecasting a
+precise future value. - Regime identification. What state is the market in right now, and how should that change my
+behavior? This is your HMM and related hidden-state models, the layer you already know. - Conditional probability
+estimation. Given these conditions, what's the historical probability this setup reaches its target before its stop? Useful
+for sizing and filtering, not for magic. - Feature compression and structure-finding. Reducing many correlated
+indicators to a few meaningful dimensions, or clustering setups into types you didn't know existed.
+What it's bad at, and where people die: - Direct price prediction. "What will SPY close at tomorrow?" is close to
+unanswerable. Models that appear to do it are leaking or overfitting almost every time. - Anything at very short
+horizons without infrastructure. Sub-second and intraday microstructure edges exist but require speed and data retail
+doesn't have. You're competing with firms that see the order book before you do. - Regimes it has never seen. A model
+trained only on a bull market knows nothing about a crash. ML interpolates within its training distribution and fails
+outside it, which is exactly when you most need it to work.
+The practical rule: frame your problem as ranking, classifying, or estimating a conditional probability over a horizon
+long enough that you can actually act, never as predicting price.
+•
+•
+•
+•
+•
+•
+AI Pathways · 2026 Page 2
+5. Features are where the edge lives
+The model is rarely the hard part. Two competent practitioners with the same features and different model types will
+get similar results; two with the same model and different features will get wildly different ones. The edge, if it exists,
+lives in the features, not the algorithm. This is the single most important practical insight in the module, and it's where
+Claude Code earns its keep, helping you build, transform, and reason about inputs.
+A feature is just a number you compute from available information that you think might carry predictive signal. The
+craft is in making them clean and informative.
+Stationarity. Most ML assumes the statistical properties of your inputs are roughly stable over time. Raw price is not
+stationary (it trends, and a model trained at $100 is lost at $400). Returns, ratios, and normalized indicators are far
+more stationary. Transform raw levels into things that mean the same thing across time and price regimes.
+Normalization and scaling. Features on wildly different scales distort many models. Z-scoring (subtract mean, divide by
+standard deviation), rank-transforming, or min-max scaling puts them on comparable footing. Critically, you must
+compute the scaling parameters on training data only and apply them forward, never on the full dataset, or you've
+leaked the future (more on this in validation).
+Predictive vs coincident features. A coincident feature tells you what's happening now; a predictive one tells you
+what's likely next. Many popular indicators are coincident dressed up as predictive. A feature that's just a smoothed
+version of the thing you're trying to predict carries no real edge. Ask of every feature: would knowing this before the
+move have actually helped, or does it only look useful in hindsight?
+Feature decay. A feature that carried edge in 2019 may be dead now because the market adapted or the regime
+changed. Features have shelf lives. Part of validation is checking whether a feature's usefulness is stable across time or
+concentrated in one period.
+The leakage minefield. This is so important it gets its own section in validation, but flag it now: the most common way
+to build a feature that costs you is to include information from the future. Using the day's close to compute a feature
+for a decision you'd make at the day's open. Normalizing using statistics computed over the whole dataset including
+future data. Labeling with information that wouldn't be known yet. Each one produces strong, fake results.
+6. Labeling: the quietly critical choice
+How you define what the model is predicting (the label, or target) is as important as the features and far more
+overlooked. If you label naively, you teach the model the wrong thing.
+The naive approach is the fixed-horizon label: did the price go up over the next N bars? The problem is it ignores the
+path. A trade that drifts up 0.1% over five days and one that spikes 5% then craters both get labeled "up," which is
+nonsense for a real trader who has a stop and a target.
+The better approach, the triple-barrier method, labels based on what actually happens first: does price hit your profit
+target, your stop loss, or run out of time? This labels the outcome the way you'd actually experience it as a trader, and
+it's the standard in serious retail quant work. Claude Code can build this labeling for you, and the build library includes
+a prompt for it.
+The meta-point: your label should reflect the real trading decision and its real risk management, not a sterile "did it go
+up." Get the label wrong and everything downstream is learning to solve the wrong problem perfectly.
+AI Pathways · 2026 Page 3
+PART 3 — THE MODEL SURVEY
+This is a survey of the model families worth knowing, with a practical take on where each fits in retail trading. A
+recurring theme: simpler, more interpretable models are easier to validate and harder to overfit, so they're the right
+default for most problems. That doesn't mean the more advanced families have no place; it means they ask more of
+you in data and validation discipline to use well. HMMs for regime appear here as the layer you build on, not something
+to re-learn, since the earlier material covers them.
+7. Tree ensembles (your workhorse)
+Gradient-boosted trees (XGBoost, LightGBM, CatBoost) and random forests are the dominant tool in serious retail
+quant for a reason. They handle tabular signal data beautifully, capture non-linear relationships and interactions
+between features without you specifying them, are relatively robust, and come with built-in feature-importance
+measures that help you interpret what's happening.
+Random forests train many decorrelated trees on bootstrapped samples and average them. They're hard to overfit
+badly, forgiving of hyperparameters, and a solid baseline. Slightly less sharp than boosting but more robust.
+Gradient boosting builds trees sequentially, each correcting the last's errors. More powerful and usually higherperforming, but easier to overfit and more sensitive to tuning. LightGBM is fast and the common default; XGBoost is
+the well-documented standard; CatBoost handles categorical features gracefully.
+For most retail edge discovery on tabular features, a gradient-boosted tree model is where you start and often where
+you end. If you can't find an edge with boosted trees on good features, a fancier model almost certainly won't save you,
+it'll just overfit more convincingly.
+8. Regularized linear models (the baseline)
+Lasso and Ridge regression are linear models with a penalty that shrinks coefficients toward zero, fighting overfitting
+and, in Lasso's case, performing automatic feature selection by zeroing out useless inputs.
+They matter for two reasons. First, they're a reality check: if a simple regularized linear model finds no edge in your
+features, be very skeptical of a complex model that claims to. Second, the world is noisier and more linear than
+beginners think, and a well-regularized linear model is often competitive with fancier approaches while being far more
+interpretable and far less prone to overfitting. Always run one as a baseline. If your gradient-boosted model can't beat a
+regularized linear model out of sample, the complexity is buying you overfitting, not edge.
+9. Hidden-state and regime models (the layer you know)
+You've covered HMMs already, so briefly: these identify unobserved market states (calm trend, choppy range, high-vol
+stress) and let your system switch behavior to match. In this module, regime detection is the context layer you build on
+top of. A signal model that ignores regime is fragile; the same signal can be predictive in one regime and noise in
+another.
+The advanced move beyond plain HMMs: regime-conditional modeling. Instead of one model for all conditions, you
+train or weight models per regime, or you feed the regime state in as a feature so the model can learn regimeAI Pathways · 2026 Page 4
+dependent behavior. There are also richer state models (regime-switching models with more structure, and changepoint detection methods) worth knowing exist, but the practical win for most people is simply: always condition on
+regime, never ignore it.
+10. Unsupervised methods (discovery, not prediction)
+Clustering (k-means, hierarchical, DBSCAN) and dimensionality reduction (PCA, and for visualization, t-SNE/UMAP)
+don't predict anything directly. They find structure.
+Their real use in edge discovery is twofold. Setup discovery: cluster historical market conditions or setups and you may
+find natural groupings, types of days or environments you didn't know to look for, which then become features or
+filters. Feature compression: when you have many correlated indicators, PCA can reduce them to a few orthogonal
+dimensions, cutting noise and multicollinearity. Use these to understand your data and generate hypotheses, not to
+trade directly. A cluster is a question ("is this type of environment special?"), not an answer.
+11. The advanced frontier (deep learning, sequence models, RL)
+Beyond trees and linear models sits a more advanced frontier: deep learning, sequence models like LSTMs, and
+reinforcement learning. These are more powerful and more flexible, and that flexibility cuts both ways: it lets them
+capture structure simpler models miss, and it gives them more room to overfit, which raises the bar on the data and
+validation discipline needed to use them well. They reward practitioners who bring enough data and rigorous
+validation, and they punish those who don't. Here's the shape of each; the dedicated Deep Learning, Sequence Models
+& RL module covers them in depth with build prompts.
+Deep learning (neural networks). Excels at problems with large datasets and complex, high-dimensional structure. In
+trading, the natural fits are rich or alternative data (text, order-book depth, cross-sectional panels) rather than a
+handful of tabular indicators, where a gradient-boosted tree is usually the more efficient choice. The two things to
+respect: neural nets need more data than tabular trading problems often provide, and their flexibility means validation
+has to be airtight or they'll fit noise. Used with enough data and disciplined validation, they open up problems the
+simpler models can't reach.
+LSTMs and sequence models. Built to model sequences, which is appealing because price and order flow are
+sequential. The legitimate promise is capturing temporal dependencies that hand-built features might miss; the thing
+to weigh is that you can often get most of that signal from well-engineered features (momentum over various
+lookbacks, rolling statistics) fed to a simpler model, with far easier validation. Where the sequence structure is rich and
+you have the data to support it, sequence models earn their place. Newer architectures (temporal convolutions,
+attention/transformers) are also worth knowing and are covered in the dedicated module.
+Reinforcement learning. Frames trading as an agent learning a policy through interaction, which is powerful for
+sequential decision-making under uncertainty, position sizing and execution as much as entry signals. The realities to
+plan for: RL is data-hungry, sensitive to how the environment and reward are designed, and exposed to the sim-to-real
+gap, where a policy that excels in backtest behaves differently live. It demands the most care of the three, and with that
+care it can address problems the others don't naturally express. The dedicated module covers environment design,
+reward shaping, and the validation specifics.
+The practical framing: complexity adds capability and adds degrees of freedom at the same time, so each step up the
+ladder raises both the potential payoff and the validation burden. Start with the simplest model that could express your
+AI Pathways · 2026 Page 5
+hypothesis, and move to the advanced families when the problem calls for them and you have the data and discipline
+to validate them. The advanced module is there for when you do.
+PART 4 — VALIDATION: THE WAYS ML LIES, AND HOW TO
+CATCH IT
+This is the most important section in the module. It's longer and harder than the standard backtesting material because
+ML introduces failure modes that simple strategies don't have. If you skip or skim this, you will eventually deploy an
+overfit model and lose money, with near certainty. Read it twice.
+The governing principle: assume every result is a false positive and design tests to prove it. A backtest is a hypothesis,
+not a result.
+12. Feature leakage (the silent killer)
+Leakage is when information from the future, or information that wouldn't have existed at decision time, sneaks into
+your model. It produces strong, entirely fake results, and it's easy to do by accident. It is the most common cause of a
+backtest that looks good but fails live.
+Common forms: - Look-ahead in features. Computing a feature for an open-of-day decision using that day's close or
+high or low. The classic. - Normalization leakage. Scaling or z-scoring using the mean and standard deviation of the
+entire dataset, including future data. Now your "past" features secretly know the future distribution. Scaling
+parameters must be fit on training data only and applied forward. - Label leakage. Building the target with information
+not yet available, or with overlapping windows that let adjacent samples share future information. - Survivorship and
+selection. Training on the set of stocks that exist today, which silently excludes everything that went to zero, so the
+model learns from a universe that only contains survivors.
+The defense is relentless suspicion plus specific tests. Any time a result looks too good, suspect leakage first, before you
+believe you found an edge. The build library includes a dedicated leakage-audit prompt that has Claude Code trace your
+pipeline for every one of these.
+13. The multiple-comparisons problem (the edge-discovery killer)
+This is the failure mode that makes edge discovery specifically so dangerous, and most beginners have never heard of it.
+If you test one feature, a good result is meaningful. If you test 500 features and 1,000 combinations and pick the best
+ones, you are almost guaranteed to find some that score well purely by chance. Test enough random noise and some of
+it will, by luck alone, produce a strong backtest. Standard backtesting cannot tell the difference between a real edge
+and the luckiest of a thousand coin-flips, because it evaluates the winner in isolation as if you hadn't tried 999 others.
+This is why naive edge discovery, searching a huge space and trading whatever backtested best, produces false positives
+by construction. The more you search, the better your best fluke looks.
+The defenses: - Track how many things you tested. The number of trials is essential context. A Sharpe of 2 from testing
+one hypothesis is very different from a Sharpe of 2 selected as the best of 1,000. - Correct for it. Methods like the
+deflated Sharpe ratio (below) explicitly adjust your performance estimate downward based on how many trials you ran
+AI Pathways · 2026 Page 6
+and how much you data-mined. - Demand robustness, not just a peak. A real edge tends to be surrounded by other
+parameter settings that also work reasonably. A fluke is an isolated spike, brilliant at exactly one setting and garbage
+one step away. If your best result is a lonely peak, distrust it. - Hold out data you never touch during search. A final
+out-of-sample set the search never saw is your last line of defense against having fooled yourself across many trials.
+14. Proper cross-validation for time series
+Standard k-fold cross-validation, the default in most ML tutorials, is wrong for trading and will leak. It randomly shuffles
+data into folds, which means you end up training on future data and testing on past data, and adjacent-in-time samples
+(which share information) land in different folds. The result is a validation score that's far too optimistic.
+Time-series data needs methods that respect the arrow of time:
+Walk-forward (expanding or rolling window). Train on a past window, test on the next chunk forward, then roll or
+expand and repeat. This mimics how you'd actually use the model: you only ever know the past. It's the baseline
+method for time-series validation, and you should think in walk-forward terms by default.
+Purged cross-validation. When your labels span multiple bars (as triple-barrier labels do), samples near the train/test
+boundary can share information through their overlapping windows, leaking across the split. Purging removes training
+samples whose label windows overlap the test set. It surgically cuts the contamination that even careful time-series
+splits leave behind.
+Embargo. On top of purging, you also drop a small buffer of training samples immediately after the test set, because
+serial correlation can leak information just past the boundary. The embargo is that buffer. Purge plus embargo together
+is the standard for CV on overlapping-label financial data.
+Combinatorial purged cross-validation (CPCV). The advanced method. Instead of one train/test path, CPCV
+systematically creates many different train/test combinations from purged, embargoed blocks, producing a distribution
+of out-of-sample performance rather than a single number. This is powerful for two reasons: it uses your scarce data
+efficiently, and it tells you not just "what was the backtest result" but "how much does the result vary depending on
+which periods I tested," which is exactly the robustness question that exposes flukes. A single backtest path can be
+lucky; a tight, healthy distribution across many CPCV paths is much harder to fake. This is the gold standard for serious
+retail ML validation, and the build library walks Claude Code through implementing it.
+15. Deflated and probabilistic Sharpe
+A raw backtest Sharpe ratio is almost always inflated, for two reasons: you probably selected this strategy as the best of
+many (multiple comparisons), and financial returns aren't normally distributed (fat tails and skew make the naive
+Sharpe overstate quality).
+Probabilistic Sharpe (PSR) asks: given the length of my track record and the non-normality of my returns, what's the
+probability my true Sharpe is actually above some benchmark (often zero)? It converts a point estimate into a
+confidence statement, which is more informative.
+Deflated Sharpe (DSR) goes further and adjusts for the multiple-comparisons problem explicitly: it haircuts your Sharpe
+based on how many strategy variants you tried before landing on this one. If you tested 1,000 configurations, DSR
+knows your best one is probably partly luck and deflates accordingly. A strategy with a strong raw Sharpe can have a
+deflated Sharpe near zero once you account for how much you searched, and that's the number that tells the truth.
+AI Pathways · 2026 Page 7
+The practical takeaway: never trust a raw backtest Sharpe from an ML search. Compute the deflated version with a full
+count of how many things you tried. It is routine for a "Sharpe 2.5" discovery to deflate to "probably no real edge" once
+the search is accounted for, and finding that out before you trade is the whole point.
+16. What a real ML edge actually looks like
+Calibrate your expectations so you're not chasing a fantasy:
+Small. Real edges are modest. A genuine, sustainable edge might be a slight tilt in win rate or a modest Sharpe after
+costs, not a 90% win rate or a smooth, always-up curve. Anything that looks extraordinary is overfit until proven
+otherwise, and it usually can't be proven otherwise.
+Noisy. A real edge has losing streaks, drawdowns, and stretches where it looks broken. The suspiciously smooth
+equity curve is the red flag, not the goal. Real edges are bumpy because markets are noisy.
+Decaying. Edges erode as markets adapt and as the conditions that created them change. A real edge has a shelf
+life, sometimes months, and you should expect to monitor and eventually retire it.
+Costly to capture. A signal with a tiny gross edge can be net-negative after spreads, slippage, and commissions.
+Always validate net of realistic costs, not gross.
+If your discovery is large, smooth, and looks permanent, the overwhelmingly likely explanation is that you fooled
+yourself, not that you found the holy grail. The grail-shaped results are almost always artifacts.
+PART 5 — DEPLOYMENT, DECAY, AND THE FULL WORKFLOW
+17. An edge is not static
+The work isn't done when validation passes. A discovered edge erodes over time as the market adapts, as other
+participants find the same pattern, and as the regime that produced it shifts. Treating a validated model as permanent
+is its own failure mode. Deployment is a monitoring problem, not a fire-and-forget one.
+Monitoring for decay. Track the model's live performance against its validated expectations. Watch for the signal's
+predictive power weakening (the gap between predicted and realized outcomes widening), the feature distributions
+drifting away from what the model trained on (distribution shift), and the regime moving into territory the model
+handles poorly. When live results fall persistently below the bottom of your validated performance distribution, the
+edge may be gone.
+Retraining discipline. You'll need to retrain periodically as new data arrives, but retraining is itself a trap if done
+carelessly: retrain too often and you chase noise; retrain on a fixed schedule without checking and you may bake in a
+dead edge. The discipline is to retrain on a sensible cadence, re-validate with the same rigor you used originally (purged
+CV, deflated Sharpe, the works), and be willing to pull the model entirely if it no longer survives validation. A retrained
+model is a new hypothesis, not an automatic continuation.
+Paper-trade the live pipeline first. Even after a model validates beautifully on historical data, run the entire live pipeline
+(data feed, feature computation, model inference, signal generation) in paper for a meaningful period before real
+money. This catches the gap between your clean backtest and messy live reality: data feed quirks, computation timing,
+•
+•
+•
+•
+AI Pathways · 2026 Page 8
+latency, the things that don't show up in historical simulation. This is the same gate as the rest of Track B, and ML
+doesn't get to skip it.
+18. Most discovered edges die, and that's normal
+A hard truth to set expectations: most edges you discover will not survive contact with rigorous validation, and of the
+ones that do, many will not survive contact with live trading. This is not failure. This is the process working. The entire
+point of the validation in Part 4 is to kill the false edges before they cost you money, which means a high kill rate is
+exactly what success looks like.
+A practitioner who discovers ten promising patterns, runs them through the process, and finds that eight were flukes,
+one decayed in paper, and one is a small real edge worth trading, has done the job perfectly. The beginner who finds
+ten patterns and trades all ten because they all backtested well is the one who blows up. Expect to kill most of your
+ideas. Celebrate the killing, it's cheaper than the alternative.
+19. The full workflow, start to finish
+Putting it all together, the disciplined edge-discovery loop:
+Hypothesize. Start with an economic or behavioral reason a pattern might exist, not a blind search. A hypothesis
+with a "why" behind it is far less likely to be a fluke than one mined from pure data dredging.
+Engineer features. Build clean, stationary, normalized features that could plausibly carry the signal. Audit for
+leakage as you go.
+Label properly. Use triple-barrier or another label that reflects the real trade and its risk management, not a naive
+fixed-horizon "did it go up."
+Baseline. Fit a regularized linear model first. If it finds nothing, be very skeptical of anything fancier.
+Model. Train a gradient-boosted tree, conditioned on regime. Keep it as simple as the problem allows.
+Validate hard. Purged, embargoed cross-validation; ideally combinatorial purged CV for a performance distribution.
+Compute the deflated Sharpe with a full count of how many things you tried. Test net of realistic costs.
+Audit for leakage and overfitting. Specifically hunt for the failure modes in Part 4 before believing any result.
+Hold-out test. Evaluate once on data the entire search never touched. This is your last check before paper.
+Paper-trade the live pipeline. Run the whole thing forward in paper before real money.
+Deploy small, monitor for decay, retrain with discipline, and be willing to kill it.
+Claude Code can build every one of these steps with you, and the build library has prompts for each. But the tool
+doesn't supply the discipline; you do. The model will always agree with your data. Your job is to be the adversary that
+proves it wrong before the market does it for you, expensively. T R A C K B · A D V A N C E D
+Deep Learning,
+Sequence Models & RL
+The Claude Code build prompts for neural networks, sequence models, and
+reinforcement learning: project scaffolding with baselines, leakage-safe
+sequence windows, realistic RL environments, and the deflation that keeps you
+honest.
+AI PATHWAYS · 2026 · CLAUDE CODE BUILD LIBRARY
+These prompts implement the three advanced model families with Claude Code. They default to a Python + PyTorch
+stack (with TensorFlow/Keras and standard RL libraries mentioned where relevant), and they assume you've already
+absorbed the validation discipline from the Machine Learning & Edge Discovery module, purged CV, deflated Sharpe,
+leakage audits, paper-first deployment. Pair every build with your CLAUDE.md hard rules.
+Each prompt has the standard structure: when to use it, what it protects you from, the prompt to copy, what good
+output looks like, the red flags that mean it went wrong, and what to chain next.
+PROMPT — copy this
+These build flexible, high-capacity models that can fit noise spectacularly if validated carelessly. Every prompt assumes
+the time-aware, purged, paper-first discipline from the edge-discovery module. The capability is higher here; so is the
+required honesty.
+A. Deep learning (neural networks)
+1. Set up the deep learning project with a tree baseline
+When to use it: The start of any neural-net trading project, before building the network.
+What it protects you from: Investing in a complex network when you don't yet know whether a simpler model already
+solves the problem, and building without the validation scaffolding that flexible models require.
+Fill in: the problem, the data, classification or regression.
+The prompt:
+PROMPT — copy this
+Set up a PyTorch project for a neural-network trading model on [PROBLEM, e.g. cross-sectional ranking of stocks / signal
+from order-book features], using [DATA]. Before any network, establish a gradient-boosted tree baseline on the same
+features and the same time-aware validation split, so I have an honest bar the network has to clear.
+Structure the project with strict separation of data prep, feature/sequence building, model, and validation, and make
+every scaling/transform fit on training data only and apply forward. Set up time-aware, purged, embargoed crossvalidation from the start (reuse the approach from the edge-discovery module). Default everything to research/paper
+mode per my CLAUDE.md.
+Walk me through the structure and the baseline result first. If the tree baseline already does well, tell me plainly that
+the network needs to clearly beat it to be worth the added complexity and validation burden.
+What good output looks like: A clean PyTorch project with a tree baseline on identical data and validation, purged
+time-aware CV scaffolding, train-only scaling, and an explicit "the net must beat this baseline" framing.
+Red flags that it failed: It skips the baseline, or uses random k-fold. Send back: "Build the tree baseline on the same
+purged time-aware split first, and tell me the bar the network has to clear."
+Chain next: - Prompt #2 to build the network itself.
+AI Pathways · 2026 Page 1
+2. Build a regularized feedforward / CNN model
+When to use it: After the baseline, to build the actual network for tabular/panel or grid-like inputs.
+What it protects you from: An over-parameterized network that memorizes noise, the default failure of deep learning
+on limited financial data.
+Fill in: input type, architecture preference.
+The prompt:
+PROMPT — copy this
+Build a [feedforward MLP / 1D-CNN] in PyTorch for my problem. Keep it deliberately constrained against overfitting and
+explain each choice: modest depth and width sized to my data, dropout, weight decay, and early stopping on a timeordered validation set (never a shuffled one).
+Requirements: - Report performance against the tree baseline on the purged time-aware split. If it doesn't clearly beat
+the baseline out of sample, tell me the complexity is buying overfitting, not edge. - Include an interpretability pass:
+feature attribution (e.g. integrated gradients or permutation on inputs) so I can sanity-check that the model leans on
+inputs that make economic sense. - Track how many architectures/hyperparameter sets I've tried so we can deflate
+performance later.
+Optimize for honest out-of-sample robustness, not the training or backtest number.
+What good output looks like: A constrained network with each anti-overfit choice explained, a baseline comparison
+willing to say the net isn't worth it, an interpretability pass, and trial tracking.
+Red flags that it failed: It builds a large unregularized net, chases training loss, or skips interpretability. Send back: "This
+is over-parameterized for my data. Constrain it, explain the regularization, compare to the baseline out of sample, and
+add input attribution."
+Chain next: - Prompt #7 (the universal leakage + overfitting audit). - For text/alternative data, prompt #3.
+3. Embeddings for categorical or alternative data
+When to use it: When you need to feed high-cardinality categoricals (ticker, sector) or text/alternative data into a
+network.
+What it protects you from: Mishandling non-numeric inputs (naive one-hot blowups, or feeding text as meaningless
+tokens) and the leakage that alternative data invites.
+Fill in: the categorical/text input.
+The prompt:
+AI Pathways · 2026 Page 2
+PROMPT — copy this
+Add an embedding layer to my model to handle [CATEGORICAL INPUT, e.g. ticker identity / sector] [and/or: text from
+CONTEXT, e.g. headlines]. For categoricals, learn a dense embedding rather than one-hot encoding. For text, walk me
+through turning it into model input (tokenization or a pretrained embedding) and the tradeoffs.
+Critical: with any alternative or text data, audit timing carefully, the data must be timestamped to when it was actually
+available, not when the event occurred, so I'm not training on information that arrived after my decision point. Flag
+every place look-ahead could enter through the alternative data, since this is where it most often hides.
+Explain how the embeddings integrate with the rest of the network and how I'd inspect what they learned.
+What good output looks like: Proper embeddings (not one-hot), a clear text-handling path with tradeoffs, a rigorous
+availability-timing audit for the alternative data, and an explanation of inspecting the embeddings. The timing audit is
+essential.
+Red flags that it failed: It one-hot-encodes high-cardinality inputs, or ignores the availability-timing of alternative data.
+Send back: "Use learned embeddings, and audit the alternative data for availability timing, when did I actually have
+this, not when it happened?"
+Chain next: - Prompt #7 for the full leakage audit, focused on the alternative-data timing.
+B. Sequence models
+4. Build sequence windows without leakage
+When to use it: Before training any sequence model, to slice the series into input/target windows safely.
+What it protects you from: Windowing and scaling leakage, the silent errors that make sequence models post fake
+results.
+Fill in: sequence length, target definition, decision timing.
+The prompt:
+PROMPT — copy this
+Build the sequence-windowing pipeline for my [LSTM/GRU/TCN] model. Use an input window of [N timesteps] to
+predict [TARGET], where my decision is made at [timing].
+Critical leakage controls, show me each explicitly: - Every input timestep must strictly precede the target it predicts.
+Verify the alignment so the model can never see part of its own answer. - Scaling/normalization parameters fit on
+training data only, applied forward, never computed over the full series. - When windows are split into train/test, purge
+windows whose spans overlap the boundary and apply an embargo, the sequence version of the purged CV from the
+edge-discovery module.
+Walk me through every point where future information could leak through the windowing or scaling, and how the
+pipeline prevents it. Assume I won't catch it myself.
+What good output looks like: Correct window/target alignment with verification, train-only scaling, purged+embargoed
+splitting of windows, and a proactive leakage walkthrough specific to sequences.
+AI Pathways · 2026 Page 3
+Red flags that it failed: Targets bleed into input windows, or scaling uses the whole series. Send back: "Verify that every
+input timestep precedes the target, and that scaling is fit on training data only. Where could the window see its own
+answer?"
+Chain next: - Prompt #5 to build the sequence model on these windows.
+5. Train an LSTM/GRU/TCN with an engineered-feature baseline
+When to use it: To build the sequence model and prove it beats the cheaper alternative.
+What it protects you from: Taking on a hard-to-validate sequence model for signal you could have gotten from
+engineered features and a simple model.
+Fill in: architecture, problem.
+The prompt:
+PROMPT — copy this
+Train a [GRU / LSTM / TCN] in PyTorch on my sequence windows for [PROBLEM]. First, build the honest baseline: wellengineered features (momentum over multiple lookbacks, rolling volatility, etc.) fed to a simple model on the same
+purged time-aware split. The sequence model has to clearly beat that to justify itself.
+Requirements: - Heavy regularization (dropout, early stopping on a time-ordered validation set, modest size). Explain
+each choice. - Try a GRU or TCN as a lighter-weight comparison if I'm starting with an LSTM, since they often match it
+with less data. - Report out-of-sample performance versus the engineered-feature baseline honestly. If the sequence
+model doesn't clearly win, tell me the engineered features plus a simple model is the better, more validatable choice.
+Optimize for out-of-sample robustness, not the backtest number.
+What good output looks like: A regularized sequence model, an engineered-feature baseline on the same split, a
+lighter-weight architecture comparison, and an honest verdict willing to favor the baseline.
+Red flags that it failed: No engineered-feature baseline, or it favors the sequence model without an out-of-sample win.
+Send back: "Build the engineered-feature baseline and tell me honestly whether the sequence model actually beats it
+out of sample."
+Chain next: - Prompt #7 for the leakage/overfitting audit. - If it wins, the integration and deflation prompts (#8, #9).
+C. Reinforcement learning
+6. Build a realistic trading environment
+When to use it: The first and most important step of any RL project, before training an agent.
+What it protects you from: The sim-to-real gap and reward hacking, the two failure modes that turn RL into a simulator
+champion that loses money live. A weak environment guarantees a useless agent.
+Fill in: the decision the agent makes, the constraints.
+The prompt:
+AI Pathways · 2026 Page 4
+PROMPT — copy this
+Build a realistic reinforcement-learning environment (Gymnasium-style) for a trading agent that decides [DECISION, e.g.
+position size and entry/exit on one instrument / execution scheduling]. Realism is the whole point, so include: - Realistic
+transaction costs and slippage, erring pessimistic rather than optimistic. - Position and risk constraints (max size, etc.)
+the agent must operate within. - A state representation containing only information available at decision time, no lookahead in the observations.
+Then design the reward carefully and explain it: I want to reward risk-adjusted performance and explicitly penalize
+drawdown or excessive risk, NOT raw profit, so the agent can't learn to take catastrophic risk for a good number. Walk
+me through how the reward could be hacked or gamed, and how your design resists it.
+Default to research mode per my CLAUDE.md; this environment trains an agent, it does not trade live.
+What good output looks like: A realistic environment with pessimistic costs, real constraints, look-ahead-free
+observations, and a carefully shaped risk-adjusted reward with an explicit reward-hacking analysis. The cost realism and
+reward-hacking discussion are the signs it's built right.
+Red flags that it failed: Zero/optimistic costs, raw-profit reward, or look-ahead in the state. Send back: "Add realistic
+pessimistic costs, change the reward to risk-adjusted with a drawdown penalty, and tell me how the agent could game
+it."
+Chain next: - Prompt for training the agent (below), then the validation prompts.
+6b. Train and validate the RL agent
+When to use it: After the environment is realistic, to train the agent and test it honestly.
+What it protects you from: An agent that overfits the historical path it trained on and a validation approach that
+doesn't catch it.
+Fill in: algorithm preference, data split.
+The prompt:
+PROMPT — copy this
+Train an RL agent in my environment using [a standard algorithm, e.g. PPO from a well-tested library]. Guard against
+overfitting the specific historical path: - Train and test on time-separated data, the agent must be evaluated on periods
+it never trained on. - If feasible, train across many varied scenarios or with environment randomization so the agent
+learns robust behavior rather than memorizing one path. - Use walk-forward retraining and testing rather than a single
+train/test split.
+Report performance on out-of-sample episodes, net of the environment's realistic costs, and scrutinize HOW the agent
+earns its reward, not just how much, so we catch reward hacking. Be blunt if the agent's apparent skill looks like it's
+exploiting the simulator rather than finding real edge. Then tell me what paper-trading the live policy would need to
+look like before any real-money consideration.
+What good output looks like: Time-separated training/testing, scenario variety or randomization, walk-forward
+evaluation, net-of-cost out-of-sample results, scrutiny of how reward is earned, and a paper-trading plan.
+AI Pathways · 2026 Page 5
+Red flags that it failed: Single train/test split, in-sample evaluation, or no reward-hacking scrutiny. Send back: "Evaluate
+on out-of-sample episodes with walk-forward, and tell me honestly whether the agent is exploiting the simulator rather
+than finding edge."
+Chain next: - Prompt #7 (audit) and #9 (deflation), then long paper-trading.
+D. Validation and deployment (all families)
+7. The leakage and overfitting audit (deep models)
+When to use it: Mandatory before trusting any deep, sequence, or RL model. Run it even when nothing looks wrong.
+What it protects you from: Every leakage and overfitting path, which flexible models hit more easily than simple ones.
+Fill in: which model type.
+The prompt:
+PROMPT — copy this
+Audit my [deep / sequence / RL] model end to end as a hostile reviewer who assumes I've made a mistake. Check
+specifically: - Look-ahead in features, observations, or sequence windows: anything using information from at or after
+the decision point. - Scaling/normalization fit on data that includes the future or test set. - Target/window alignment
+letting the model see part of its own answer (sequence models). - Reward or environment flaws the agent could exploit
+(RL). - Overfitting signals: a gap between train and out-of-sample performance, a suspiciously smooth equity curve,
+performance that collapses with small changes. - Survivorship/selection bias in the universe.
+Go stage by stage, rank issues by how badly they'd inflate results, and give fixes. Don't give me a clean bill of health
+unless you've genuinely traced every stage; flag anything needing my manual check.
+What good output looks like: A stage-by-stage hostile audit covering the deep-model-specific paths (windowing,
+reward hacking) plus the universal ones, ranked with fixes. It should not casually clear the model.
+Red flags that it failed: A quick "looks fine." Send back: "Go stage by stage assuming I leaked somewhere. For a
+sequence/RL model especially, where could the model see the future or game the environment?"
+Chain next: - Fix findings, re-validate, then prompt #9 to deflate.
+8. Integrate a validated model into the regime-aware framework
+When to use it: Only after a model survives the full validation gauntlet. Never before.
+What it protects you from: Bolting a high-capacity model onto live execution without your existing risk controls and
+regime awareness.
+Fill in: framework details.
+The prompt:
+AI Pathways · 2026 Page 6
+PROMPT — copy this
+My [deep / sequence / RL] model has survived full validation (purged time-aware testing, leakage audit, out-of-sample,
+deflated performance). Integrate it into my existing regime-aware framework as a signal or policy source, not a
+standalone autotrader.
+Requirements: - It feeds into my existing position sizing and risk management; it does not bypass them. - Respect
+CLAUDE.md: no live trading by default, kill switches intact, regime filter active. - Keep model inference cleanly
+separated so I can monitor, retrain, and swap it without touching execution. - Default to paper mode; going live is an
+explicit, deliberate step, never the default.
+Walk me through how the signal/policy flows to a sized, risk-checked, regime-filtered order in paper, and show me the
+safety gates.
+What good output looks like: Clean integration respecting sizing/risk/regime controls, CLAUDE.md honored, paper-bydefault, with a safety-gate walkthrough.
+Red flags that it failed: A standalone autotrader, bypassed risk management, or live-by-default. Send back: "Route it
+through my existing sizing and regime filter, keep kill switches intact, and make live an explicit non-default step."
+Chain next: - Prompt #9 to deflate, and set up decay monitoring (reuse the edge-discovery module's monitoring
+prompt).
+9. Deflate performance for the deep-model search
+When to use it: Before believing any backtest metric from a deep/sequence/RL search, which has even more knobs
+than tree models.
+What it protects you from: The badly inflated performance that comes from trying many architectures and
+hyperparameters, a worse multiple-comparisons problem than simpler models.
+Fill in: how many configurations you tried.
+The prompt:
+PROMPT — copy this
+Compute probabilistic and deflated Sharpe (or the appropriate risk-adjusted metric) for my model. For deflation,
+account honestly for how many configurations I tried, this includes architectures, layer sizes, learning rates, window
+lengths, reward designs, all of it. Deep and sequence and RL models have many more knobs than tree models, so my
+effective trial count is high and the deflation should reflect that.
+Report the raw metric, the probabilistic version, and the deflated version given my honest trial count and the nonnormality of returns. Then tell me bluntly: after accounting for how much I searched, is there credible evidence of a real
+edge, or has the impressive number deflated toward nothing? With this many knobs, be especially suspicious, and say
+so if the edge doesn't survive.
+What good output looks like: Raw, probabilistic, and deflated metrics with an honest, high trial count reflecting all the
+deep-model knobs, and a blunt verdict willing to say the edge deflated away.
+Red flags that it failed: A low trial count that ignores architecture/hyperparameter search. Send back: "Count every
+architecture, hyperparameter, and reward variant I tried, the real number is high. Does a real edge survive that
+deflation?"
+AI Pathways · 2026 Page 7
+Chain next: - If it survives, long paper-trading of the live pipeline. If not, simplify or return to the problem.
+How this fits the classroom
+This module is the advanced-architecture companion to Machine Learning & Edge Discovery. That module covered the
+full workflow and the case for simple defaults; this one covers the three high-capacity families, deep learning, sequence
+models, and reinforcement learning, for when the problem calls for them and you have the data and discipline to use
+them well. The validation bar from the edge-discovery module applies in full and matters more here, because capacity
+and the ability to fit noise rise together. Build with the same paper-first, CLAUDE.md-governed discipline as the rest of
+Track B, bring the data these models need, and they earn their place in an advanced toolkit.Deep Learning,
+Sequence Models & RL
+Advanced model architectures for trading with Claude Code: neural networks,
+sequence models (LSTMs and beyond), and reinforcement learning. What each
+is, where it fits, and the discipline to validate it honestly.
+AI PATHWAYS · 2026 · FOUNDATIONS
+This is an advanced Track B module and a companion to Machine Learning & Edge Discovery. That module covered the
+full edge-discovery workflow and the case for keeping models simple by default. This one goes the other direction: the
+three advanced model families that reward practitioners willing to bring more data and more validation discipline. Deep
+learning (neural networks), sequence models (LSTMs and beyond), and reinforcement learning.
+These models are more powerful than trees and linear models, and more demanding. The same validation rigor from
+the edge-discovery module applies here and then some, because their flexibility gives them more room to fit noise.
+Everything you learned there about leakage, purged cross-validation, deflated Sharpe, and decay carries forward
+unchanged. This module assumes you've internalized it.
+Read the foundations to understand what each family is, where it fits, and how to validate it. Then use the build library
+for the Claude Code prompts that implement each.
+A note on stack: the build prompts default to Python with PyTorch (the common research default) and mention
+alternatives like TensorFlow/Keras where relevant. For RL, they reference standard environment patterns (Gymnasiumstyle) and common libraries. You do not need to write this code by hand; Claude Code builds it. You need to understand
+it well enough to direct the build and validate the output.
+PART 1 — DEEP LEARNING (NEURAL NETWORKS)
+1. What a neural network actually is
+A neural network is a stack of layers, each applying a linear transformation followed by a non-linear function, that
+learns to map inputs to outputs by adjusting its internal weights to minimize a loss. With enough layers and units, it can
+approximate very complex relationships, which is why it dominates problems like image recognition and language. The
+power comes from learning its own representations of the data rather than relying on features you hand-craft.
+For trading, that representational power is the appeal and the catch. It can discover structure you didn't think to
+engineer as a feature. It can also discover structure that isn't really there, fitting the noise in a small, low signal-to-noise
+dataset with great enthusiasm. The whole craft of deep learning in trading is getting the benefit without the cost, and
+that is mostly a matter of data scale and validation discipline.
+2. Where deep learning fits in trading
+Neural nets earn their keep when the problem has the characteristics they're built for:
+Rich or high-dimensional inputs. Order-book depth across many levels, cross-sectional panels of many assets and
+features at once, or alternative data like text and images. When the input is large and structured, a network can find
+patterns a tree on a few indicators cannot.
+Alternative data. News, filings, social text, satellite or transaction data. Turning unstructured data into signal is a
+natural neural-net job (often via embeddings), and it's an area where the edge is less picked over precisely because
+it's harder.
+Large datasets. Cross-sectional problems (modeling thousands of stocks over years) provide far more training
+examples than a single instrument's time series, which is friendlier to deep models.
+•
+•
+•
+AI Pathways · 2026 Page 1
+Where a network is usually not the efficient choice: a handful of tabular technical indicators on a single instrument.
+That's a gradient-boosted tree's home turf, and a tree will typically match or beat a net there with far less data and far
+easier validation. Reaching for a network there isn't wrong, it's just inefficient. Use the tool the problem calls for.
+3. The architectures worth knowing
+Feedforward (MLP). The basic fully-connected network. A reasonable starting point for tabular or panel data when
+you want a neural baseline. Often a tree still wins on pure tabular, but an MLP is the neural baseline to compare
+against before reaching for something fancier.
+Convolutional (CNN). Built for grid-like data (images), but 1D convolutions are useful on sequences too, learning
+local patterns over time windows efficiently. Temporal CNNs are a strong, often-underrated alternative to recurrent
+models for time series.
+Embeddings. A learned dense representation of categorical or high-cardinality inputs (a stock, a sector, a word).
+Embeddings are how you feed things like "which ticker" or text into a network usefully, and they're a core technique
+for alternative-data work.
+Sequence-specific architectures (RNNs, LSTMs, attention/transformers) get their own part below, because the
+sequential nature of markets makes them a distinct topic.
+4. The discipline deep learning demands
+The flexibility that makes neural nets powerful is exactly what you must constrain. The non-negotiables:
+Enough data. Deep models are data-hungry. If you have a few thousand daily bars on one instrument, you're in a
+regime where overfitting is the default outcome. Cross-sectional data, higher-frequency data, or alternative data
+changes that. Assess whether you actually have the data the model needs.
+Regularization, heavily. Dropout, weight decay, early stopping on a time-ordered validation set, and keeping the
+architecture no larger than the problem needs. A smaller network that you can validate beats a larger one that
+memorizes.
+Airtight validation. Everything from the edge-discovery module: purged, embargoed, time-aware splits, never
+random shuffling; net-of-cost evaluation; deflated performance accounting for how many architectures and
+hyperparameters you tried. Neural nets have many more knobs, which means a worse multiple-comparisons
+problem. Track your trials and count them all.
+Interpretability effort. Networks are harder to interpret than trees, so you have to work for it: attribution methods,
+probing what the model attends to, sanity-checking that important inputs make economic sense. If you can't form
+any picture of why it works, you can't tell learning from memorization, and you should trust it less.
+Deep learning is not off-limits for retail; it's a tool with a higher cost of entry. Pay the cost (data, regularization,
+validation, interpretability) and it opens problems the simpler models can't touch. Skip the cost and it will hand you an
+overfit model that looks good in backtest and fails live, the same as any flexible model would.
+•
+•
+•
+•
+•
+•
+•
+AI Pathways · 2026 Page 2
+PART 2 — SEQUENCE MODELS (LSTMS AND BEYOND)
+5. Why sequences are their own topic
+Markets are sequential: today depends on yesterday, order flow arrives in time order, and the path matters. Sequence
+models are architectures built specifically to model that temporal dependency, learning how past states inform future
+ones rather than treating each observation as independent. The appeal in trading is direct: capture the temporal
+structure that a static feature snapshot might miss.
+The thing to weigh against that appeal: much of the temporal structure you care about can be captured by handengineered features (momentum over multiple lookbacks, rolling volatility, time-since-event) fed to a simpler model,
+with far easier validation. So the question for any sequence-model project is whether the temporal dependencies are
+rich enough, and your data deep enough, that letting the model learn them beats engineering them yourself. When the
+answer is yes, sequence models are the right tool. When it's no, you've taken on a hard-to-validate model for signal you
+could have gotten more cheaply.
+6. The recurrent family
+RNN (vanilla recurrent network). Processes a sequence step by step, carrying a hidden state forward. Conceptually
+the foundation, but in practice it struggles to learn long-range dependencies (the vanishing-gradient problem), so
+it's rarely used directly for serious work. Worth understanding as the basis for what follows.
+LSTM (Long Short-Term Memory). The workhorse recurrent architecture. It adds gates that let the network learn
+what to remember and what to forget over long sequences, solving much of the vanilla RNN's long-range problem.
+For sequential trading problems where you want the model to learn temporal patterns, the LSTM is the classic
+starting point.
+GRU (Gated Recurrent Unit). A streamlined LSTM with fewer parameters. Often performs comparably with less data
+and faster training, which makes it a sensible default to try alongside or before an LSTM, especially when data is
+limited.
+The recurrent family's strength is modeling order and memory. Its costs are real and worth planning for: recurrent
+models can overfit on noisy financial data, they're sensitive to how you window and scale the inputs (a prime place for
+leakage if you're not careful), and validating them takes the same purged, time-aware discipline as everything else,
+applied to sequences rather than rows.
+7. The modern alternatives
+The field has moved beyond pure recurrence, and these are worth knowing because they often match or beat LSTMs:
+Temporal Convolutional Networks (TCN). 1D convolutions over the time axis. They capture local and (with dilation)
+long-range patterns, train faster than recurrent models because they parallelize, and are often a strong, stable
+alternative to LSTMs for time series. Frequently underrated; worth trying whenever you'd consider an LSTM.
+Attention and Transformers. The architecture behind modern language models. Attention lets the model weigh
+which past timesteps matter most for the current prediction, capturing long-range dependencies without
+•
+•
+•
+•
+•
+AI Pathways · 2026 Page 3
+recurrence. Transformers are powerful and increasingly applied to financial sequences, with the caveat that they're
+especially data-hungry, so they shine more on large cross-sectional or high-frequency datasets than on a single
+instrument's daily history.
+The practical sequencing for a sequence-model project: try the simplest thing that could work (often well-engineered
+features plus a simple model) as a baseline, then a GRU or LSTM, then a TCN, and reach for transformers when you
+have the data scale to justify them. Always against the same baseline, always with the same validation rigor.
+8. The leakage trap specific to sequences
+Sequence models introduce leakage risks beyond the tabular ones, and they're easy to miss:
+Windowing leakage. When you slice a series into input windows and target labels, overlapping windows across a
+train/test boundary can share information. This is exactly what purging and embargoing exist to handle, applied to
+the sequence windows.
+Scaling leakage. Normalizing the sequence using statistics computed over the whole series (including the future) is
+a common and easy-to-miss error. Scaling parameters must come from the training portion only.
+Target alignment. It's easy to accidentally align the target so the model can see part of the answer in its input
+window. Verify, explicitly, that every input timestep precedes the target it's predicting.
+A sequence model that posts strong results is, like any flexible model, leaking until proven otherwise. The build library
+includes a sequence-specific leakage audit for exactly this.
+PART 3 — REINFORCEMENT LEARNING
+9. What RL is, and why it's different
+Supervised models (everything above) learn from labeled examples: here's an input, here's the right answer, learn the
+mapping. Reinforcement learning is different in kind. An RL agent learns by interacting with an environment, taking
+actions, receiving rewards, and adjusting its policy to maximize cumulative reward over time. There's no labeled "right
+answer" for each step; the agent discovers what works through consequences.
+For trading, this framing is powerful for one reason: trading is a sequential decision problem, not a one-shot prediction.
+When to enter, how much to size, when to scale in or out, when to exit, these are interdependent decisions over time,
+and RL is built to optimize sequences of decisions rather than individual predictions. That makes RL a natural fit for
+execution, position sizing, and dynamic strategy management, areas where supervised models fit awkwardly.
+10. The core concepts
+Agent, environment, state, action, reward. The agent (your strategy) observes a state (market conditions, current
+position), takes an action (buy, sell, hold, size), and receives a reward (profit, risk-adjusted return, or a shaped
+signal). It repeats this over many episodes, learning a policy that maps states to good actions.
+Policy. The agent's strategy: given this state, what action? Learning a good policy is the goal.
+•
+•
+•
+•
+•
+AI Pathways · 2026 Page 4
+Reward design. The single most important and most dangerous choice in RL. The agent optimizes exactly what you
+reward, including unintended loopholes. Reward raw profit and it may learn to take catastrophic risk for a good
+backtest. Reward shape matters enormously: most serious trading RL rewards risk-adjusted returns or penalizes
+drawdown explicitly, so the agent learns behavior you actually want.
+Environment. A simulation of the market the agent trains in. Building a realistic environment (with costs, slippage,
+and constraints) is most of the work, and the gap between your environment and reality is where RL strategies most
+often break.
+11. The realities to plan for
+RL demands the most care of the three families, and the reasons are specific and manageable if you plan for them:
+Data and sample efficiency. RL typically needs enormous amounts of interaction to learn. With limited historical
+data, agents overfit the specific path of history they trained on. Techniques like training across many simulated
+scenarios, randomizing the environment, and careful regularization help, but the data appetite is real.
+Reward hacking. The agent will exploit any flaw in your reward or environment to maximize reward without
+achieving what you actually wanted. A policy that looks brilliant may simply have found a loophole in your
+simulator. Constant scrutiny of how the agent earns its reward, not just how much, is essential.
+The sim-to-real gap. A policy trained in simulation faces a different live market: real slippage, real latency, real
+regime shifts the simulator didn't contain. This gap is severe in RL because the agent's whole competence was
+learned inside the simulation. Conservative environments (with realistic or pessimistic costs) and heavy out-ofsample and paper testing are how you close it.
+Validation. Standard validation adapts awkwardly to RL because the agent's behavior changes the data it sees. You
+lean on out-of-sample episodes, walk-forward retraining and testing, and especially long paper-trading of the live
+policy. The discipline is the same goal as everywhere else (prove it works on data it didn't learn from), applied to an
+agent rather than a predictor.
+12. Where RL fits
+RL is the most advanced and most demanding tool in the classroom, and it addresses problems the others don't
+naturally express: dynamic sizing, execution, and managing a position through its life as a sequence of decisions.
+Practitioners who value it are right that there's something there; the price of admission is realistic environment design,
+careful reward shaping, scrutiny against reward hacking, and a clear-eyed view of the sim-to-real gap. Approached that
+way, it's a legitimate and powerful part of an advanced toolkit. Approached carelessly, it produces a simulator
+champion that loses money live. The build library walks Claude Code through environment design, reward shaping, and
+the validation specifics so you're building it the careful way.
+•
+•
+•
+•
+•
+•
+AI Pathways · 2026 Page 5
+PART 4 — CHOOSING AND VALIDATING
+13. Which family for which problem
+A practical map:
+Tabular signal on one or a few instruments → trees first (covered in the edge-discovery module). A neural net is
+optional here and rarely the efficient choice.
+Rich, high-dimensional, or alternative data → deep learning (MLP, CNN, embeddings). This is where networks pull
+ahead.
+Strong temporal dependencies, enough data → sequence models (GRU/LSTM, TCN, transformers), benchmarked
+against an engineered-feature baseline.
+Sequential decision-making: sizing, execution, position management → reinforcement learning, with a realistic
+environment and shaped reward.
+The meta-rule from the edge-discovery module still holds: start with the simplest model that could express your
+hypothesis, prove it against a baseline, and step up to a more advanced family when the problem calls for it and you
+have the data and discipline to validate it. These families raise the ceiling; they also raise the burden. Match the tool to
+the problem.
+14. The validation bar does not move
+Whatever family you use, the validation discipline from the edge-discovery module applies in full and matters more,
+because these models have more capacity to fit noise:
+Time-aware, purged, embargoed splits. Never random shuffling.
+Net-of-cost evaluation, always.
+Deflated performance accounting for every architecture and hyperparameter you tried. More knobs means a worse
+multiple-comparisons problem; count every trial.
+A held-out set the search never touched.
+Paper-trade the full live pipeline before real money, for longer with these models, since the sim-to-real and
+overfitting risks are higher.
+Monitor for decay and distribution shift, and be willing to retire a model that has stopped working.
+The capability goes up with these families, and so does the validation burden. A strong result from a deep net, a
+sequence model, or an RL agent is overfit or leaking until proven otherwise, exactly as it would be from any other
+model, only more so. Bring the data, bring the discipline, and these tools earn their place.
+Continue to the build library for the Claude Code prompts that implement each family, and pair them with your
+CLAUDE.md hard rules so the safety guardrails carry over

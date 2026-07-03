@@ -1,0 +1,142 @@
+# =============================================================================
+# Futures Scalper - Configuration
+# =============================================================================
+# Honest scope: this is a regime-aware intraday system on short timeframes, not
+# tick-by-tick HFT. The HMM reads the volatility environment; the scalp engine
+# takes setups that fit it and sizes them in contracts.
+
+# --- Broker -----------------------------------------------------------------
+# type: sim | ibkr | tradestation
+# The simulator is the default so the system runs with no account. IBKR and
+# TradeStation read credentials from .env, never from this file. The
+# TradeStation adapter also fronts prop-firm gateways like Topstep/ProjectX.
+broker:
+  type: sim
+  sim:
+    initial_equity: 50000
+    slippage_ticks: 1.0
+    commission_per_contract: 2.50
+  ibkr:
+    host: 127.0.0.1
+    port: 7497          # 7497 paper, 7496 live
+    client_id: 11
+    exchange: CME
+  tradestation:
+    base_url: https://api.tradestation.com/v3
+    simulated: true     # set false only for a live TradeStation account
+    # For Topstep/ProjectX, point base_url at the gateway and keep the rest.
+
+# --- Universe ---------------------------------------------------------------
+# First symbol is the one traded. Micros (MNQ/MES) are the sane place to start.
+universe:
+  symbols: [MNQ]
+  signal_timeframe: "5Min"
+
+# --- Data source for warmup / backtest / demo -------------------------------
+# kind: synthetic | csv | yfinance
+#   synthetic - regime-switching generator, no network, used for demo + tests
+#   csv       - path to an exported intraday OHLCV file
+#   yfinance  - e.g. symbol NQ=F (Yahoo serves ~60d intraday, delayed, demo only)
+data:
+  source:
+    kind: synthetic
+    n: 6000
+    base_price: 18000
+    seed: 7
+    n_regimes: 3
+    # path: data/bundled/MNQ_5min_sample.csv
+    # symbol: "NQ=F"
+    # interval: "5m"
+    # period: "60d"
+
+# --- Instrument overrides (optional) ----------------------------------------
+# Built-in specs cover NQ/MNQ/ES/MES/RTY/M2K/YM/MYM/CL/MCL/GC/MGC. Override the
+# margin to match what your broker or prop firm actually charges.
+instruments:
+  MNQ:
+    day_margin: 180
+    overnight_margin: 2100
+
+# --- HMM regime engine ------------------------------------------------------
+hmm:
+  n_candidates: [3, 4, 5]
+  n_init: 8
+  covariance_type: "full"
+  n_iter: 150
+  random_state: 42
+  min_train_bars: 400        # intraday bars, after feature warmup
+  zscore_window: 252
+  stability_bars: 2          # bars a new regime must persist before acting
+  flicker_window: 20
+  flicker_threshold: 5
+
+# --- Strategy ---------------------------------------------------------------
+strategy:
+  min_confidence: 0.50       # below this -> no new trades
+  # Quiet-range (mean reversion) tuning
+  stretch_atr: 0.8
+  # Shared stop/target sizing in ATR multiples (converted to ticks per instrument)
+  stop_atr: 1.0
+  target_atr: 2.0
+  adx_min: 18
+  breakout_lookback: 20
+
+# --- Risk + prop-firm -------------------------------------------------------
+# Final gatekeeper. Runs independently of the HMM. Sizing is in contracts.
+risk:
+  risk_per_trade: 0.005          # fraction of equity risked to the stop
+  max_contracts: 3               # hard cap regardless of what sizing suggests
+  max_margin_utilization: 0.50   # fraction of equity usable for margin
+  max_daily_trades: 30
+  min_stop_ticks: 2.0
+  use_overnight_margin: false
+  # Prop-firm rules. THESE DEFAULTS ARE PLACEHOLDERS. Set them to your account's
+  # real numbers before trading a funded account.
+  prop_firm:
+    enabled: true
+    daily_loss_limit: 1000         # USD, hard halt for the session
+    daily_loss_reduce_at: 0.6      # fraction of the limit -> halve size
+    trailing_max_drawdown: 2000    # USD trailing from the high-water mark
+    trailing_locks_at_start: true
+    lock_file: "trading_halted.lock"
+
+# --- Backtest ---------------------------------------------------------------
+backtest:
+  initial_equity: 50000
+  slippage_ticks: 1.0
+  commission_per_contract: 2.50
+  bars_per_year: 19656          # ~252 * 78 five-minute RTH bars, for annualising
+  walk_forward:
+    train_window: 1500          # in-sample bars per window
+    test_window: 500            # out-of-sample bars per window
+    step_size: 500
+
+# --- Sessions (CME Globex equity hours, US Eastern) -------------------------
+sessions:
+  open_weekday: 6      # Sunday
+  open_time: "18:00"
+  close_weekday: 4     # Friday
+  close_time: "17:00"
+  break_start: "17:00" # daily maintenance break Mon-Thu
+  break_end: "18:00"
+  rth_open: "09:30"
+  rth_close: "16:00"
+
+# --- Model persistence ------------------------------------------------------
+model:
+  save_dir: "models"
+  max_age_days: 7
+
+# --- Monitoring -------------------------------------------------------------
+monitoring:
+  log_level: "INFO"
+  log_dir: "logs"
+  json_log_files: true
+  dashboard_enabled: true
+  # Mobile alerts. Put TELEGRAM_TOKEN and TELEGRAM_CHAT_ID in .env to enable.
+  telegram:
+    timeout: 8.0
+
+# --- Schedule ---------------------------------------------------------------
+schedule:
+  loop_interval_seconds: 5
