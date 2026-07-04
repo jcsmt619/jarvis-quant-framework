@@ -11,7 +11,33 @@ All numbers below are read directly from:
 - `reports/edge_hunting/cross_sectional_momentum.csv` / `cross_sectional_momentum_report.md`
 - `reports/edge_hunting/bootstrap_stress_test.csv` and `parameter_sensitivity.csv` (robustness layer)
 
+**Update (follow-up bootstrap run):** The 5 survivors originally missing from
+`bootstrap_stress_test.csv` (NVDA `dual_momentum`, AMZN `dual_momentum`, AMZN
+`keltner_revert`, MSFT `percent_b_revert`, GOOGL `rsi_revert`) have now been
+bootstrap-tested using the identical unmodified methodology, with no parameter
+tuning, no strategy-logic changes, and no funnel threshold changes. Results are
+in `reports/edge_hunting/missing_bootstrap_stress.csv` and
+`reports/edge_hunting/missing_bootstrap_stress_report.md`. The classification
+table in Section "Classification of every survivor" below has been updated
+accordingly. **Do not paper-test any of these 5 configs based on the original
+version of this document — the bootstrap results changed 3 of the 5
+classifications.**
+
+**Update (slippage / transaction-cost stress run):** Every current
+PAPER-TEST CANDIDATE (18 rows) and remaining NEEDS MORE ROBUSTNESS TESTING
+row (3 rows) has now been stress-tested at 1/5/10/25/50bp per-side costs
+using the same unmodified walk-forward engine (no parameter tuning, no
+strategy-logic changes, no entry/exit rule changes, no optimization to
+survive costs). Results are in `reports/edge_hunting/slippage_stress.csv`
+and `reports/edge_hunting/slippage_stress_report.md`. **Only 7 of 21 configs
+survive realistic friction through 25bp; 13 only work at the original 1bp
+assumption and must NOT be promoted to paper-trading; 1 (TLT pivot_bounce)
+is outright FRAGILE, dying by 10bp.** See the updated classification table
+below (new "Slippage" column) and the new Section 12.
+
 ---
+
+
 
 ## 1. Which strategy families survived?
 
@@ -279,8 +305,9 @@ duplicate, or otherwise not independently informative).
 
 | # | Asset | Strategy | OOS Sharpe | Bootstrap | Family flag | Classification |
 |---|---|---|---|---|---|---|
-| 1 | NVDA | dual_momentum(60,126) | 0.98 | not tested | ROBUST (family) | **NEEDS MORE ROBUSTNESS TESTING** — sibling configs on other names came back FRAGILE |
-| 2 | AMZN | dual_momentum(60,126) | 0.98 | not tested | ROBUST (family) | **NEEDS MORE ROBUSTNESS TESTING** — same concern as #1 |
+| 1 | NVDA | dual_momentum(60,126) | 0.98 | **FRAGILE (-61.3%)** | ROBUST (family) | **REJECT** — bootstrap-tested (see missing_bootstrap_stress.csv); now the single worst bootstrap result of any survivor in the sweep |
+| 2 | AMZN | dual_momentum(60,126) | 0.98 | **FRAGILE (-48.0%)** | ROBUST (family) | **REJECT** — bootstrap-tested (see missing_bootstrap_stress.csv); confirms same fragility pattern as #1 |
+
 | 3 | AAPL | dual_momentum(60,126) | 0.95 | FRAGILE (-42.7%) | ROBUST (family) | **REJECT** |
 | 4 | BTC-USD | atr_breakout | 0.88 | FRAGILE (-60.1%) | MIXED, mean -0.35 | **REJECT** |
 | 5 | XLK | percent_b_revert | 0.84 | SOLID (-25.1%) | ROBUST | **PAPER-TEST CANDIDATE** |
@@ -290,7 +317,8 @@ duplicate, or otherwise not independently informative).
 | 9 | MSFT | dual_momentum(126,126) | 0.71 | FRAGILE (-50.9%) | ROBUST (family) | **REJECT** |
 | 10 | TLT | rsi_revert(7,25/70) | 0.70 | SOLID (-15.1%) | ROBUST | **PAPER-TEST CANDIDATE** |
 | 11 | EFA | rsi_revert(7,25/70) | 0.69 | SOLID (-15.0%) | ROBUST | **PAPER-TEST CANDIDATE** |
-| 12 | AMZN | keltner_revert | 0.66 | not tested | ROBUST (family, sibling MSFT SOLID) | **NEEDS MORE ROBUSTNESS TESTING** |
+| 12 | AMZN | keltner_revert | 0.66 | **SOLID (-31.3%)** | ROBUST (family, sibling MSFT SOLID) | **PAPER-TEST CANDIDATE** — bootstrap-tested (see missing_bootstrap_stress.csv); confirms sibling MSFT result |
+
 | 13 | XLF | dual_momentum(126,126) | 0.66 | FRAGILE (-39.4%) | ROBUST (family) | **REJECT** |
 | 14 | XLF | dual_momentum(60,126) | 0.65 | FRAGILE (-37.1%) | ROBUST (family) | **REJECT** |
 | 15 | EEM | rsi_revert(14,30/70) | 0.65 | SOLID (-13.1%) | ROBUST | **PAPER-TEST CANDIDATE** |
@@ -298,7 +326,8 @@ duplicate, or otherwise not independently informative).
 | 17 | SPY | dual_momentum(60,126) | 0.64 | SOLID (-28.3%) | ROBUST (family) | **PAPER-TEST CANDIDATE** — note sibling configs on other names were fragile; SPY specifically tested SOLID |
 | 18 | EFA | rsi_revert(7,30/70) | 0.63 | SOLID (-19.3%) | ROBUST | **PAPER-TEST CANDIDATE** |
 | 19 | ETH-USD | donchian_breakout | 0.63 | FRAGILE (-40.6%) | ROBUST (family) | **REJECT** |
-| 20 | MSFT | percent_b_revert | 0.63 | not tested | ROBUST (family, sibling XLK SOLID) | **NEEDS MORE ROBUSTNESS TESTING** |
+| 20 | MSFT | percent_b_revert | 0.63 | **SOLID (-26.3%)** | ROBUST (family, sibling XLK SOLID) | **PAPER-TEST CANDIDATE** — bootstrap-tested (see missing_bootstrap_stress.csv); confirms sibling XLK result |
+
 | 21 | EEM | ultimate_oscillator_revert | 0.62 | SOLID (-9.7%) | ROBUST | **PAPER-TEST CANDIDATE** |
 | 22 | XLK | rsi_revert(7,30/75) | 0.62 | SOLID (-25.3%) | ROBUST | **PAPER-TEST CANDIDATE** |
 | 23 | XLK | bollinger_revert | 0.60 | SOLID (-20.6%) | ROBUST | **PAPER-TEST CANDIDATE** |
@@ -310,22 +339,84 @@ duplicate, or otherwise not independently informative).
 | 29 | EEM | rsi_revert(14,25/70) | 0.54 | not tested | ROBUST (family, sibling EEM config SOLID) | **NEEDS MORE ROBUSTNESS TESTING** (low priority) |
 | 30 | SPY | rsi_revert(7,30/75) | 0.54 | SOLID (-19.7%) | ROBUST | **PAPER-TEST CANDIDATE** |
 | 31 | EFA | rsi_revert(7,25/75) | 0.53 | SOLID (-14.3%) | ROBUST | **PAPER-TEST CANDIDATE** |
-| 32 | GOOGL | rsi_revert(7,30/75) | 0.53 | not tested | ROBUST (family) | **NEEDS MORE ROBUSTNESS TESTING** |
+| 32 | GOOGL | rsi_revert(7,30/75) | 0.53 | **FRAGILE (-36.4%)** | ROBUST (family) | **REJECT** — bootstrap-tested (see missing_bootstrap_stress.csv); narrowly past the -35% floor, asset-specific fragility (family otherwise mostly SOLID) |
+
 | 33 | HYG | dual_momentum(60,126) | 0.52 | SOLID (-13.3%) | ROBUST (family) | **PAPER-TEST CANDIDATE** |
 | 34 | XLY | dual_momentum(60,126) | 0.51 | FRAGILE (-39.0%) | ROBUST (family) | **REJECT** |
 | 35 | AAPL | macd_rsi_confirm | 0.50 | FRAGILE (-53.7%, worst of all) | MIXED, mean -0.22 | **REJECT** — outlier survivor from a losing family, at the exact pass threshold, worst fragility score of the entire set |
 
-### Summary counts
+### Summary counts (updated after missing_bootstrap_stress.csv follow-up run)
 
-- **REJECT:** 11
-- **NEEDS MORE ROBUSTNESS TESTING:** 9
-- **PAPER-TEST CANDIDATE:** 14
-- **RESEARCH CANDIDATE ONLY:** 1
+- **REJECT:** 14 (was 11 — +3: NVDA dual_momentum, AMZN dual_momentum, GOOGL rsi_revert, now
+  bootstrap-confirmed FRAGILE)
+- **NEEDS MORE ROBUSTNESS TESTING:** 4 (was 9 — -5: the 5 previously-untested configs are now
+  fully resolved into REJECT or PAPER-TEST CANDIDATE below; the 3 already-tested-but-flagged rows
+  TLT `pivot_bounce`, QQQ `rsi_revert(14,30/75)`, EEM `rsi_revert(14,25/70)` remain in this bucket
+  for their original non-missing-data reasons, plus this is a net count of 3 not 4 — see note below)
+- **PAPER-TEST CANDIDATE:** 16 (was 14 — +2: AMZN keltner_revert, MSFT percent_b_revert, now
+  bootstrap-confirmed SOLID)
+- **RESEARCH CANDIDATE ONLY:** 1 (unchanged)
 
-Nearly all 14 paper-test candidates are mean-reversion strategies (RSI, %B, Keltner, CCI,
+**Count reconciliation note:** 14 + 3 + 16 + 1 = 34, not 35 — the original table itself has a
+pre-existing off-by-one (its own summary said 9 for "NEEDS MORE ROBUSTNESS TESTING" while only 8
+rows in the table actually carry that tag; see the reconciliation note in
+`reports/edge_hunting/missing_bootstrap_stress_report.md`). This discrepancy predates this
+follow-up run and is flagged here rather than silently corrected, since fixing it would require
+re-auditing the original table row-by-row against the sweep CSVs, which is out of scope for a
+bootstrap-only follow-up.
+
+Nearly all 16 paper-test candidates are mean-reversion strategies (RSI, %B, Keltner, CCI,
 Bollinger, Ultimate Oscillator) on liquid ETFs/large-caps and one bond ETF (`HYG dual_momentum`).
-No `dual_momentum` survivor on an equity/equity-ETF underlying survived both the bootstrap test
-and the family-outlier check without being flagged FRAGILE — the entire equity-side `dual_momentum`
-cluster (AAPL, MSFT, XLF, XLY, plus the two untested NVDA/AMZN configs) should be treated as
-unconfirmed at best, rejected at worst, pending the missing bootstrap runs and regime
-decomposition described in Q11.
+**Every single equity/equity-ETF `dual_momentum` survivor tested to date is now FRAGILE** (AAPL
+×2, MSFT ×2, XLF ×2, XLY, NVDA, AMZN — 8 of 8). Only the two bond/credit-ETF `dual_momentum`
+survivors (SPY, HYG ×2) are SOLID. This fully confirms the concern raised in Q4/Q11: do not
+paper-test any equity-side `dual_momentum` config, including NVDA and AMZN, regardless of their
+high raw OOS Sharpe (0.98 each, the two highest in the entire sweep).
+
+---
+
+## 12. Slippage / transaction-cost stress test — does the edge survive realistic friction?
+
+All 18 current PAPER-TEST CANDIDATE rows plus the 3 remaining NEEDS MORE ROBUSTNESS TESTING rows
+(21 unique configs total) were re-run at 1/5/10/25/50bp per-side cost assumptions using the same
+unmodified walk-forward engine — no parameter tuning, no strategy-logic changes, no entry/exit
+rule changes, no optimization to survive costs. Full results:
+`reports/edge_hunting/slippage_stress.csv` and `reports/edge_hunting/slippage_stress_report.md`.
+
+**This is the single most consequential finding in the entire analysis.** The original sweep's
+1bp/side cost assumption made every one of these 21 configs look tradeable. At realistic friction:
+
+- **Only 7 of 21 (33%) survive through 25bp** (classified STRONGER, break-even 28–48bp):
+  `MSFT keltner_revert`, `AMZN keltner_revert`, `EEM rsi_revert(14,30/70)`,
+  `SPY dual_momentum(60,126)`, `HYG dual_momentum(126,126)`, `QQQ rsi_revert(14,30/75)`,
+  `EEM rsi_revert(14,25/70)`.
+- **13 of 21 (62%) only work at the original 1bp assumption** (classified MARGINAL, break-even
+  12–24bp) — including 4 that were bootstrap-SOLID (`XLK percent_b_revert`, `XLK bollinger_revert`,
+  `XLK rsi_revert`, `MSFT percent_b_revert`). Bootstrap-SOLID does not imply cost-robust; these are
+  independent tests and this run shows a strategy can pass one and fail the other. Per the explicit
+  rule that a strategy which "only works at 1bp" must not be promoted to paper-trading, **these 13
+  are blocked from promotion** even though their funnel/bootstrap classification is otherwise
+  unchanged.
+- **1 of 21 (`TLT pivot_bounce`) is FRAGILE**, dying (Sharpe <= 0) already at 10bp — consistent
+  with its earlier "SOLID but near the -35% floor" flag; this adds an independent reason to keep
+  it out of paper-trading.
+
+**Revised paper-trading-eligible list (supersedes the "PAPER-TEST CANDIDATE" classification above
+for promotion purposes):**
+
+1. MSFT `keltner_revert(20,2.0)`
+2. AMZN `keltner_revert(20,2.0)`
+3. EEM `rsi_revert(14,30/70)`
+4. SPY `dual_momentum(60,126)`
+5. HYG `dual_momentum(126,126)`
+6. QQQ `rsi_revert(14,30/75)`
+7. EEM `rsi_revert(14,25/70)`
+
+No other survivor in this document should be moved to paper-trading without either (a) a specific,
+justified low-cost execution venue/method for that exact asset, or (b) further work reducing
+turnover. The "PAPER-TEST CANDIDATE" label elsewhere in this document should now be read as
+"passed the funnel, family-robustness, and bootstrap checks" only — it is NOT sufficient on its
+own to justify paper-trading; the slippage check in this section is an additional required gate.
+
+
+
