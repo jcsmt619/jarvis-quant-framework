@@ -427,7 +427,10 @@ The 7 slippage-surviving candidates from Section 12 were decomposed by day-level
 parameter tuning, no strategy-logic changes, no funnel threshold changes, no sweep re-run). Full
 results: `reports/edge_hunting/regime_decomposition.csv` and
 `reports/edge_hunting/regime_decomposition_report.md`. **Nothing has been promoted to paper or
-live trading by this analysis.**
+live trading by this analysis.** Note: per Section 14, the two EEM `rsi_revert` variants below are
+a NEAR_DUPLICATE pair and should be read as roughly one near-duplicate signal slot, not two
+independent candidates, even though both rows are reported separately.
+
 
 - **6 of 7 are REGIME_ROBUST** (positive OOS Sharpe in multiple regimes, not concentrated in one):
   `MSFT keltner_revert`, `AMZN keltner_revert`, `EEM rsi_revert` (both variants),
@@ -483,6 +486,49 @@ evidence, not two, and if only one is ever carried forward into a future paper-t
 `rsi_revert(14,30/70)` is the natural choice (higher slippage-survival Sharpe, more standard
 threshold). **No strategy has been deleted, modified, or reparametrized by this analysis** — this
 is a signal-uniqueness annotation only, to inform (not determine) future portfolio construction.
+
+---
+
+## 15. Benchmark comparison — does the edge beat simply buying and holding?
+
+The 7 friction-surviving candidates were compared against (1) buy-and-hold of their own traded
+asset, (2) SPY buy-and-hold, (3) QQQ buy-and-hold, and (4) an equal-weight, daily-rebalanced
+buy-and-hold across the full 26-asset cached universe — all over the exact same OOS date window as
+each strategy (no strategy tuning, no logic/entry/exit changes, same unmodified walk-forward
+engine at 1bp baseline cost). Full results: `reports/edge_hunting/benchmark_comparison.csv` and
+`reports/edge_hunting/benchmark_comparison_report.md`.
+
+- **2 of 7 (really ~1 near-duplicate signal slot) are `ROBUST_CANDIDATE`:** the two EEM
+  `rsi_revert` variants are the only candidates that convincingly beat their own asset's
+  buy-and-hold on both Sharpe and drawdown — on an asset (EEM) whose buy-and-hold OOS Sharpe was
+  actually **negative** (-0.35, -31.5% total return) over this window. Excess Sharpe over EEM
+  buy-and-hold: +1.00 (30/70 variant), +0.89 (25/70 variant).
+- **2 of 7 are `BETA_DISGUISED`:** `SPY dual_momentum` (correlation to SPY's own returns +0.74,
+  excess Sharpe over SPY buy-and-hold **-0.17**) and `HYG dual_momentum` (correlation to HYG's own
+  returns +0.80, excess Sharpe over HYG buy-and-hold a negligible +0.05) are both largely
+  indistinguishable from simply holding the underlying asset. This independently confirms the
+  REGIME_FRAGILE finding on SPY dual_momentum from Section 13 via a different lens, and reveals a
+  **new, sharper concern on HYG dual_momentum** that the regime-decomposition section alone did not
+  surface — HYG's REGIME_ROBUST flag in Section 13 should now be read alongside this near-zero
+  excess-Sharpe result.
+- **3 of 7 are `DEFENSIVE_CANDIDATE`:** `MSFT keltner_revert`, `AMZN keltner_revert`, and
+  `QQQ rsi_revert` all cut max drawdown substantially (e.g. MSFT -7.4% vs -20.6% buy-and-hold) but
+  surrendered the majority of their asset's very strong OOS buy-and-hold return (e.g. MSFT +35.3%
+  vs +117.1% buy-and-hold), producing a worse Sharpe than simply holding the asset. Low correlation
+  to their own asset's returns (+0.14, -0.01, +0.23 respectively) confirms these are not
+  beta-disguised — they capture a real, distinct pattern — but that pattern was a net drag on
+  risk-adjusted performance during this specific, strongly trending OOS window.
+- **None of the 7 candidates beats the equal-weight 26-asset universe buy-and-hold benchmark**
+  (Sharpe +0.78, total return +57.1%) on either metric over the same OOS window.
+
+**Net effect on paper-trading readiness:** this is a fourth independent lens (after
+funnel/bootstrap, slippage, and regime decomposition) that most strongly favors the EEM
+`rsi_revert` signal (now confirmed ROBUST_CANDIDATE against its own buy-and-hold, in addition to
+REGIME_ROBUST) and raises sharper, benchmark-specific concerns about both `SPY dual_momentum`
+(further confirming its Section 13 REGIME_FRAGILE flag) and `HYG dual_momentum` (a new concern not
+previously visible). **As instructed, nothing has been promoted to paper or live trading by this
+analysis.**
+
 
 
 
