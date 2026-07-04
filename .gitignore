@@ -1,6 +1,15 @@
 # credentials -- NEVER commit
 .env
+.env.*
+!.env.example
 credentials.yaml
+*.key
+*.pem
+*.cookies.txt
+skool_cookies.txt
+config/skool_cookies.txt
+*.session
+*.har
 
 # runtime state & locks
 state_snapshot.json
@@ -12,9 +21,39 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyright_cache/
 
 # data & logs (large / regenerable)
 logs/
+*.log
 data/raw/
 data/intraday/
+data/universe/*.parquet
+data/*.csv
+*.zip
+*.parquet
+*.csv
+
+# diagnostic / audit dumps (regenerate locally, never commit)
+main_diagnostics.txt
+pyright_report.json
+_pyright_*.txt
+_pytest_*.txt
+_audit_*.txt
+_audit_*.py
+_syntax_errors.txt
+_flatten_report.txt
+
+# local / private course material
+skool_source_material/
+skool_dump.txt
+strategies_dump.txt
+hedge_fund_dump.txt
+hmm_dump.txt
+debugging_dump.txt
+
+# node / browser MCP
 node_modules/
+browser-mcp/node_modules/
