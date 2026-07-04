@@ -689,4 +689,3 @@ class PortfolioRiskManager:
 
     def kill_switch_engaged(self) -> bool:
         return self.lock_file.exists()
-        return (None, None)

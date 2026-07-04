@@ -42,9 +42,11 @@ if str(ROOT) not in sys.path:
 from core.capital_allocator import CapitalAllocator, PortfolioSnapshot
 from core.regime_strategies import BaseStrategy
 from core.risk_manager import (
+    PortfolioRiskLimits,
     PortfolioRiskManager,
     PortfolioState,
     RiskDecision,
+    RiskLimits,
     RiskManager,
     TradeSignal,
 )
@@ -429,10 +431,19 @@ def build_live_engine(
     initial_capital: float = 100000.0,
     alerts: AlertManager | None = None,
 ) -> MultiStratLiveEngine:
-    """Assemble an engine with one RiskManager per registered strategy."""
-    risk_managers = {name: RiskManager(initial_capital=initial_capital)
+    """Assemble an engine with one RiskManager per registered strategy.
+
+    Risk limits are loaded from config/settings.yaml (RiskLimits.from_settings() /
+    PortfolioRiskLimits.from_settings()) so the multi-strat live/dry-run engine
+    enforces the same conservative caps as the rest of the system, instead of
+    silently falling back to the permissive RiskLimits()/PortfolioRiskLimits()
+    dataclass defaults.
+    """
+    limits = RiskLimits.from_settings()
+    risk_managers = {name: RiskManager(limits=limits, initial_capital=initial_capital)
                      for name in registry.all()}
-    portfolio_risk = PortfolioRiskManager() if use_portfolio_risk else None
+    portfolio_risk = PortfolioRiskManager(PortfolioRiskLimits.from_settings()) if use_portfolio_risk else None
+
     return MultiStratLiveEngine(
         registry=registry, allocator=allocator, portfolio_risk=portfolio_risk,
         risk_managers=risk_managers, signal_source=signal_source,
