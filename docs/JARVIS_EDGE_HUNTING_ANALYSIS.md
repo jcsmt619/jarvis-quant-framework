@@ -418,5 +418,73 @@ turnover. The "PAPER-TEST CANDIDATE" label elsewhere in this document should now
 "passed the funnel, family-robustness, and bootstrap checks" only — it is NOT sufficient on its
 own to justify paper-trading; the slippage check in this section is an additional required gate.
 
+---
+
+## 13. Regime decomposition — is the edge concentrated in one market environment?
+
+The 7 slippage-surviving candidates from Section 12 were decomposed by day-level market regime
+(CRISIS / HIGH_VOL / LOW_VOL / BULL / BEAR / SIDEWAYS, using per-asset descriptive quantiles — no
+parameter tuning, no strategy-logic changes, no funnel threshold changes, no sweep re-run). Full
+results: `reports/edge_hunting/regime_decomposition.csv` and
+`reports/edge_hunting/regime_decomposition_report.md`. **Nothing has been promoted to paper or
+live trading by this analysis.**
+
+- **6 of 7 are REGIME_ROBUST** (positive OOS Sharpe in multiple regimes, not concentrated in one):
+  `MSFT keltner_revert`, `AMZN keltner_revert`, `EEM rsi_revert` (both variants),
+  `HYG dual_momentum`, `QQQ rsi_revert`. Two caveats to carry forward: HYG never traded through a
+  real BEAR/CRISIS period in this sample (0 BEAR trades, 0 CRISIS days observed) — it is untested
+  in a genuine credit downturn, not confirmed-robust to one. AMZN keltner_revert has a real,
+  non-trivial BULL-regime loss (-9.9% return, -20.9% max DD) even though its overall classification
+  is ROBUST.
+- **1 of 7 is REGIME_FRAGILE: `SPY dual_momentum(60,126)`.** Its entire +0.64 overall OOS Sharpe is
+  produced by the BULL regime alone (+3.32 Sharpe, +62.9% return); it is **negative in every other
+  populated regime** — HIGH_VOL (-0.92, -2.8%), LOW_VOL (-0.18, -2.0%), and especially SIDEWAYS
+  (-0.81 Sharpe, **-15.1% total return**, its largest-population regime at 416 days). This directly
+  confirms the asset-beta concern raised in Q5/Q10/Q11 of this document: SPY dual_momentum's
+  apparent edge is bull-market drift, not a repeatable timing skill, and it loses money as soon as
+  the market stops trending up. **SPY dual_momentum should be treated as effectively disqualified
+  from paper-trading promotion**, despite having passed the funnel, bootstrap, and slippage-cost
+  checks — regime concentration is an independent failure mode none of those three checks caught.
+
+**Net paper-trading-eligible list after all three layers (funnel → slippage → regime):**
+MSFT `keltner_revert`, AMZN `keltner_revert`, EEM `rsi_revert(14,30/70)`,
+EEM `rsi_revert(14,25/70)`, HYG `dual_momentum(126,126)`, QQQ `rsi_revert(14,30/75)` — 6 configs,
+with the HYG and AMZN caveats above carried forward. `SPY dual_momentum` is removed from the
+list. As with Section 12, this is a documentation update only — no strategy has been moved to
+paper or live trading as part of this analysis.
+
+---
+
+## 14. Duplicate / near-duplicate signal detection
+
+The 7 friction-surviving candidates from Section 12 were checked pairwise (21 pairs) for
+duplicate or near-duplicate signal behavior — return correlation, position correlation,
+trade-date overlap, parameter similarity, and asset similarity — using their already-computed OOS
+return/position series (no strategy deleted, no logic changed, no parameters tuned). Full results:
+`reports/edge_hunting/duplicate_signal_report.csv` and
+`reports/edge_hunting/duplicate_signal_report.md`.
+
+- **No pair is a strict `DUPLICATE_SIGNAL`** (return_corr >= 0.90 AND position_corr >= 0.90) — none
+  of these 7 is a literal re-expression of another, unlike the previously-identified
+  `XLK bollinger_revert` / `XLK zscore_revert` case elsewhere in this document.
+- **5 of 7 are `UNIQUE_SIGNAL`:** MSFT `keltner_revert`, AMZN `keltner_revert`,
+  SPY `dual_momentum`, HYG `dual_momentum`, QQQ `rsi_revert`. All pairwise correlations involving
+  these are below the 0.60 near-duplicate threshold on at least one of return/position correlation
+  (the closest calls are SPY↔HYG dual_momentum at +0.55/+0.44 and MSFT keltner↔QQQ rsi at
+  +0.56/+0.40 — both under the bar).
+- **2 of 7 are `NEAR_DUPLICATE` of each other:** the two EEM `rsi_revert` variants
+  (oversold 30 vs 25, same 14-window, same asset) correlate at +0.85 (returns) / +0.81
+  (positions) with 56% trade-date overlap — expected, since they are the same signal family on
+  the same asset with only a 5-point threshold difference.
+
+**Net effect:** the 7 friction-surviving candidates represent **6 genuinely distinct signal
+"slots"**, not 7 — the two EEM rsi_revert variants should be counted as roughly one piece of
+evidence, not two, and if only one is ever carried forward into a future paper-trading pilot,
+`rsi_revert(14,30/70)` is the natural choice (higher slippage-survival Sharpe, more standard
+threshold). **No strategy has been deleted, modified, or reparametrized by this analysis** — this
+is a signal-uniqueness annotation only, to inform (not determine) future portfolio construction.
+
+
+
 
 
