@@ -1,1 +1,0 @@
-notepad skool_source_material\lesson_1.txt
