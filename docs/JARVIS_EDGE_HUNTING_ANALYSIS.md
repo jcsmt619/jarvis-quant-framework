@@ -449,12 +449,52 @@ independent candidates, even though both rows are reported separately.
   from paper-trading promotion**, despite having passed the funnel, bootstrap, and slippage-cost
   checks — regime concentration is an independent failure mode none of those three checks caught.
 
-**Net paper-trading-eligible list after all three layers (funnel → slippage → regime):**
-MSFT `keltner_revert`, AMZN `keltner_revert`, EEM `rsi_revert(14,30/70)`,
-EEM `rsi_revert(14,25/70)`, HYG `dual_momentum(126,126)`, QQQ `rsi_revert(14,30/75)` — 6 configs,
-with the HYG and AMZN caveats above carried forward. `SPY dual_momentum` is removed from the
-list. As with Section 12, this is a documentation update only — no strategy has been moved to
-paper or live trading as part of this analysis.
+**Update (re-run with benchmark-comparison interpretation, see Section 15):** This regime
+decomposition was re-run using the identical, unmodified methodology (no parameter tuning, no
+strategy-logic changes, no entry/exit rule changes, no funnel threshold changes) and produced
+numerically identical results, confirming reproducibility. The interpretation below has been
+revised in light of Section 15's benchmark-comparison findings. Full updated report:
+`reports/edge_hunting/regime_decomposition_report.md`.
+
+- **EEM `rsi_revert` (both variants) — CONFIRMED paper-test candidate.** Both variants show
+  positive Sharpe in BEAR (+2.38 / +1.35) and HIGH_VOL (+0.83 both) — they do **not** collapse in
+  either stress regime. CRISIS is only mildly negative (30/70 variant, -0.34 Sharpe/-2.8% return)
+  or essentially flat (25/70 variant, +0.02 Sharpe). Combined with Section 15's finding that this
+  is the only pair to beat its own asset's buy-and-hold on Sharpe/return/drawdown, this remains
+  the strongest evidence-based candidate in the set.
+- **`SPY dual_momentum` — regime results REINFORCE (do not contradict) Section 15's
+  BETA_DISGUISED finding.** Its entire Sharpe comes from BULL alone; it is negative in HIGH_VOL,
+  LOW_VOL, and SIDEWAYS (its largest regime, 416 days, -15.1% return), with 94-96% exposure in the
+  regimes where active — consistent with re-expressing SPY's own bull-market beta rather than an
+  independent timing skill. **Remains BLOCKED from paper-trading promotion.**
+- **`HYG dual_momentum` — automated REGIME_ROBUST label, but does NOT clearly contradict
+  Section 15's BETA_DISGUISED finding.** No populated stress regime is negative, but the pattern
+  (near-constant 68-96% exposure, very few trades, 70% of days in one SIDEWAYS bucket, no
+  BEAR/CRISIS days ever observed) is consistent with "close to always long HYG" rather than a
+  demonstrated independent edge, matching Section 15's +0.80 correlation / +0.05 excess-Sharpe
+  result. Per the rule that dual_momentum candidates stay blocked unless regime results *clearly
+  contradict* the beta-disguised finding, **HYG dual_momentum remains BLOCKED** despite its
+  REGIME_ROBUST label — this is a downgrade from treating that label as a standalone green light.
+- **MSFT `keltner_revert` and QQQ `rsi_revert` — JUSTIFIED as portfolio-defense candidates** (not
+  return-seeking candidates): broadly positive across HIGH_VOL/LOW_VOL/BEAR/SIDEWAYS, with only one
+  mild non-stress-regime weak spot each, consistent with Section 15's DEFENSIVE_CANDIDATE finding
+  (real drawdown reduction, lower total return than buy-and-hold).
+- **AMZN `keltner_revert` — JUSTIFIED as a portfolio-defense candidate WITH CAVEAT.** Robust
+  through CRISIS/HIGH_VOL/LOW_VOL, but loses money in its largest regime (BULL, 402 days, -20.9%
+  max DD) and shows a sharply negative BEAR Sharpe (-2.24) on a thin 33-day sample that should be
+  monitored, not treated as settled.
+
+**Revised net paper-trading-eligible list (supersedes the prior version of this section):**
+EEM `rsi_revert(14,30/70)` and EEM `rsi_revert(14,25/70)` (read as ~1 near-duplicate signal slot,
+per Section 14) are the only candidates confirmed as genuine, non-beta, non-regime-collapsing
+paper-test candidates after all four layers (funnel → slippage → regime → benchmark comparison).
+MSFT `keltner_revert`, AMZN `keltner_revert` (with caveat), and QQQ `rsi_revert` are usable only as
+portfolio-defense/drawdown-reduction sleeves, not as return-seeking strategies. `SPY dual_momentum`
+and `HYG dual_momentum` are both BLOCKED — the HYG block is a new conclusion versus the original
+version of this section, which had treated HYG's REGIME_ROBUST label as sufficient on its own.
+As with Section 12, this is a documentation update only — no strategy has been moved to paper or
+live trading as part of this analysis.
+
 
 ---
 
