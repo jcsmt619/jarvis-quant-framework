@@ -71,7 +71,7 @@ caveats. Failing #6 or #7 outright (beta-disguised or regime-collapsing) is
 | **Exact reason approved** | Passes all 10 requirements: funnel pass, bootstrap SOLID, survives 25bp slippage, is the primary (not secondary) half of a near-duplicate pair rather than a literal duplicate, beats its own asset's buy-and-hold on Sharpe and drawdown on an asset that otherwise lost money, low correlation to EEM (+0.16, not beta-disguised), does not collapse in BEAR/HIGH_VOL (only a mild CRISIS dip), 55 OOS trades (well above the 30-trade funnel floor), produced entirely by the purge/embargo walk-forward engine with no look-ahead flags anywhere in this codebase, and the rsi_revert family itself (not just this one parameter set) is ROBUST. |
 | **Exact reason it could still fail live** | (a) It is a near-duplicate of the 25/70 variant, meaning this is really one confirmed signal on one asset — a single point of failure, not a diversified sleeve; (b) EEM's CRISIS-regime return was only mildly negative in this specific sample (-2.8%), but CRISIS days (162 of them) were still dominated by 2020-COVID-style shocks in the cached window — a genuinely worse or longer emerging-markets crisis than what's in the historical sample could produce a larger loss than backtested; (c) EEM's own liquidity/spread in live paper execution may not match the 1bp cost assumption used even after the 25bp stress test, especially during EM-specific stress events; (d) only 1,134 OOS trading days were tested — this is one historical sample, not multiple independent market cycles. |
 
-### 2. EEM `rsi_revert(14, 25/70)` — **APPROVED_FOR_PAPER_TEST (BACKUP ONLY — do not run simultaneously with the primary)**
+### 2. EEM `rsi_revert(14, 25/70)` — **BACKUP_PENDING_BOOTSTRAP (CONDITIONAL BACKUP — NOT currently approved for paper trading)**
 
 | Field | Value |
 |---|---|
@@ -87,8 +87,9 @@ caveats. Failing #6 or #7 outright (beta-disguised or regime-collapsing) is
 | Duplicate-signal status | NEAR_DUPLICATE of EEM rsi_revert(14,30/70) — same asset, same family, 5-point threshold difference, 56% trade-day overlap |
 | Bootstrap | **NOT YET TESTED** — this variant was never run through `missing_bootstrap_stress.py`; it is flagged in the main doc as "NEEDS MORE ROBUSTNESS TESTING (low priority)" specifically because of this gap. This is an honest, un-fudged gap: requirement #2 (bootstrap SOLID) is **not formally satisfied** for this specific config. |
 | Family robustness | Same rsi_revert family, ROBUST flag (shared with the primary variant and with the sibling asset configs) |
-| **Exact reason approved (as backup, with caveat)** | On every metric that HAS been tested (funnel, slippage, benchmark comparison, regime decomposition), this variant passes at a level comparable to — though consistently slightly weaker than — the primary 30/70 variant. It is being classified APPROVED rather than NEEDS_MORE_TESTING for the purposes of this report because it shares the primary's asset/family and would only ever be considered as a substitute for, not an addition to, the primary — not as an independently-run second position. |
-| **Exact reason it could still fail live** | All the same live-risk caveats as the primary variant, PLUS: it has never been bootstrap-tested, so its resilience to a specific unlucky sequencing of returns (as opposed to average performance) is genuinely unknown, not just under-documented; it also shows zero trading activity in the SIDEWAYS regime (285 of ~1,134 days, ~25% of the sample), meaning roughly a quarter of the historical sample provides no evidence at all about this specific variant's behavior. |
+| **Exact reason classified BACKUP_PENDING_BOOTSTRAP rather than APPROVED_FOR_PAPER_TEST** | On every metric that HAS been tested (funnel, slippage, benchmark comparison, regime decomposition), this variant passes at a level comparable to — though consistently slightly weaker than — the primary 30/70 variant. However, it explicitly **fails approval requirement #2 (bootstrap SOLID)** as of this report — it has never been run through `missing_bootstrap_stress.py`. Per the 10 approval requirements, a candidate must pass all 10 to be `APPROVED_FOR_PAPER_TEST`; an untested bootstrap requirement is not a minor gap, it is an unmet hard requirement. **This candidate CANNOT be used in paper trading, and must not be treated as a live backup, unless and until it passes the same bootstrap stress test applied to the primary 30/70 variant** (SOLID classification, using the existing unmodified `missing_bootstrap_stress.py` methodology — no new methodology, no parameter tuning). Until that test is run and passed, it remains a candidate for the backup slot in name only, not in practice. |
+| **Exact reason it could still fail live** | All the same live-risk caveats as the primary variant, PLUS: it has never been bootstrap-tested, so its resilience to a specific unlucky sequencing of returns (as opposed to average performance) is genuinely unknown, not just under-documented — this is precisely the unresolved gap that blocks its promotion; it also shows zero trading activity in the SIDEWAYS regime (285 of ~1,134 days, ~25% of the sample), meaning roughly a quarter of the historical sample provides no evidence at all about this specific variant's behavior. |
+
 
 ### 3. MSFT `keltner_revert(20, 2.0)` — **DEFENSIVE_WATCHLIST**
 
@@ -198,15 +199,22 @@ it clears bootstrap, slippage (through 25bp, ~30bp break-even), and
 duplicate-signal checks, and its family (`rsi_revert`) is broadly robust
 across parameter variations, not just this one setting.
 
-### 2. Backup candidate
-**EEM `rsi_revert(14, 25/70)`.** Nearly identical profile and conclusion to
-the primary candidate on every metric that has been tested, but it has never
-been bootstrap-tested (an honest, unresolved gap) and shows zero trading
-activity in the SIDEWAYS regime. Because it is a NEAR_DUPLICATE of the
-primary (56% trade-day overlap, +0.85 return correlation), **it should be
-held as a substitute, not run alongside the primary** — running both
-simultaneously would not provide real diversification, just duplicated
-exposure to the same underlying signal.
+### 2. Backup candidate (conditional — not currently approved)
+**EEM `rsi_revert(14, 25/70)` — classified `BACKUP_PENDING_BOOTSTRAP`, not
+`APPROVED_FOR_PAPER_TEST`.** Nearly identical profile and conclusion to the
+primary candidate on every metric that HAS been tested, but it has never
+been bootstrap-tested — this is a hard, unmet approval requirement (#2),
+not a soft caveat. **It cannot be used in paper trading, and must not be
+treated as an active backup, unless and until it passes the same bootstrap
+stress test (SOLID classification) applied to the primary 30/70 variant,**
+using the existing, unmodified `missing_bootstrap_stress.py` methodology.
+It also shows zero trading activity in the SIDEWAYS regime. Because it is a
+NEAR_DUPLICATE of the primary (56% trade-day overlap, +0.85 return
+correlation), even after it clears bootstrap testing **it should be held as
+a substitute, not run alongside the primary** — running both simultaneously
+would not provide real diversification, just duplicated exposure to the
+same underlying signal.
+
 
 ### 3. Defensive watchlist candidates
 - **MSFT `keltner_revert(20, 2.0)`** — real, low-correlation, drawdown-reducing
