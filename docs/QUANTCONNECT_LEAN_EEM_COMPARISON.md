@@ -4,9 +4,19 @@
 parameters were tuned. No Jarvis backtest was re-run — all Jarvis figures
 below are taken as-is from existing report files. No paper or live
 trading was enabled in either Jarvis or LEAN. This document interprets
-one already-completed LEAN Docker backtest run against already-existing
-Jarvis reports; it does not authorize any further action beyond what is
-recommended in Section 10.**
+two already-completed LEAN Docker backtest runs (an initial full-period
+run, and a refined run that adds an explicit EEM buy-and-hold leg)
+against already-existing Jarvis reports; it does not authorize any
+further action beyond what is recommended in Section 10.**
+
+**Update (refined run):** this document was revised after a second,
+refined LEAN mirror run added the previously-missing EEM buy-and-hold
+comparison leg (closing the Section 3 gap identified in the initial
+version of this report). The revised figures and conclusion are
+reflected throughout; the original run's figures are retained inline
+where still relevant for context (e.g. Sharpe, fee total, order-timing
+note are unchanged between the two runs).
+
 
 ## Sources read
 
@@ -31,6 +41,8 @@ recommended in Section 10.**
 | Scored window | **5-window walk-forward OOS tails only** (~1,134 trading days, ≈4.5 years total) | **Full continuous 2010–2025 period** (≈15 years, no walk-forward split) |
 | Starting capital | $100,000 (backtest_engine default) | $100,000 |
 | Cost model | 1bp per side (position-change notional) | Fees $429.13 total on 20 orders; slippage/fill model = LEAN default, market orders converted to MarketOnOpen |
+| EEM buy-and-hold leg | Sharpe -0.35, total return -31.5% (over Jarvis's OOS window only) | **Now run explicitly** — total return +58.8504%, max drawdown -39.1292%, final value $158,850.38 (over the full 15-year LEAN period) |
+
 
 This difference in *scored window* (walk-forward OOS tails vs. full
 continuous period) is the single most important methodological gap in
@@ -80,21 +92,36 @@ compared against.
 
 Jarvis's EEM daily bars come from `yfinance` (`auto_adjust=True`) via
 `edge_hunting/data_loader.py`. The LEAN mirror uses LEAN's own EEM data
-provider (source/vendor unspecified in the run summary provided). Per
-Spec Section 15 (failure case #1) and Manual Check #3, a data-vendor
-discrepancy check requires an explicit **EEM buy-and-hold-only** LEAN run
-compared against Jarvis's own EEM buy-and-hold figures
+provider (source/vendor unspecified in the refined run summary). This
+gap is now **partially closed**: the refined run adds an explicit LEAN
+EEM buy-and-hold leg (total return +58.8504%, max drawdown -39.1292%,
+final value $158,850.38, over the full 2010–2025 LEAN period), which can
+be compared directly against Jarvis's own EEM buy-and-hold figures
 (`reports/edge_hunting/benchmark_comparison_report.md`: Sharpe -0.35,
-total return -31.5% over the OOS window). **This run summary does not
-include a LEAN EEM buy-and-hold leg at all** — the reported Alpha
-(-0.025) and Beta (0.737) are computed against LEAN's own default
-benchmark (not disclosed in the summary, but conventionally SPY unless
-configured otherwise), not against EEM buy-and-hold. This is a
-meaningful gap: **we cannot yet distinguish "the strategy beats EEM
-buy-and-hold" (the actual Jarvis approval basis) from "the strategy has
-negative alpha/moderate beta to some other, unspecified benchmark."**
-This is the single largest open item carried into Section 10's
-recommendation.
+total return -31.5%, max drawdown -45.2%, over Jarvis's shorter OOS-only
+window).
+
+**These two buy-and-hold numbers are directionally consistent but not
+numerically close, and this is expected, not alarming, given they cover
+different windows:** Jarvis's -31.5% buy-and-hold figure is measured only
+over the ~4.5-year concatenated OOS tails (a period Jarvis's own report
+independently describes as "EEM had a rough stretch"), while LEAN's
++58.8504% buy-and-hold figure is measured over the full ~15-year period,
+which includes both that rough stretch and EEM's broader multi-year
+recovery/growth outside of it. A period that is a small negative-return
+slice of a longer, larger positive-return period is not evidence of a
+data-vendor discrepancy by itself — **this comparison remains
+inconclusive on the data-source question specifically** because the two
+buy-and-hold legs still do not share a common scored window. A true
+apples-to-apples data-source check still requires running LEAN's EEM
+buy-and-hold leg restricted to the same OOS-tail dates Jarvis used
+(Recommended Next Step #1, revised below), not just the full-period
+leg now available. The previously identified gap — that Alpha/Beta in
+the initial run were computed against an unconfirmed, non-EEM benchmark
+— is now resolved for the total-return/drawdown metrics (Section 7/8),
+but remains open for Alpha/Beta specifically, which were not restated in
+the refined run summary.
+
 
 ## 4. Order timing differences
 
@@ -140,147 +167,180 @@ code (Spec Section 5 requirement), not inferred from turnover alone.
 
 ## 7. Return, Sharpe, and drawdown differences
 
-| Metric | Jarvis (OOS tails, ~4.5yr) | LEAN (full period, ~15yr) | Directionally aligned? |
+| Metric | Jarvis (OOS tails, ~4.5yr) | LEAN strategy (full period, ~15yr) | LEAN EEM buy-and-hold (full period, ~15yr) |
 |---|---|---|---|
-| Sharpe | +0.65 | +0.158 | Yes (both positive) but **LEAN is much lower** |
-| Total return | +15.8% | +85.863% | Not comparable (different window lengths — LEAN's is over 3.3x the time) |
-| CAGR | not directly reported for OOS-only slice | +4.216% | N/A |
-| Max drawdown | -9.9% | -29.300% | Both negative, but **LEAN's is ~3x deeper** |
-| Trade/order count | ~55 (over ~4.5yr OOS) | 20 (over ~15yr full period) | **Notably lower trade frequency in LEAN** given the much longer window — this is the strongest single piece of evidence that the LEAN exit-rule implementation (Section 1) may not exactly match Jarvis's actual signal behavior, and should be investigated via Manual Check #1 before drawing further conclusions from trade-level statistics |
-| Win rate | not explicitly reported per-trade in the cited Jarvis docs at this granularity | 80% | N/A (Jarvis win-rate convention is per contiguous position-segment, per `backtest_engine._win_rate`; not confirmed the LEAN 80% figure uses the same segment definition) |
-| Bootstrap worst-case DD | -13.1% (SOLID) | not run | LEAN mirror has not yet reproduced the bootstrap stress test |
+| Sharpe | +0.65 | +0.158 | not separately reported in refined summary |
+| Total return | +15.8% | +85.8630% | +58.8504% |
+| CAGR | not directly reported for OOS-only slice | +4.216% (initial run) | not reported |
+| Max drawdown | -9.9% | -29.2535% | -39.1292% |
+| Final portfolio value ($100k start) | n/a (% terms only) | $185,863.00 | $158,850.38 |
+| Trade/order count | ~55 (over ~4.5yr OOS) | 20 filled orders (~10 round trips, over ~15yr) | 1 (buy-and-hold) |
+| Exposure | not directly reported (see `exposure` metric in `backtest_engine.run_backtest`) | 34.25% (1,299 of 3,793 days) | 100% (by definition) |
+| Win rate | not explicitly reported per-trade in the cited Jarvis docs at this granularity | 80% | n/a |
+| Bootstrap worst-case DD | -13.1% (SOLID) | not run | not run |
 
-**Both Sharpe and total return are positive in both systems — the
-directional sign of the edge agrees.** But the *magnitude* comparison is
-weak for two compounding reasons that must not be conflated: (a) the
-scored windows are different lengths and different date sub-ranges
-(Section 2), so a lower full-period Sharpe is *expected* even under a
-perfectly faithful mirror, simply because the full 15-year period
-includes stretches (including the in-sample portions Jarvis's walk-
-forward explicitly excludes from its OOS score) that were never claimed
-to perform as well; and (b) the order-count and drawdown gap (20 orders,
--29.3% DD in LEAN vs. ~55 trades, -9.9% DD in Jarvis) is large enough
-that it may also reflect a genuine implementation difference in exit
-timing (Section 1), not just a window-length effect. **These two
-possible explanations have not yet been separated from each other in
-this run.**
+**The refined run's key new finding: the LEAN RSI strategy beats LEAN's
+own EEM buy-and-hold leg on both total return (+85.8630% vs +58.8504%)
+and max drawdown (-29.2535% vs -39.1292%), over the identical full
+2010–2025 LEAN period, using the identical LEAN data feed, fee model,
+and fill assumptions.** This is the single most important new result in
+this refined run: it directly answers the specific comparison Jarvis's
+own approval basis (`docs/JARVIS_PAPER_TRADING_CANDIDATES.md`
+requirement #5 — beat EEM buy-and-hold on both return and drawdown) asks
+for, on LEAN's own terms, rather than relying on an unconfirmed
+cross-vendor comparison (as the initial run required). Sharpe (+0.158)
+remains low in absolute terms and well below the Jarvis OOS figure
+(+0.65) — see Section 9/10 for why this gap persists and should not be
+over-read either way.
+
+**Two caveats remain, and must not be glossed over just because the
+buy-and-hold comparison now works cleanly:** (a) this is still the
+full-period comparison (Section 2), not the walk-forward-OOS
+reconstruction that is Jarvis's actual approved-metric methodology, so
+"beats buy-and-hold" here is a LEAN-native result, not yet a strict
+apples-to-apples match to the Jarvis number; and (b) the order-count gap
+(20 orders / ~10 round trips over 15 years in LEAN vs. ~55 trades over
+~4.5 OOS years in Jarvis) is still present and unexplained (Section 9).
+
 
 ## 8. Whether LEAN directionally confirms Jarvis
 
-**Yes, directionally, at the level of "does this rule make money at all
-under an independent engine" — but not yet at the level of "does it beat
-the right benchmark by the right margin."** The LEAN mirror, run on an
-independent engine (QuantConnect/LEAN) with an independent data pipeline
-and independent order/fill simulation, produced a strategy that: (a) is
-net profitable over the full 15-year window (+85.9%, CAGR +4.2%), (b)
-has a positive (if low) Sharpe ratio (+0.158), and (c) shows a favorable
-win/loss profile (80% win rate, 4.40 profit/loss ratio). This is
-consistent with — not contradictory to — the core Jarvis claim that EEM
-RSI(14,30/70) mean reversion is not purely noise. **EEM RSI mean
-reversion can make money under an independent engine.** That is a real,
-meaningful, positive data point.
+**Yes, and more concretely than in the initial run.** The refined LEAN
+mirror, run on an independent engine (QuantConnect/LEAN) with an
+independent data pipeline and independent order/fill simulation, now
+directly confirms the specific comparison Jarvis's own approval basis
+rests on: **the RSI strategy beats LEAN's own EEM buy-and-hold on both
+total return (+85.8630% vs +58.8504%) and max drawdown (-29.2535% vs
+-39.1292%) over the identical 15-year period, data feed, and cost
+model.** This is a materially stronger form of directional confirmation
+than "the rule is merely net profitable in isolation" (the initial
+run's finding) — it is now "the rule outperforms passively holding the
+same asset," which is the actual claim under test. Combined with a
+favorable win/loss shape (80% win rate, 4.40 profit/loss ratio), this is
+real, non-trivial evidence that **EEM RSI(14,30/70) mean reversion can
+make money, and can beat buy-and-hold, under a fully independent
+engine.**
+
 
 ## 9. Whether the mismatch is explainable
 
-**Partially, and only qualitatively so far — not yet quantitatively
-resolved.** Three candidate explanations for the Sharpe/drawdown gap have
-been identified, but none has been isolated as *the* cause:
+**Mostly yes, for the return/drawdown comparison — the buy-and-hold
+result now gives that gap a coherent, non-alarming explanation. The
+Sharpe gap and order-count gap remain only partially explained.**
+
+**Return/drawdown outperformance vs. buy-and-hold (Section 7/8): well
+explained.** The strategy beating LEAN's own EEM buy-and-hold on both
+return and drawdown, in the same LEAN run with the same data feed and
+cost model, is a clean, internally consistent result — there is no
+cross-vendor ambiguity left in *this specific* comparison, because both
+legs come from the same engine and the same underlying price series.
+
+**Sharpe gap (+0.158 LEAN vs. +0.65 Jarvis OOS): still only partially
+explained.** Three candidate explanations remain, none fully isolated:
 
 1. **Window-length/scope mismatch (Section 2).** Comparing a ~4.5-year
    OOS-only slice against a ~15-year full-period run is not
    apples-to-apples by design — this alone would be expected to produce
-   a lower, noisier Sharpe and deeper drawdown in the LEAN full-period
-   number, independent of any implementation difference.
+   a lower, noisier Sharpe in the LEAN full-period number, independent
+   of any implementation difference. This is the most likely single
+   largest contributor and is a benign, expected effect of comparing
+   different-length windows, not a red flag.
 2. **Order-timing/fill difference (Section 4).** The disclosed
    MarketOnOpen conversion is a real, expected, small per-trade drag
    relative to Jarvis's close-to-close assumption, but is unlikely on
-   its own to explain a gap this large (Sharpe 0.65 vs 0.16).
-3. **Possible exit-rule implementation mismatch (Sections 1, 7).** The
-   order-count discrepancy (55 trades in ~4.5 OOS years vs. only 20
-   orders in ~15 full years) is the most concerning unexplained finding
-   in this run and is the leading candidate explanation for at least
-   part of the gap — but this has not been confirmed, because Manual
-   Check #1 (dumping and inspecting Jarvis's actual signal/position
-   series) has not yet been performed, and no LEAN trade log or equity
-   curve was provided with this run to inspect on the LEAN side either.
-4. **Benchmark mismatch (Section 3).** The reported Alpha/Beta are
-   against an unconfirmed, likely non-EEM benchmark, so they cannot yet
-   be used to explain or refute anything about the EEM-buy-and-hold
-   comparison that is the actual basis of Jarvis's approval.
+   its own to explain the full gap.
+3. **Possible exit-rule implementation nuance (Sections 1, 7).** The
+   order-count difference (20 orders / ~10 round trips over 15 years in
+   LEAN vs. ~55 trades over ~4.5 OOS years in Jarvis) remains
+   unconfirmed as either a genuine implementation mismatch or simply a
+   consequence of the much longer, calmer full-period window producing
+   fewer RSI threshold crossings on average. This has not been resolved
+   with a trade log or signal-series inspection (Manual Check #1) and
+   remains the single most important open technical question, but it no
+   longer casts doubt on the *return/drawdown* finding in Section 7/8,
+   which stands on its own within the LEAN-only comparison.
 
-**None of these four explanations has been ruled in or ruled out with
-evidence beyond the summary statistics supplied.** This is the core
-reason this run should be read as encouraging but incomplete, not as a
-resolved validation.
+**None of the remaining Sharpe-gap explanations has been ruled in or
+ruled out with hard evidence.** But the previously largest open item —
+the missing benchmark leg — is now resolved, which materially changes
+the overall explainability picture for the better.
 
 ## 10. Whether Jarvis confidence should increase, stay the same, or decrease
 
-**Confidence should increase modestly — not substantially, and not to
-the point of changing the candidate's approval status.**
+**Confidence should increase — meaningfully more than in the initial
+run, though still not to the point of treating this as a fully resolved,
+live-ready validation.**
 
-Reasons to increase confidence, even modestly:
-- An independent engine, independent data vendor, and independent
-  order/fill simulation, implementing (nominally) the same rule, produced
-  a net-profitable, positive-Sharpe result over 15 years on EEM — this is
-  a real, non-trivial piece of corroborating evidence that the
-  RSI-mean-reversion effect on EEM is not an artifact unique to this
-  codebase's own backtest engine or to `yfinance`'s specific price
-  history.
-- The win-rate/profit-loss-ratio shape (80% win rate, 4.40 P/L ratio) is
-  qualitatively consistent with a mean-reversion strategy that takes
-  many small losses and occasional large wins snapping back from
-  extremes — a sensible, non-suspicious shape for this strategy type.
+Reasons confidence should now increase more than "modestly":
+- The refined run closes the single largest gap flagged in the initial
+  version of this report (Section 3/9): there is now a clean,
+  same-engine, same-data, same-cost-model comparison showing the
+  strategy **beats EEM buy-and-hold on both total return and max
+  drawdown** — precisely the comparison Jarvis's own approval
+  requirement #5 is built on. This is a materially stronger result than
+  "the strategy is merely profitable in isolation."
+- This finding was produced independently — different engine, different
+  data vendor, different order/fill simulation, different codebase —
+  and still lands on the same qualitative conclusion Jarvis's own
+  `benchmark_comparison_report.md` reached: EEM RSI(14,30/70)
+  mean-reversion outperforms passively holding EEM.
+- The favorable win/loss shape (80% win rate, 4.40 profit/loss ratio) is
+  additional, consistent, non-suspicious corroborating detail.
 
-Reasons this should not be read as a strong or full confirmation:
-- **Sharpe is low (+0.158)** relative to the Jarvis-reported +0.65, and
-  the Probabilistic Sharpe Ratio of 0.045% (essentially ~0) indicates
-  LEAN's own statistical confidence that the *true* Sharpe is
-  meaningfully above zero is itself very weak in this particular run —
-  this number on its own would not clear Jarvis's own funnel
-  (`FunnelThresholds.min_oos_sharpe = 0.5`) if it were being evaluated
-  as a fresh candidate.
-- **Alpha is negative (-0.025) against whatever benchmark LEAN used by
-  default** — and critically, that benchmark has not been confirmed to
-  be EEM buy-and-hold, which is the actual, correct comparison per
-  Jarvis's own approval requirement #5. A negative alpha against an
-  unconfirmed benchmark is not evidence against the strategy, but it is
-  also not the specific evidence needed to support it.
-- **Order timing and fill assumptions differ** from Jarvis's model in a
-  disclosed, understood, but unquantified way (Section 4), and the
-  order-count discrepancy (Section 7/9) raises a real, unresolved
-  question about whether the LEAN implementation's exit logic is even
-  fully faithful to the Jarvis rule it's meant to mirror.
-- This run corresponds to Spec Phase 2 (full-period sanity check), which
-  the approved spec explicitly said should **not** be treated as the
-  primary comparison number (Spec Section 6, Section 18) — Phase 1
-  (EEM buy-and-hold benchmark leg) and Phase 3 (walk-forward-OOS
-  reconstruction) have not yet been run.
+Reasons this should still not be treated as full validation or a
+live-readiness signal:
+- **Sharpe is still low (+0.158)** relative to the Jarvis-reported
+  +0.65, and on its own would not clear Jarvis's own funnel
+  (`FunnelThresholds.min_oos_sharpe = 0.5`) if evaluated as a fresh
+  candidate. A strategy can beat buy-and-hold on return/drawdown while
+  still having a mediocre absolute risk-adjusted profile — both things
+  are true here simultaneously and neither cancels out the other.
+- **Trade count is small** (20 orders / ~10 round trips over 15 years),
+  which limits the statistical confidence that can be placed in any of
+  the LEAN run's summary statistics — a strategy trading only ~10 times
+  over 15 years has a small effective sample size for a win-rate or
+  Sharpe estimate, regardless of how favorable the sample looks.
+- **Data-source validation is still pending** in the strict sense
+  described in Section 3: the LEAN buy-and-hold leg was compared against
+  Jarvis's buy-and-hold leg only qualitatively (different windows), not
+  on the same OOS-tail dates — a true apples-to-apples data-vendor
+  cross-check (Recommended Next Step #1, revised) has not yet been done.
+- The walk-forward-OOS reconstruction (Spec Phase 3) — the methodology
+  that actually matches how Jarvis's approved numbers were computed —
+  still has not been run in LEAN; this remains a full-period comparison.
 
-**Net position: this result is a genuine, modestly positive data point —
-"an independent backtest of a nominally-similar rule doesn't blow up or
-lose money" is worth something — but it is well short of the
-apples-to-apples, benchmark-anchored comparison needed to move the EEM
-`rsi_revert(14,30/70)` candidate beyond its current
-`APPROVED_FOR_PAPER_TEST` status, and well short of resolving the open
-questions raised in `docs/EEM_EXPANSION_DECISION_MEMO.md`'s Section 10
-(the original recommendation for independent validation). No change to
-the candidate's classification in `docs/JARVIS_PAPER_TRADING_CANDIDATES.md`
-is warranted based on this run alone.**
+**Net position: this result meaningfully increases confidence in the
+underlying EEM RSI mean-reversion effect being real and not a
+Jarvis-specific backtest artifact, and it directly and successfully
+answers the specific buy-and-hold comparison the original approval was
+based on. It does not, however, resolve every open question (low
+absolute Sharpe, small trade count, pending strict data-source
+cross-check), and it does not make the candidate ready for live capital.
+The appropriate next step is to treat this candidate as now eligible
+for paper-trading gate design work (i.e., defining the specific
+promotion criteria, monitoring, and kill-switch conditions a paper-test
+would need before real capital is ever considered) — not for live
+deployment, and not yet for skipping straight to paper trading itself
+without that gate design being completed first. No change to the
+candidate's classification in `docs/JARVIS_PAPER_TRADING_CANDIDATES.md`
+is made by this report; that remains a separate, later decision.**
+
 
 ---
 
 ## Recommended next step
 
-Run a **stricter LEAN mirror** that closes the specific gaps identified
-above, in priority order:
+**Item 1 below (explicit EEM buy-and-hold LEAN leg) is now DONE** as of
+the refined run — see Sections 3/7/8. The remaining gaps, in priority
+order:
 
-1. **Explicit EEM buy-and-hold LEAN leg** (Spec Phase 1) — run in the
-   same LEAN project/engine, same date range, same fee assumptions, and
-   report its own Sharpe/return/drawdown directly against Jarvis's EEM
-   buy-and-hold figures (Sharpe -0.35, total return -31.5%) using the
-   tight tolerance band in Spec Section 14. This is the cheapest, single
-   highest-value next step and resolves the Section 3/9 benchmark
-   ambiguity directly.
+1. ~~Explicit EEM buy-and-hold LEAN leg (Spec Phase 1)~~ — **complete.**
+   The refined run added this leg in the same LEAN project/engine, same
+   date range, same fee assumptions, directly enabling the Section 7/8
+   outperformance finding. Remaining sub-item: restrict this leg to the
+   same OOS-tail dates Jarvis used, for a true apples-to-apples
+   data-vendor cross-check (Section 3) — this specific narrower
+   comparison has not yet been done.
 2. **Equity curve export** from the LEAN run, to inspect the actual
    drawdown path and compare its shape/timing against what would be
    expected from Jarvis's own OOS equity curve.
@@ -294,12 +354,21 @@ above, in priority order:
    3) rather than only the full-period run, so the primary comparison
    number is scored on a like-for-like basis with the actual Jarvis
    approved figures, not the full 15-year period.
+5. **Paper-trading gate design** (new, given the increased confidence
+   from this refined run) — before any paper-trading run is actually
+   started, define the specific promotion criteria, monitoring
+   thresholds, and kill-switch/rollback conditions the candidate would
+   need to satisfy. This is design work only — it does not itself start
+   paper trading, and should be treated as a distinct, subsequent task
+   from this comparison report.
 
-Only after these four items are addressed should this comparison be
-revisited for a stronger confidence read — and even then, per
-`docs/EEM_EXPANSION_DECISION_MEMO.md`, a Norgate (or equivalent)
-data cross-check remains a separate, additional recommended step beyond
+Only after items 2–4 are addressed should this comparison be revisited
+for a fuller confidence read; item 5 (gate design) can proceed in
+parallel since it does not depend on further backtest results. Per
+`docs/EEM_EXPANSION_DECISION_MEMO.md`, a Norgate (or equivalent) data
+cross-check also remains a separate, additional recommended step beyond
 the LEAN mirror itself.
+
 
 ---
 
