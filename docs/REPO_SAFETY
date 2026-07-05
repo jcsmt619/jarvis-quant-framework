@@ -1,0 +1,171 @@
+# Repository Safety Audit
+
+> **Date:** 2026-07-04
+> **Auditor:** Cline (automated)
+> **Status:** READ-ONLY — no edits made. This audit documents findings only.
+
+---
+
+## 1. `.gitignore` — Newline-Separated and Functional
+
+**Verdict: ✅ PASS**
+
+The `.gitignore` file (59 lines) is properly newline-separated and functional.
+Verified by creating a test file `_test_ignore.zip` and confirming it matches
+the `*.zip` pattern on line 35:
+
+```
+.gitignore:35:*.zip    _test_ignore.zip
+```
+
+The `.gitignore` covers:
+- Credentials: `.env`, `.env.*`, `*.key`, `*.pem`, `*.cookies.txt`, `*.session`, `*.har`
+- Python: `__pycache__/`, `*.pyc`, `.venv/`, `.pytest_cache/`, etc.
+- Data/logs: `logs/`, `*.log`, `data/raw/`, `*.zip`, `*.parquet`, `*.csv`
+- Private course material: `skool_source_material/`, `skool_dump.txt`, `strategies_dump.txt`, `hedge_fund_dump.txt`, `hmm_dump.txt`, `debugging_dump.txt`
+- Diagnostic dumps: `main_diagnostics.txt`, `pyright_report.json`, `_audit_*.txt`, etc.
+
+**Caveat:** The `.gitignore` rules only prevent NEW files from being tracked.
+Files that were committed BEFORE the rules were added remain tracked (see §6).
+
+---
+
+## 2. `.env` — Not Tracked
+
+**Verdict: ✅ PASS**
+
+```
+$ git ls-files --error-unmatch .env
+error: pathspec '.env' did not match any file(s) known to git
+```
+
+`.env` exists on disk (visible in VS Code tabs) but is NOT tracked by git.
+The `.gitignore` rule on line 2 (`.env`) prevents it from being added.
+
+---
+
+## 3. Private Skool/Course Files — Directory Not Tracked, But Dump Files ARE
+
+**Verdict: ⚠️ PARTIAL FAIL**
+
+### `skool_source_material/` directory
+```
+$ git ls-files skool_source_material/
+(empty — no files tracked)
+```
+
+The directory exists on disk with subdirectories (`claude_skills/`,
+`futures_scalper/`) but is NOT tracked. ✅ Safe.
+
+### Skool dump .txt files — **TRACKED (UNSAFE)**
+The following private course dump files ARE tracked by git, despite having
+`.gitignore` rules. They were committed before the rules were added:
+
+| File | Size | .gitignore line | Status |
+|---|---|---|---|
+| `skool_dump.txt` | 164,865 bytes (161 KB) | line 51 | ❌ TRACKED |
+| `strategies_dump.txt` | 351,570 bytes (343 KB) | line 52 | ❌ TRACKED |
+| `hedge_fund_dump.txt` | 46,675 bytes (46 KB) | line 53 | ❌ TRACKED |
+| `hmm_dump.txt` | 14,121 bytes (14 KB) | line 54 | ❌ TRACKED |
+| `debugging_dump.txt` | 7,344 bytes (7 KB) | line 55 | ❌ TRACKED |
+
+**Total private course content tracked: ~571 KB**
+
+These contain private Skool/course material and must be untracked.
+
+---
+
+## 4. Large Zip/Data Files — **TRACKED (UNSAFE)**
+
+**Verdict: ❌ FAIL**
+
+| File | Size | .gitignore line | Status |
+|---|---|---|---|
+| `data_parquet1.zip` | 53,582,169 bytes (51 MB) | line 35 (`*.zip`) | ❌ TRACKED |
+| `data_parquet2.zip` | 48,298,379 bytes (46 MB) | line 35 (`*.zip`) | ❌ TRACKED |
+| `claude-skills.zip` | 31,548 bytes (31 KB) | line 35 (`*.zip`) | ❌ TRACKED |
+
+**Total large zip data tracked: ~97 MB**
+
+These bloat the repository and should not be tracked. The `.gitignore` rule
+exists but was added after these files were committed.
+
+---
+
+## 5. `requirements.txt` — Exists
+
+**Verdict: ✅ PASS**
+
+`requirements.txt` exists in the repository root and is tracked by git.
+
+---
+
+## 6. Complete List of Unsafe Tracked Files
+
+All files below are currently tracked by git but should NOT be. Each has a
+matching `.gitignore` rule that was added after the file was committed.
+
+### Private Skool/Course Content (5 files, ~571 KB)
+
+| # | File | Size | Category | Risk |
+|---|---|---|---|---|
+| 1 | `skool_dump.txt` | 161 KB | Private course dump | IP exposure |
+| 2 | `strategies_dump.txt` | 343 KB | Private course dump | IP exposure |
+| 3 | `hedge_fund_dump.txt` | 46 KB | Private course dump | IP exposure |
+| 4 | `hmm_dump.txt` | 14 KB | Private course dump | IP exposure |
+| 5 | `debugging_dump.txt` | 7 KB | Private course dump | IP exposure |
+
+### Large Zip/Data Files (3 files, ~97 MB)
+
+| # | File | Size | Category | Risk |
+|---|---|---|---|---|
+| 6 | `data_parquet1.zip` | 51 MB | Data archive | Repo bloat |
+| 7 | `data_parquet2.zip` | 46 MB | Data archive | Repo bloat |
+| 8 | `claude-skills.zip` | 31 KB | Zip archive | Repo bloat |
+
+### Summary
+
+| Category | Files | Total Size | Severity |
+|---|---|---|---|
+| Private course content | 5 | ~571 KB | HIGH — IP exposure |
+| Large zip/data | 3 | ~97 MB | MEDIUM — repo bloat |
+| **Total** | **8** | **~97.6 MB** | |
+
+---
+
+## 7. Recommended Remediation (NOT YET APPLIED)
+
+To untrack these files while keeping them on disk:
+
+```bash
+git rm --cached skool_dump.txt strategies_dump.txt hedge_fund_dump.txt hmm_dump.txt debugging_dump.txt
+git rm --cached data_parquet1.zip data_parquet2.zip claude-skills.zip
+git commit -m "chore: untrack private course dumps and large zip files"
+```
+
+The `--cached` flag removes the file from git's index but keeps it on disk.
+The existing `.gitignore` rules will prevent them from being re-added.
+
+**Note:** This does NOT remove the files from git history. If these files
+were ever pushed to a remote, they remain in the history. A full purge
+(`git filter-repo` or BFG) would be needed to scrub history — but that is
+a destructive operation and should only be done with explicit approval.
+
+---
+
+## 8. Files Confirmed Safe
+
+| Item | Status |
+|---|---|
+| `.env` | ✅ Not tracked |
+| `skool_source_material/` | ✅ Not tracked |
+| `.gitignore` | ✅ Tracked, functional |
+| `requirements.txt` | ✅ Exists, tracked |
+| `.env.example` | ✅ Tracked (safe — template only) |
+| `config/settings.yaml` | ✅ Tracked (no secrets — risk config only) |
+| `.claude/skills/` | ✅ Tracked (skill definitions, no secrets) |
+| `browser-mcp/package.json` | ✅ Tracked (small config, no secrets) |
+
+---
+
+**Awaiting approval before applying any remediation.**

@@ -35,7 +35,39 @@ assumption and must NOT be promoted to paper-trading; 1 (TLT pivot_bounce)
 is outright FRAGILE, dying by 10bp.** See the updated classification table
 below (new "Slippage" column) and the new Section 12.
 
+**Update (same-strategy-across-assets breadth report):** A new pure
+aggregation/reporting module, `edge_hunting/same_strategy_across_assets.py`,
+groups the existing 35 survivors in `top_survivors.csv` by exact
+strategy_name and by family to count how many distinct assets each
+surviving strategy generalizes across. No strategy logic was changed, no
+threshold was tuned, and no new sweep was run — this is a groupby/aggregate
+over already-computed data. Results are in
+`reports/edge_hunting/same_strategy_across_assets.csv` and
+`reports/edge_hunting/same_strategy_across_assets_report.md`. See the new
+Section 16 below. **Key finding: at the family level, `rsi_revert` survives
+on 8 distinct assets (EEM, EFA, GOOGL, QQQ, SPY, TLT, XLK, XLP) and
+`dual_momentum` on 8 distinct assets — both classified BROAD, not
+one-asset-specific — directly answering the question of whether EEM's
+rsi_revert result is an isolated artifact (it is not).**
+
+**Update (category-level OOS Sharpe summary report):** A new pure
+aggregation/reporting module, `edge_hunting/category_oos_summary.py`,
+groups the full, pre-filter `sweep_results.csv` (2,697 backtests) by
+strategy category to compute mean/median OOS Sharpe, survival rate, #
+configs tested, # survivors, mean OOS max drawdown, and a single-asset
+concentration warning for each category. No strategy logic was changed, no
+threshold was tuned, and no new sweep was run. Results are in
+`reports/edge_hunting/category_oos_summary.csv` and
+`reports/edge_hunting/category_oos_summary_report.md`. See the new
+Section 17 below. **Key finding: no category's survivors are concentrated
+in a single asset (all clear the 50% single-asset warning threshold);
+MEAN_REVERSION has both the highest survival rate (2.5%) and the only
+positive mean OOS Sharpe across all configs tested (+0.14), directly
+confirming the qualitative claims already made in Sections 1 and 6.**
+
 ---
+
+
 
 
 
@@ -568,6 +600,146 @@ REGIME_ROBUST) and raises sharper, benchmark-specific concerns about both `SPY d
 (further confirming its Section 13 REGIME_FRAGILE flag) and `HYG dual_momentum` (a new concern not
 previously visible). **As instructed, nothing has been promoted to paper or live trading by this
 analysis.**
+
+---
+
+## 16. Same-strategy-across-assets breadth — is EEM rsi_revert a broad pattern or an isolated artifact?
+
+A new pure aggregation/reporting module, `edge_hunting/same_strategy_across_assets.py`, groups the
+existing 35 survivors in `top_survivors.csv` by exact `strategy_name` (family + parameters) and by
+`family` alone, counting how many distinct assets each surviving strategy generalizes across. No
+strategy logic was changed, no funnel threshold was tuned, and no new sweep or backtest was run —
+this is a groupby/aggregate over already-computed data only. Full results:
+`reports/edge_hunting/same_strategy_across_assets.csv` and
+`reports/edge_hunting/same_strategy_across_assets_report.md`.
+
+This directly answers the question raised by
+`docs/EEM_MEAN_REVERSION_EXPANSION_SPEC.md` and echoed in the secondhand
+`private_research/youtube_ai_pathways/BRENDAN_9000_STRATEGIES_NOTES.md` (Brendan Li's unverified
+claim that RSI mean reversion survived on 20 distinct tickers and Keltner reversion on 18) — but
+using Jarvis's own already-computed, already-documented sweep data rather than an external,
+unverified source.
+
+**Family-level breadth (all parameter variants pooled):**
+
+| Family | Category | # Surviving configs | # Distinct assets | Assets | Mean OOS Sharpe | Breadth |
+|---|---|---|---|---|---|---|
+| dual_momentum | TREND | 12 | 8 | AAPL, AMZN, HYG, MSFT, NVDA, SPY, XLF, XLY | 0.71 | BROAD |
+| rsi_revert | MEAN_REVERSION | 11 | 8 | EEM, EFA, GOOGL, QQQ, SPY, TLT, XLK, XLP | 0.59 | BROAD |
+| percent_b_revert | MEAN_REVERSION | 2 | 2 | MSFT, XLK | 0.73 | NARROW |
+| keltner_revert | MEAN_REVERSION | 2 | 2 | AMZN, MSFT | 0.69 | NARROW |
+| atr_breakout, cci_revert, pivot_bounce, donchian_breakout, ultimate_oscillator_revert, bollinger_revert, zscore_revert, macd_rsi_confirm | mixed | 1 each | 1 each | (single asset each) | 0.50–0.88 | ONE_ASSET_SPECIFIC |
+
+**Key finding: `rsi_revert` is a BROAD pattern, not an EEM-specific artifact.** At the family
+level, `rsi_revert` survives independently on **8 distinct assets** — EEM, EFA, GOOGL, QQQ, SPY,
+TLT, XLK, XLP — spanning emerging-market/international ETFs (EEM, EFA), a large-cap tech name
+(GOOGL), broad-market/sector ETFs (SPY, XLK, XLP, QQQ), and a bond ETF (TLT). This is direct,
+already-computed evidence from Jarvis's own main 29-asset sweep (independent of, and consistent
+with, the separate, more targeted EEM-specific generalization test in
+`docs/EEM_MEAN_REVERSION_EXPANSION_SPEC.md` / `edge_hunting/eem_expansion.py`, which found RSI
+reversion generalized across 9 of 13 emerging-market ETFs specifically). **The EEM rsi_revert
+survivors identified elsewhere in this document (Section 12's `rsi_revert(14,30/70)` and
+`rsi_revert(14,25/70)`) are not isolated single-asset flukes — the same family mechanism produces
+survivors broadly across the universe.**
+
+`dual_momentum` is similarly BROAD (8 distinct assets), but Sections 4, 5, and the Classification
+table above already established that most of its equity-side survivors are bootstrap-FRAGILE —
+breadth across assets does **not** by itself establish robustness; it only rules out the specific
+"one-asset artifact" failure mode. `dual_momentum`'s breadth and its fragility are both true
+simultaneously and answer different questions.
+
+Every other surviving family (`percent_b_revert`, `keltner_revert` at 2 assets each; `atr_breakout`,
+`cci_revert`, `pivot_bounce`, `donchian_breakout`, `ultimate_oscillator_revert`,
+`bollinger_revert`/`zscore_revert` (the known duplicate pair from Section 14), `macd_rsi_confirm`
+at 1 asset each) is NARROW or ONE_ASSET_SPECIFIC in this sweep. This does not mean those strategies
+are wrong — the 29-asset universe and the specific parameter grids tested (Section 5's caveat about
+thin grids applies here too) limit how much breadth could even be observed — but it does mean their
+current evidence is weaker on this specific dimension than `rsi_revert`'s or `dual_momentum`'s.
+
+**Caveats carried forward from the report itself:**
+- This report only sees the 35 already-filtered survivors — it cannot distinguish "strategy X
+  failed on asset Y" from "strategy X was never tested on asset Y" (both look identical, absent,
+  in a survivor-only view). A future task could join against the full `sweep_results.csv` to
+  compute a true per-asset survival rate rather than just a survivor count.
+- No multiple-comparisons correction is applied (see `docs/BRENDAN_VIDEO_VS_JARVIS_AUDIT.md`
+  Item 11) — breadth across a handful of assets out of 29 tested does not, by itself, rule out
+  chance given the total number of trials in the original sweep.
+- The `BROAD` / `NARROW` / `ONE_ASSET_SPECIFIC` labels are an unopinionated reporting
+  classification for this analysis only (>= 3 distinct assets = BROAD) — they are not, and must
+  not be treated as, a change to `edge_hunting/funnel.py`'s actual pass/fail thresholds.
+
+**As with every other update in this document, nothing has been promoted to paper or live trading
+by this analysis, and no strategy logic, parameter, or funnel threshold was changed.**
+
+---
+
+## 17. Category-level OOS Sharpe summary — putting Sections 1 and 6's category claims in one table
+
+A new pure aggregation/reporting module, `edge_hunting/category_oos_summary.py`, groups the full,
+pre-filter `reports/edge_hunting/sweep_results.csv` (2,697 backtests) by strategy category to
+compute mean/median OOS Sharpe, survival rate, # configs tested, # survivors, mean OOS max
+drawdown, and a single-asset concentration warning for each category. No strategy logic was
+changed, no funnel threshold was tuned, and no new sweep or backtest was run — this is a
+groupby/aggregate over already-computed data only. Full results:
+`reports/edge_hunting/category_oos_summary.csv` and
+`reports/edge_hunting/category_oos_summary_report.md`.
+
+| Category | # Configs tested | # Survivors | Survival rate | Mean OOS Sharpe | Median OOS Sharpe | Mean OOS Max DD | Concentration warning |
+|---|---|---|---|---|---|---|---|
+| MEAN_REVERSION | 754 | 19 | 2.5% | +0.1371 | +0.1728 | -20.3% | - |
+| COMPOSITE | 87 | 1 | 1.1% | -0.1639 | 0.0000 | -29.7% | - |
+| TREND | 1247 | 13 | 1.0% | -0.0531 | -0.0542 | -39.7% | - |
+| PATTERN | 174 | 1 | 0.6% | -0.0779 | -0.0437 | -27.2% | - |
+| VOLATILITY | 174 | 1 | 0.6% | -0.2090 | -0.2472 | -23.9% | - |
+| VOLUME | 261 | 0 | 0.0% | -0.1468 | -0.1515 | -34.8% | - |
+
+**Key findings:**
+
+- **This table is a direct, reproducible confirmation of the qualitative claims already made in
+  Section 1** ("MEAN_REVERSION is the only category with a positive mean OOS Sharpe across *all*
+  its backtests... while every other category... has a negative mean OOS Sharpe") and **Section 6**
+  ("TREND strategies account for nearly two-thirds of all drawdown-based rejections") — both are
+  now backed by an explicit, single-source table rather than only prose.
+- **No category triggered the single-asset concentration warning** (>= 50% of a category's
+  survivors on one asset) — every category with 2+ survivors (MEAN_REVERSION, TREND) has its
+  survivors spread across multiple distinct assets. This rules out, at the category level, the
+  specific failure mode of "this category's apparent edge is really just one lucky asset counted
+  many times" — consistent with, and complementary to, Section 16's family-level breadth findings
+  (`rsi_revert` and `dual_momentum` both BROAD across 8 assets each).
+- **MEAN_REVERSION has both the best survival rate (2.5%, more than double the next-best category)
+  and the mildest mean OOS max drawdown (-20.3%, best of all six categories)** — a category-level
+  result consistent with the plausible-mechanism argument already made in Section 3 (short-horizon
+  mean reversion in liquid, arbitraged instruments) rather than an artifact of a smaller sample:
+  MEAN_REVERSION was actually the *most*-tested category by config count after TREND (754 configs
+  vs TREND's 1,247), so its higher survival rate is not simply "fewer chances to fail."
+- **VOLUME had zero survivors out of 261 configs tested (0.0% survival)** and the second-worst mean
+  OOS max drawdown (-34.8%) — the weakest category on both dimensions simultaneously, reinforcing
+  the "produced zero survivors anywhere in the 29-asset universe" statement already made about
+  VOLUME in Section 1.
+- **TREND has the single worst mean OOS max drawdown of any category (-39.7%)**, consistent with
+  Section 6's drawdown-failure concentration finding, despite TREND having the second-highest
+  survival rate (1.0%) — a reminder that TREND's survivors (mostly `dual_momentum`, per Section 16)
+  passed the funnel's *specific* -35% OOS max-drawdown filter on their own individual walk-forward
+  runs even though the category as a whole skews toward large drawdowns; it does not mean TREND
+  survivors are drawdown-safe as a category, only that these particular configs individually
+  cleared the bar.
+
+**Caveats carried forward from the report itself:**
+- Mean/median OOS Sharpe here are computed over ALL configs tested in a category, including the
+  large majority that failed the funnel — these are descriptive statistics of category-level
+  performance, not evidence that any given failing config was close to viable.
+- No multiple-comparisons correction is applied (see `docs/BRENDAN_VIDEO_VS_JARVIS_AUDIT.md`
+  Item 11) — a category's survival rate reflects how many of its own configs passed the funnel out
+  of how many were tried, not a probability that its survivors are genuine skill rather than
+  chance.
+- The concentration-warning threshold (`CONCENTRATION_WARN_FRACTION = 50%`) is an unopinionated
+  reporting label chosen for this report only — it is not, and must not be treated as, a
+  funnel/threshold change to `edge_hunting/funnel.py`.
+
+**As with every other update in this document, nothing has been promoted to paper or live trading
+by this analysis, and no strategy logic, parameter, or funnel threshold was changed.**
+
+
 
 
 

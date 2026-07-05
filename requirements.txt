@@ -1,0 +1,44 @@
+# Minimal requirements.txt — every package below is imported by at least one
+# .py file in this repository (verified via AST import scan).
+# Pins reflect the versions currently installed in the working venv where
+# available; uninstalled packages are left unpinned so pip can resolve.
+
+# Core numerics / data
+numpy==2.5.0
+pandas==3.0.3
+scipy==1.18.0
+scikit-learn==1.9.0
+
+# HMM regime engine
+hmmlearn==0.3.3
+
+# Backtesting framework
+backtrader
+
+# Statistics
+statsmodels
+
+# Market data
+yfinance
+
+# Config / env
+PyYAML==6.0.1
+python-dotenv==1.2.2
+
+# HTTP / scraping
+requests==2.34.2
+beautifulsoup4
+
+# Dashboards / viz
+streamlit
+plotly
+rich==15.0.0
+
+# NLP (lazy import in fomc_scanner.py)
+transformers
+
+# Broker (lazy import in broker/alpaca_client.py)
+alpaca-trade-api==3.2.0
+
+# Test runner
+pytest==9.1.1

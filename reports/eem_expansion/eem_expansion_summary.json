@@ -1,0 +1,314 @@
+{
+  "generated_at": "2026-07-05T01:50:45.644240Z",
+  "data_audit": {
+    "EEM": "INCLUDED",
+    "VWO": "INCLUDED",
+    "IEMG": "INCLUDED",
+    "EWZ": "INCLUDED",
+    "FXI": "INCLUDED",
+    "INDA": "INCLUDED",
+    "EWT": "INCLUDED",
+    "EWY": "INCLUDED",
+    "EWW": "INCLUDED",
+    "EZA": "INCLUDED",
+    "EIDO": "INCLUDED",
+    "TUR": "INCLUDED",
+    "ILF": "INCLUDED",
+    "RSX": "INCLUDED_PREHALT_ONLY_EXCLUDED_FROM_AGGREGATE"
+  },
+  "n_configs_tested": 91,
+  "n_assets_tested": 13,
+  "n_total_backtests": 1183,
+  "family_generalization": {
+    "rsi_revert": {
+      "n_independent_survivor_assets": 9,
+      "sensitivity_flag": "ROBUST",
+      "classification": "GENERALIZES"
+    },
+    "percent_b_revert": {
+      "n_independent_survivor_assets": 0,
+      "sensitivity_flag": "ROBUST",
+      "classification": "DOES_NOT_GENERALIZE_LIKELY_SINGLE_ASSET_ARTIFACT"
+    },
+    "bollinger_revert": {
+      "n_independent_survivor_assets": 0,
+      "sensitivity_flag": "ROBUST",
+      "classification": "DOES_NOT_GENERALIZE_LIKELY_SINGLE_ASSET_ARTIFACT"
+    },
+    "keltner_revert": {
+      "n_independent_survivor_assets": 0,
+      "sensitivity_flag": "ROBUST",
+      "classification": "DOES_NOT_GENERALIZE_LIKELY_SINGLE_ASSET_ARTIFACT"
+    },
+    "zscore_revert": {
+      "n_independent_survivor_assets": 0,
+      "sensitivity_flag": "ROBUST",
+      "classification": "DOES_NOT_GENERALIZE_LIKELY_SINGLE_ASSET_ARTIFACT"
+    },
+    "cci_revert": {
+      "n_independent_survivor_assets": 0,
+      "sensitivity_flag": "ROBUST",
+      "classification": "DOES_NOT_GENERALIZE_LIKELY_SINGLE_ASSET_ARTIFACT"
+    },
+    "williams_r_revert": {
+      "n_independent_survivor_assets": 0,
+      "sensitivity_flag": "ROBUST",
+      "classification": "DOES_NOT_GENERALIZE_LIKELY_SINGLE_ASSET_ARTIFACT"
+    }
+  },
+  "eem_outlier_check": {
+    "is_outlier": false,
+    "eem_mean_sharpe": 0.3597607580242067,
+    "other_assets_mean_sharpe": 0.3442527723465152,
+    "other_assets_std_sharpe": 0.15712315353613462,
+    "threshold": 0.5013759258826498,
+    "flag": "NO_OUTLIER_DETECTED"
+  },
+  "headline_verdict": "EDGE_LIKELY_REAL_AND_EM_STRUCTURAL",
+  "n_paper_test_candidates": 30,
+  "paper_test_candidates": [
+    {
+      "asset": "EEM",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 75, \"oversold\": 25, \"window\": 10}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EEM",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 70, \"oversold\": 20, \"window\": 14}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EEM",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 70, \"oversold\": 25, \"window\": 14}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EEM",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 70, \"oversold\": 30, \"window\": 14}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": true
+    },
+    {
+      "asset": "EEM",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 70, \"oversold\": 35, \"window\": 18}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EEM",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 65, \"oversold\": 35, \"window\": 21}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "VWO",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 80, \"oversold\": 25, \"window\": 10}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "VWO",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 70, \"oversold\": 30, \"window\": 18}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "IEMG",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 75, \"oversold\": 35, \"window\": 18}",
+      "benchmark_classification": "DEFENSIVE_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "IEMG",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 65, \"oversold\": 35, \"window\": 21}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "IEMG",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 70, \"oversold\": 35, \"window\": 21}",
+      "benchmark_classification": "DEFENSIVE_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EWZ",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 65, \"oversold\": 30, \"window\": 21}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "UNIQUE_SIGNAL",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EWT",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 80, \"oversold\": 30, \"window\": 10}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EWT",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 80, \"oversold\": 35, \"window\": 10}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EWT",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 75, \"oversold\": 30, \"window\": 14}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EWT",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 80, \"oversold\": 30, \"window\": 14}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EWT",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 70, \"oversold\": 35, \"window\": 18}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EWY",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 70, \"oversold\": 30, \"window\": 18}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EWW",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 70, \"oversold\": 20, \"window\": 10}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "UNIQUE_SIGNAL",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EZA",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 70, \"oversold\": 20, \"window\": 7}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EZA",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 75, \"oversold\": 20, \"window\": 7}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EZA",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 80, \"oversold\": 20, \"window\": 7}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EZA",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 65, \"oversold\": 25, \"window\": 7}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EZA",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 70, \"oversold\": 30, \"window\": 7}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EZA",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 65, \"oversold\": 30, \"window\": 10}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EZA",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 70, \"oversold\": 35, \"window\": 10}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EZA",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 65, \"oversold\": 30, \"window\": 14}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EZA",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 65, \"oversold\": 35, \"window\": 14}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "EZA",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 75, \"oversold\": 35, \"window\": 14}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "NEAR_DUPLICATE",
+      "is_original_eem_setting": false
+    },
+    {
+      "asset": "TUR",
+      "family": "rsi_revert",
+      "params": "{\"overbought\": 80, \"oversold\": 30, \"window\": 10}",
+      "benchmark_classification": "ROBUST_CANDIDATE",
+      "duplicate_rollup": "UNIQUE_SIGNAL",
+      "is_original_eem_setting": false
+    }
+  ],
+  "n_reject_candidates": 1144,
+  "original_eem_primary_candidate_unchanged": true,
+  "note": "This module does not enable paper trading or live trading; it only records a research recommendation."
+}

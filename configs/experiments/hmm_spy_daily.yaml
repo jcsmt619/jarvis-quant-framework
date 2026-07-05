@@ -1,0 +1,107 @@
+strategy_name: hmm_spy_daily
+strategy_module: strategies.hmm_adapter
+strategy_class: HMMAllocationAdapter
+asset_class: stocks_etfs
+
+symbols: [SPY]
+timeframe: 1Day
+start_date: "2010-01-01"
+end_date: "2025-12-31"
+
+features_used:
+  - logret_1
+  - logret_5
+  - logret_20
+  - realized_vol_20
+  - vol_ratio_5_20
+  - downside_dev_20
+  - vol_asymmetry_20
+  - volume_z_50
+  - volume_trend_10
+  - adx_14
+  - sma_slope_50
+  - rsi_z_14
+  - dist_from_sma_200
+  - roc_10
+  - roc_20
+  - atr_norm_14
+standardization_window: 252
+
+entry_rules:
+  min_confidence: 0.55
+  rebalance_threshold: 0.10
+  uncertainty_size_mult: 0.50
+
+exit_rules:
+  stop_type: atr
+  atr_multiplier: 2.0
+  letf_stop_multiplier: 1.5
+  runner_mode: false
+  runner_trigger_r: 1.5
+  runner_trail_atr: 2.0
+
+position_sizing:
+  method: allocation
+  max_leverage: 1.0
+  initial_capital: 100000.0
+
+fees:
+  commission_per_trade: 0.0
+  slippage_bps: 5.0
+
+train_test_split:
+  method: walk_forward
+  train_window: 252
+  test_window: 126
+  step_size: 126
+  fill_delay: 1
+
+walk_forward:
+  n_candidates: [3, 4, 5]
+  n_init: 4
+  random_state: 42
+  ensemble_seeds: null
+
+benchmark:
+  buy_hold: true
+  sma200: true
+  random:
+    enabled: true
+    seeds: 100
+
+robustness:
+  cpcv:
+    enabled: true
+    n_groups: 6
+    n_test_groups: 2
+    embargo_pct: 0.01
+  deflated_sharpe:
+    enabled: true
+    n_trials: 1
+  stress_tests:
+    crash_injection:
+      enabled: true
+      n_sims: 100
+      n_gaps: 10
+    gap_risk:
+      enabled: true
+      n_sims: 100
+      n_gaps: 10
+    regime_misclassification:
+      enabled: true
+      n_sims: 20
+  parameter_sensitivity:
+    enabled: true
+    perturbation_pct: 0.20
+    params_to_perturb:
+      - min_confidence
+      - atr_multiplier
+      - rebalance_threshold
+
+validation_gate:
+  min_oos_sharpe: 0.5
+  min_dsr: 0.80
+  max_max_drawdown: 0.25
+  min_cpcv_pct_positive: 0.60
+  must_beat_random: true
+  must_beat_buy_hold: false

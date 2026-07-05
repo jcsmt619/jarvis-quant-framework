@@ -54,6 +54,9 @@ hedge_fund_dump.txt
 hmm_dump.txt
 debugging_dump.txt
 
+# private research (never commit)
+private_research/
+
 # node / browser MCP
 node_modules/
 browser-mcp/node_modules/

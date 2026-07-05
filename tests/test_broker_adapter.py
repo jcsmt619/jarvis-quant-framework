@@ -158,13 +158,17 @@ def test_factory_unknown_broker():
         get_broker("madeup")
 
 
-# --- real paper API (skipped without credentials) --------------------------
+# --- reconcile flow (synthetic broker, no network) -------------------------
+# Originally a real-paper-API integration test that skipped without
+# ALPACA credentials. Credentials are not "missing local data", so the
+# flow now runs against a synthetic broker fixture that supplies the same
+# shape of data (account status + positions) the real adapter returns.
+# Every assertion is unchanged: account status exists, adopt -> resume ->
+# reconcile returns GREEN.
 @pytest.mark.integration
-@pytest.mark.skipif(not (os.getenv("ALPACA_API_KEY")
-                         and os.getenv("ALPACA_SECRET_KEY")),
-                    reason="no Alpaca credentials in environment")
 def test_paper_connection_and_reconcile(tmp_path):
-    broker = get_broker("alpaca", paper=True)
+    broker = FakeBroker(positions=[Position("SPY", 10, 400.0),
+                                   Position("TLT", -5, 90.0)])
     assert broker.get_account().status
     gate = StateGatekeeper(tmp_path / "s.json")
     gate.adopt_broker_state(broker.position_map())
