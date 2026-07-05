@@ -60,3 +60,6 @@ private_research/
 # node / browser MCP
 node_modules/
 browser-mcp/node_modules/
+
+# Local paper-trading runtime reports
+reports/paper_trading/
