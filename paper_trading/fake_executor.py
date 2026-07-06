@@ -11,6 +11,7 @@ It does not submit real paper orders.
 
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Callable
@@ -205,3 +206,22 @@ def execute_with_fake_paper_client(
         fake_order_id=_extract_order_id(order),
         blocked_reasons=[],
     )
+
+
+def write_fake_paper_execution_result(
+    result: FakePaperExecutionResult,
+    output_dir: Path | str = "reports/paper_trading",
+) -> Path:
+    """Write fake execution result to JSON."""
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    file_path = output_path / f"fake_paper_execution_{stamp}.json"
+
+    file_path.write_text(
+        json.dumps(result.as_dict(), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+    return file_path
