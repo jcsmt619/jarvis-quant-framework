@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Callable
 
@@ -83,6 +83,9 @@ def _extract_dataframe_from_bars(bars: object, symbol: str) -> pd.DataFrame:
     if hasattr(bars, "df"):
         df = bars.df.copy()
 
+        if df.empty or len(df.columns) == 0:
+            raise ValueError(f"No market bars returned for {symbol}; Alpaca dataframe is empty.")
+
         if isinstance(df.index, pd.MultiIndex):
             if "symbol" in df.index.names:
                 try:
@@ -91,6 +94,9 @@ def _extract_dataframe_from_bars(bars: object, symbol: str) -> pd.DataFrame:
                     pass
             else:
                 df = df.reset_index()
+
+        if df.empty or len(df.columns) == 0:
+            raise ValueError(f"No market bars returned for {symbol}; Alpaca dataframe is empty after symbol filtering.")
 
         if isinstance(df.columns, pd.MultiIndex):
             # Preserve original column keys for lookup, but support tuple names.
@@ -158,28 +164,37 @@ def fetch_alpaca_daily_bars(
     client = create_alpaca_paper_client(config, client_factory=client_factory)
     timeframe = _load_timeframe_day()
 
+    # Give Alpaca an explicit historical window. Some SDK/feed combinations
+    # return an empty dataframe when only limit is supplied.
+    end = datetime.now(UTC)
+    start = end - timedelta(days=max(365, limit * 5))
+
+    base_kwargs = {
+        "start": start.isoformat(),
+        "end": end.isoformat(),
+        "limit": limit,
+        "adjustment": adjustment,
+    }
+
     try:
         if feed is None:
             bars = client.get_bars(
                 symbol,
                 timeframe,
-                limit=limit,
-                adjustment=adjustment,
+                **base_kwargs,
             )
         else:
             bars = client.get_bars(
                 symbol,
                 timeframe,
-                limit=limit,
-                adjustment=adjustment,
+                **base_kwargs,
                 feed=feed,
             )
     except TypeError:
         bars = client.get_bars(
             symbol,
             timeframe,
-            limit=limit,
-            adjustment=adjustment,
+            **base_kwargs,
         )
 
     df = _extract_dataframe_from_bars(bars, symbol=symbol)

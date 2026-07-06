@@ -179,3 +179,28 @@ def test_fetch_bars_from_multiindex_column_response():
     assert list(bars.columns) == ["Date", "Close"]
     assert bars["Close"].iloc[-1] == 66.0
     assert client.order_calls == []
+
+
+
+def test_fetch_bars_passes_explicit_start_and_end():
+    raw = pd.DataFrame(
+        {"close": [65.0, 66.0]},
+        index=pd.to_datetime(["2026-07-01T20:00:00Z", "2026-07-02T20:00:00Z"]),
+    )
+
+    client = FakeClient(FakeBars(raw))
+
+    fetch_alpaca_daily_bars(
+        config=valid_config(),
+        symbol="EEM",
+        limit=2,
+        client_factory=lambda **kwargs: client,
+    )
+
+    args, kwargs = client.get_bars_calls[0]
+
+    assert args[0] == "EEM"
+    assert "start" in kwargs
+    assert "end" in kwargs
+    assert kwargs["limit"] == 2
+    assert kwargs["adjustment"] == "all"
