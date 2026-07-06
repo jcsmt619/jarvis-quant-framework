@@ -26,6 +26,7 @@ from paper_trading.execution_gate import (
     evaluate_paper_execution_gate,
     write_paper_execution_gate_result,
 )
+from paper_trading.market_session import get_us_equity_market_session_status
 from paper_trading.fake_executor import (
     execute_with_fake_paper_client,
     write_fake_paper_execution_result,
@@ -80,12 +81,14 @@ def run_fake_execution_pipeline(
         close_prices = _load_close_prices_csv(close_csv, price_column, date_column)
         latest_price = _latest_price_from_close_prices(close_prices)
 
+        market_session = get_us_equity_market_session_status()
+
         preflight_report = build_paper_preflight_report(
             config=config,
             close_prices=close_prices,
             position_open=position_open,
             kill_switch_engaged=kill_switch_engaged,
-            is_market_open=True,
+            is_market_open=market_session.is_market_open,
         )
         preflight_path = write_paper_preflight_report(preflight_report)
 
@@ -128,6 +131,8 @@ def run_fake_execution_pipeline(
     print(f"Symbol: {intent.symbol}")
     print(f"Strategy: {intent.strategy}")
     print(f"Latest price: {intent.latest_price}")
+    print(f"Market session open: {market_session.is_market_open}")
+    print(f"Market session reason: {market_session.reason}")
     print(f"Dry-run signal: {preflight_report.dry_run_signal}")
     print(f"Intent action: {intent.intent_action}")
     print(f"Estimated quantity: {intent.estimated_quantity}")
