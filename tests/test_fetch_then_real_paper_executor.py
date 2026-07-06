@@ -262,3 +262,79 @@ def test_fetch_then_real_paper_report_propagates_executor_failure(capsys, monkey
     assert "READ-ONLY MARKET DATA FETCH: PASS" in output
     assert "READ-ONLY PAPER ACCOUNT STATE: PASS" in output
     assert "ONE-COMMAND REAL PAPER SAFETY SUMMARY" in output
+
+
+def test_account_state_open_orders_force_blocked_intent_through_real_report(capsys, monkeypatch):
+    csv_path = Path("reports/paper_trading/mock_eem.csv")
+    account_state = make_account_state(open_order_ids=["order_1"])
+    captured = {}
+
+    patch_fetch_and_state(monkeypatch, csv_path=csv_path, account_state=account_state)
+
+    def fake_real_report(**kwargs):
+        captured.update(kwargs)
+        print("ARMED REAL PAPER EXECUTOR REPORT: PASS")
+        print("Intent action: BLOCKED")
+        print("Execution gate status: BLOCKED")
+        print("Execution allowed: False")
+        print("Execution attempted: False")
+        print("PAPER CLIENT USED: false")
+        print("REAL BROKER CLIENT USED: false")
+        print("REAL PAPER ORDER SUBMITTED: false")
+        print("LIVE TRADING: DISABLED")
+        return 0
+
+    monkeypatch.setattr(script, "run_real_paper_executor_report", fake_real_report)
+
+    code = script.run_fetch_then_real_paper_executor_report(
+        env_file=Path(".env"),
+        symbol="EEM",
+        enable_real_paper_execution=True,
+        confirmation=PAPER_ORDER_CONFIRMATION,
+    )
+    output = capsys.readouterr().out
+
+    assert code == 0
+    assert "Open EEM orders count: 1" in output
+    assert "open EEM paper orders exist: 1" in output
+    assert "Intent action: BLOCKED" in output
+    assert "REAL PAPER ORDER SUBMITTED: false" in output
+    assert captured["external_blocked_reasons"] == ["open EEM paper orders exist: 1"]
+    assert captured["enable_real_paper_execution"] is True
+    assert captured["confirmation"] == PAPER_ORDER_CONFIRMATION
+
+
+def test_account_state_not_active_forces_external_block_reason(capsys, monkeypatch):
+    csv_path = Path("reports/paper_trading/mock_eem.csv")
+    account_state = make_account_state(account_status="ACCOUNT_BLOCKED")
+    captured = {}
+
+    patch_fetch_and_state(monkeypatch, csv_path=csv_path, account_state=account_state)
+
+    def fake_real_report(**kwargs):
+        captured.update(kwargs)
+        print("ARMED REAL PAPER EXECUTOR REPORT: PASS")
+        print("Intent action: BLOCKED")
+        print("Execution attempted: False")
+        print("REAL PAPER ORDER SUBMITTED: false")
+        print("LIVE TRADING: DISABLED")
+        return 0
+
+    monkeypatch.setattr(script, "run_real_paper_executor_report", fake_real_report)
+
+    code = script.run_fetch_then_real_paper_executor_report(
+        env_file=Path(".env"),
+        symbol="EEM",
+        enable_real_paper_execution=True,
+        confirmation=PAPER_ORDER_CONFIRMATION,
+    )
+    output = capsys.readouterr().out
+
+    assert code == 0
+    assert "paper account status is not ACTIVE: ACCOUNT_BLOCKED" in output
+    assert "REAL PAPER ORDER SUBMITTED: false" in output
+    assert captured["external_blocked_reasons"] == [
+        "paper account status is not ACTIVE: ACCOUNT_BLOCKED"
+    ]
+    assert captured["enable_real_paper_execution"] is True
+    assert captured["confirmation"] == PAPER_ORDER_CONFIRMATION
