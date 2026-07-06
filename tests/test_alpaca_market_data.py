@@ -149,3 +149,33 @@ def test_write_market_data_csv_creates_csv_and_json_without_secrets(tmp_path):
     text = csv_path.read_text(encoding="utf-8")
     assert "paper_key" not in text
     assert "paper_secret" not in text
+
+
+
+def test_fetch_bars_from_multiindex_column_response():
+    raw = pd.DataFrame(
+        {
+            ("EEM", "close"): [65.0, 66.0],
+            ("EEM", "volume"): [100, 200],
+        },
+        index=pd.to_datetime(
+            [
+                "2026-07-01T20:00:00Z",
+                "2026-07-02T20:00:00Z",
+            ]
+        ),
+    )
+
+    client = FakeClient(FakeBars(raw))
+
+    bars = fetch_alpaca_daily_bars(
+        config=valid_config(),
+        symbol="EEM",
+        limit=2,
+        client_factory=lambda **kwargs: client,
+    )
+
+    assert len(bars) == 2
+    assert list(bars.columns) == ["Date", "Close"]
+    assert bars["Close"].iloc[-1] == 66.0
+    assert client.order_calls == []

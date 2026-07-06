@@ -51,6 +51,33 @@ def _load_timeframe_day():
         return "1Day"
 
 
+def _normalize_column_name(column: object) -> str:
+    """Normalize dataframe column names from Alpaca response variants."""
+    if isinstance(column, tuple):
+        parts = [str(part) for part in column if part is not None and str(part) != ""]
+        return "_".join(parts).lower()
+
+    return str(column).lower()
+
+
+def _find_close_column(df: pd.DataFrame) -> object:
+    """Find a close column across common Alpaca dataframe shapes."""
+    candidates = []
+
+    for column in df.columns:
+        normalized = _normalize_column_name(column)
+        last_part = normalized.split("_")[-1]
+
+        if normalized in {"close", "c"} or last_part in {"close", "c"}:
+            candidates.append(column)
+
+    if candidates:
+        return candidates[0]
+
+    available = [_normalize_column_name(column) for column in df.columns]
+    raise ValueError(f"Alpaca bars dataframe does not contain a close column. Available columns: {available}")
+
+
 def _extract_dataframe_from_bars(bars: object, symbol: str) -> pd.DataFrame:
     """Convert Alpaca bar response variants into a Date/Close dataframe."""
     if hasattr(bars, "df"):
@@ -65,15 +92,22 @@ def _extract_dataframe_from_bars(bars: object, symbol: str) -> pd.DataFrame:
             else:
                 df = df.reset_index()
 
+        if isinstance(df.columns, pd.MultiIndex):
+            # Preserve original column keys for lookup, but support tuple names.
+            pass
+
         if "timestamp" in df.columns:
             dates = pd.to_datetime(df["timestamp"], utc=True, errors="coerce")
+        elif "time" in df.columns:
+            dates = pd.to_datetime(df["time"], utc=True, errors="coerce")
+        elif "Date" in df.columns:
+            dates = pd.to_datetime(df["Date"], utc=True, errors="coerce")
+        elif "date" in df.columns:
+            dates = pd.to_datetime(df["date"], utc=True, errors="coerce")
         else:
             dates = pd.to_datetime(df.index, utc=True, errors="coerce")
 
-        close_col = "close" if "close" in df.columns else "Close"
-        if close_col not in df.columns:
-            raise ValueError("Alpaca bars dataframe does not contain a close column.")
-
+        close_col = _find_close_column(df)
         close = pd.to_numeric(df[close_col], errors="coerce")
 
         out = pd.DataFrame({"Date": dates, "Close": close})
