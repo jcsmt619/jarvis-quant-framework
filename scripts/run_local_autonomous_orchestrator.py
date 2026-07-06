@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 from typing import Callable
 
+from automation.orchestrator_controls import read_control_state
 from paper_trading.email_alerts import GMAIL_EMAIL_CONFIRMATION
 from scripts.run_ready_to_arm_approval_request import run_ready_to_arm_approval_request
 
@@ -50,7 +51,7 @@ def run_local_autonomous_orchestrator(
     approvals_dir.mkdir(parents=True, exist_ok=True)
     orchestrator_dir.mkdir(parents=True, exist_ok=True)
 
-    stop_file = orchestrator_dir / "JARVIS_STOP"
+    control_state = read_control_state(orchestrator_dir)
     email_confirmation_accepted = email_confirmation == GMAIL_EMAIL_CONFIRMATION
 
     print("LOCAL AUTONOMOUS ORCHESTRATOR REPORT")
@@ -58,7 +59,12 @@ def run_local_autonomous_orchestrator(
     print(f"Engine: {engine}")
     print(f"Max cycles: {max_cycles}")
     print(f"Sleep seconds: {sleep_seconds}")
-    print(f"Stop file: {stop_file}")
+    print(f"Stop file: {control_state.stop_file}")
+    print(f"Pause file: {control_state.pause_file}")
+    print(f"Resume file: {control_state.resume_file}")
+    print(f"Stop requested: {str(control_state.stop_requested).lower()}")
+    print(f"Pause requested: {str(control_state.pause_requested).lower()}")
+    print(f"Resume marker present: {str(control_state.resume_marker_present).lower()}")
     print(f"Real email send enabled: {str(enable_real_email_send).lower()}")
     print(f"Email confirmation accepted: {str(email_confirmation_accepted).lower()}")
     print("Inbox processing enabled: false")
@@ -77,8 +83,17 @@ def run_local_autonomous_orchestrator(
     cycles_attempted = 0
 
     for cycle_number in range(1, max_cycles + 1):
-        if stop_file.exists():
+        control_state = read_control_state(orchestrator_dir)
+
+        if control_state.stop_requested:
             print(f"ORCHESTRATOR DECISION: STOP_FILE_PRESENT_BEFORE_CYCLE_{cycle_number}")
+            print(f"Cycles attempted: {cycles_attempted}")
+            print("Broker order call performed: false")
+            print("LIVE TRADING: DISABLED")
+            return 0
+
+        if control_state.pause_requested:
+            print(f"ORCHESTRATOR DECISION: PAUSE_FILE_PRESENT_BEFORE_CYCLE_{cycle_number}")
             print(f"Cycles attempted: {cycles_attempted}")
             print("Broker order call performed: false")
             print("LIVE TRADING: DISABLED")
