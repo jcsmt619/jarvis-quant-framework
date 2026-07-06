@@ -204,3 +204,25 @@ def test_fetch_bars_passes_explicit_start_and_end():
     assert "end" in kwargs
     assert kwargs["limit"] == 2
     assert kwargs["adjustment"] == "all"
+
+
+
+def test_fetch_bars_requests_descending_sort():
+    raw = pd.DataFrame(
+        {"close": [65.0, 66.0]},
+        index=pd.to_datetime(["2026-07-01T20:00:00Z", "2026-07-02T20:00:00Z"]),
+    )
+
+    client = FakeClient(FakeBars(raw))
+
+    fetch_alpaca_daily_bars(
+        config=valid_config(),
+        symbol="EEM",
+        limit=2,
+        client_factory=lambda **kwargs: client,
+    )
+
+    args, kwargs = client.get_bars_calls[0]
+
+    assert args[0] == "EEM"
+    assert "sort" in kwargs

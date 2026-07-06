@@ -51,6 +51,15 @@ def _load_timeframe_day():
         return "1Day"
 
 
+def _load_sort_desc():
+    try:
+        from alpaca_trade_api.rest import Sort
+
+        return Sort.Desc
+    except Exception:
+        return "desc"
+
+
 def _normalize_column_name(column: object) -> str:
     """Normalize dataframe column names from Alpaca response variants."""
     if isinstance(column, tuple):
@@ -174,6 +183,7 @@ def fetch_alpaca_daily_bars(
         "end": end.isoformat(),
         "limit": limit,
         "adjustment": adjustment,
+        "sort": _load_sort_desc(),
     }
 
     try:
