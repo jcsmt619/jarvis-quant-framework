@@ -31,6 +31,10 @@ from paper_trading.fake_executor import (
     execute_with_fake_paper_client,
     write_fake_paper_execution_result,
 )
+from paper_trading.pipeline_decision import (
+    classify_fake_pipeline_decision,
+    write_fake_pipeline_decision,
+)
 from paper_trading.order_intent import (
     build_paper_order_intent,
     write_paper_order_intent,
@@ -118,6 +122,15 @@ def run_fake_execution_pipeline(
         )
         fake_result_path = write_fake_paper_execution_result(fake_result)
 
+        pipeline_decision = classify_fake_pipeline_decision(
+            market_session=market_session,
+            preflight_report=preflight_report,
+            intent=intent,
+            execution_gate=execution_gate,
+            fake_result=fake_result,
+        )
+        pipeline_decision_path = write_fake_pipeline_decision(pipeline_decision)
+
     except (AlpacaConfigError, ValueError) as exc:
         print("FAKE PAPER EXECUTION PIPELINE: FAIL")
         print(f"Reason: {exc}")
@@ -145,6 +158,9 @@ def run_fake_execution_pipeline(
     print(f"Fake submitted quantity: {fake_result.submitted_quantity}")
     print(f"Fake order id: {fake_result.fake_order_id}")
     print(f"Fake blocked reasons: {fake_result.blocked_reasons}")
+    print(f"Pipeline decision: {pipeline_decision.decision_status}")
+    print(f"Pipeline actionable: {pipeline_decision.actionable}")
+    print(f"Pipeline decision reason: {pipeline_decision.reason}")
     print("FAKE CLIENT USED: true")
     print("REAL BROKER CLIENT USED: false")
     print("REAL PAPER ORDER SUBMITTED: false")
@@ -153,6 +169,7 @@ def run_fake_execution_pipeline(
     print(f"Intent report written to: {intent_path}")
     print(f"Execution gate report written to: {execution_gate_path}")
     print(f"Fake execution report written to: {fake_result_path}")
+    print(f"Pipeline decision report written to: {pipeline_decision_path}")
 
     return 0 if fake_result.execution_status in {"FAKE_SUBMITTED", "NO_ACTION"} else 1
 

@@ -1,4 +1,5 @@
 ﻿from pathlib import Path
+from types import SimpleNamespace
 
 from paper_trading.alpaca_config import AlpacaPaperConfig
 from paper_trading.execution_gate import PaperExecutionGateResult
@@ -122,6 +123,16 @@ def patch_common(monkeypatch, fake_result=None, intent=None):
     monkeypatch.setattr(script, "write_paper_execution_gate_result", lambda result: Path("gate.json"))
     monkeypatch.setattr(script, "execute_with_fake_paper_client", lambda **kwargs: fake_result or make_fake_result())
     monkeypatch.setattr(script, "write_fake_paper_execution_result", lambda result: Path("fake.json"))
+    monkeypatch.setattr(
+        script,
+        "classify_fake_pipeline_decision",
+        lambda **kwargs: SimpleNamespace(
+            decision_status="TEST_DECISION",
+            actionable=False,
+            reason="test decision reason",
+        ),
+    )
+    monkeypatch.setattr(script, "write_fake_pipeline_decision", lambda decision: Path("decision.json"))
 
 
 def test_fake_pipeline_hold_no_action_success(tmp_path, capsys, monkeypatch):
