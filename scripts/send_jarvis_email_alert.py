@@ -4,19 +4,19 @@ import argparse
 from pathlib import Path
 from typing import Callable
 
-from paper_trading.sms_alerts import (
-    TWILIO_SMS_CONFIRMATION,
-    SmsAlertResult,
-    build_blocked_sms_result,
-    build_sms_alert_body,
-    load_twilio_sms_config_from_env,
-    mask_phone_number,
-    send_sms_alert,
+from paper_trading.email_alerts import (
+    GMAIL_EMAIL_CONFIRMATION,
+    build_blocked_email_result,
+    build_email_alert_body,
+    build_email_alert_subject,
+    load_gmail_email_config_from_env,
+    mask_email,
+    send_email_alert,
 )
 from scripts.check_alpaca_paper_connection import load_env_file
 
 
-def run_sms_alert_report(
+def run_email_alert_report(
     *,
     env_file: Path | None = None,
     event: str = "TEST_ALERT",
@@ -25,14 +25,19 @@ def run_sms_alert_report(
     intent_action: str = "UNKNOWN",
     ready_to_arm: bool | None = None,
     reasons: list[str] | None = None,
-    enable_real_sms_send: bool = False,
+    enable_real_email_send: bool = False,
     confirmation: str | None = None,
-    injected_twilio_client_factory: Callable | None = None,
+    injected_smtp_client_factory: Callable | None = None,
 ) -> int:
     if env_file is not None:
         load_env_file(env_file)
 
-    body = build_sms_alert_body(
+    subject = build_email_alert_subject(
+        event=event,
+        symbol=symbol,
+        ready_to_arm=ready_to_arm,
+    )
+    body = build_email_alert_body(
         event=event,
         engine=engine,
         symbol=symbol,
@@ -41,60 +46,66 @@ def run_sms_alert_report(
         reasons=reasons or [],
     )
 
-    confirmation_accepted = confirmation == TWILIO_SMS_CONFIRMATION
+    confirmation_accepted = confirmation == GMAIL_EMAIL_CONFIRMATION
 
     try:
-        if not enable_real_sms_send:
-            result = build_blocked_sms_result(
+        if not enable_real_email_send:
+            result = build_blocked_email_result(
                 event=event,
+                subject=subject,
                 body=body,
-                blocked_reasons=["real SMS send is disabled"],
+                blocked_reasons=["real email send is disabled"],
             )
-            owner_display = "not loaded"
+            from_display = "not loaded"
+            to_display = "not loaded"
 
         elif not confirmation_accepted:
-            result = build_blocked_sms_result(
+            result = build_blocked_email_result(
                 event=event,
+                subject=subject,
                 body=body,
-                blocked_reasons=["real SMS confirmation phrase was not accepted"],
+                blocked_reasons=["real email confirmation phrase was not accepted"],
             )
-            owner_display = "not loaded"
+            from_display = "not loaded"
+            to_display = "not loaded"
 
         else:
-            config = load_twilio_sms_config_from_env()
-            result = send_sms_alert(
+            config = load_gmail_email_config_from_env()
+            result = send_email_alert(
                 config=config,
                 event=event,
+                subject=subject,
                 body=body,
-                twilio_client_factory=injected_twilio_client_factory,
+                smtp_client_factory=injected_smtp_client_factory,
             )
-            owner_display = mask_phone_number(config.owner_phone)
+            from_display = mask_email(config.from_email)
+            to_display = mask_email(config.to_email)
 
     except Exception as exc:
-        print("SMS ALERT REPORT: FAIL")
+        print("EMAIL ALERT REPORT: FAIL")
         print(f"Reason: {exc}")
-        print("SMS SENT: false")
+        print("EMAIL SENT: false")
         print("LIVE TRADING: DISABLED")
         return 1
 
-    print("SMS ALERT REPORT: PASS")
+    print("EMAIL ALERT REPORT: PASS")
     print(f"Event: {result.event}")
-    print(f"SMS send enabled: {str(enable_real_sms_send).lower()}")
+    print(f"Email send enabled: {str(enable_real_email_send).lower()}")
     print(f"Confirmation accepted: {str(confirmation_accepted).lower()}")
-    print(f"Twilio client used: {str(result.twilio_client_used).lower()}")
-    print(f"SMS sent: {str(result.sent).lower()}")
-    print(f"Message SID: {result.message_sid}")
-    print(f"Message status: {result.message_status}")
-    print(f"Owner phone: {owner_display}")
+    print(f"SMTP client used: {str(result.smtp_client_used).lower()}")
+    print(f"Email sent: {str(result.sent).lower()}")
+    print(f"From: {from_display}")
+    print(f"To: {to_display}")
     print(f"Blocked reasons: {result.blocked_reasons}")
-    print("SMS body:")
+    print(f"Subject: {result.subject}")
+    print("Email body:")
     print(result.body)
     print("LIVE TRADING: DISABLED")
     return 0
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Send or dry-run a Jarvis Twilio SMS alert.")
+    parser = argparse.ArgumentParser(description="Send or dry-run a Jarvis Gmail email alert.")
     parser.add_argument("--env-file", type=Path, default=None)
     parser.add_argument("--event", default="TEST_ALERT")
     parser.add_argument("--engine", default="Jarvis")
@@ -102,7 +113,7 @@ def main() -> int:
     parser.add_argument("--intent-action", default="UNKNOWN")
     parser.add_argument("--ready-to-arm", choices=["true", "false", "unknown"], default="unknown")
     parser.add_argument("--reason", action="append", default=[])
-    parser.add_argument("--enable-real-sms-send", action="store_true")
+    parser.add_argument("--enable-real-email-send", action="store_true")
     parser.add_argument("--confirmation", default=None)
     args = parser.parse_args()
 
@@ -112,7 +123,7 @@ def main() -> int:
     elif args.ready_to_arm == "false":
         ready_to_arm = False
 
-    return run_sms_alert_report(
+    return run_email_alert_report(
         env_file=args.env_file,
         event=args.event,
         engine=args.engine,
@@ -120,7 +131,7 @@ def main() -> int:
         intent_action=args.intent_action,
         ready_to_arm=ready_to_arm,
         reasons=args.reason,
-        enable_real_sms_send=args.enable_real_sms_send,
+        enable_real_email_send=args.enable_real_email_send,
         confirmation=args.confirmation,
     )
 
