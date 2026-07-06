@@ -94,10 +94,14 @@ def evaluate_paper_execution_gate(
         if intent.estimated_notional != 0:
             blocked_reasons.append("HOLD intent must have zero estimated notional")
 
-    if not order_submission_enabled:
+    if intent.intent_action in {"BUY", "EXIT"} and not order_submission_enabled:
         blocked_reasons.append("order submission is disabled")
 
     execution_allowed = len(blocked_reasons) == 0
+    execution_status = "ALLOWED" if execution_allowed else "BLOCKED"
+
+    if execution_allowed and intent.intent_action == "HOLD":
+        execution_status = "NO_ACTION"
 
     return PaperExecutionGateResult(
         timestamp_utc=datetime.now(UTC).isoformat(),
@@ -108,7 +112,7 @@ def evaluate_paper_execution_gate(
         estimated_quantity=intent.estimated_quantity,
         estimated_notional=intent.estimated_notional,
         execution_allowed=execution_allowed,
-        execution_status="ALLOWED" if execution_allowed else "BLOCKED",
+        execution_status=execution_status,
         blocked_reasons=blocked_reasons,
         order_submission_enabled=False,
         live_trading_enabled=False,

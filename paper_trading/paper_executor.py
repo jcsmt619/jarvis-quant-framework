@@ -146,24 +146,6 @@ def execute_real_alpaca_paper_order(
             reasons=["execution gate already reports order_submitted=True"],
         )
 
-    if not real_paper_execution_enabled:
-        return _blocked_result(
-            intent=intent,
-            reasons=["real Alpaca paper execution is disabled"],
-        )
-
-    if confirmation != PAPER_ORDER_CONFIRMATION:
-        return _blocked_result(
-            intent=intent,
-            reasons=["paper order confirmation phrase is missing or incorrect"],
-        )
-
-    if paper_client_factory is None:
-        return _blocked_result(
-            intent=intent,
-            reasons=["paper client factory is required"],
-        )
-
     if not execution_gate.execution_allowed:
         return _blocked_result(
             intent=intent,
@@ -189,6 +171,24 @@ def execute_real_alpaca_paper_order(
             real_broker_client_used=False,
             live_trading_enabled=False,
             order_submission_to_real_broker_enabled=False,
+        )
+
+    if not real_paper_execution_enabled:
+        return _blocked_result(
+            intent=intent,
+            reasons=["real Alpaca paper execution is disabled"],
+        )
+
+    if confirmation != PAPER_ORDER_CONFIRMATION:
+        return _blocked_result(
+            intent=intent,
+            reasons=["paper order confirmation phrase is missing or incorrect"],
+        )
+
+    if paper_client_factory is None:
+        return _blocked_result(
+            intent=intent,
+            reasons=["paper client factory is required"],
         )
 
     if intent.intent_action not in {"BUY", "EXIT"}:

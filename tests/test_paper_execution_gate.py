@@ -103,10 +103,13 @@ def test_gate_blocks_hold_when_submission_disabled():
         intent=make_intent(),
     )
 
-    assert result.execution_allowed is False
-    assert result.execution_status == "BLOCKED"
-    assert "order submission is disabled" in result.blocked_reasons
-
+    assert result.execution_allowed is True
+    assert result.execution_status == "NO_ACTION"
+    assert result.blocked_reasons == []
+    assert result.order_submission_enabled is False
+    assert result.live_trading_enabled is False
+    assert result.broker_call_performed is False
+    assert result.order_submitted is False
 
 def test_gate_allows_hold_when_submission_flag_enabled_but_still_submits_nothing():
     result = evaluate_paper_execution_gate(
@@ -116,10 +119,12 @@ def test_gate_allows_hold_when_submission_flag_enabled_but_still_submits_nothing
     )
 
     assert result.execution_allowed is True
-    assert result.execution_status == "ALLOWED"
-    assert result.order_submitted is False
+    assert result.execution_status == "NO_ACTION"
+    assert result.blocked_reasons == []
+    assert result.order_submission_enabled is False
+    assert result.live_trading_enabled is False
     assert result.broker_call_performed is False
-
+    assert result.order_submitted is False
 
 def test_gate_rejects_live_endpoint():
     with pytest.raises(AlpacaConfigError):
@@ -189,6 +194,6 @@ def test_write_gate_result_creates_json_without_secrets(tmp_path):
     text = path.read_text(encoding="utf-8")
 
     assert path.exists()
-    assert '"execution_status": "BLOCKED"' in text
+    assert '"execution_status": "NO_ACTION"' in text
     assert "paper_key" not in text
     assert "paper_secret" not in text
