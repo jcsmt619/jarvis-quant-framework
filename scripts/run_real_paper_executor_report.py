@@ -150,6 +150,8 @@ def run_real_paper_executor_report(
         trigger_guard = None
         trigger_guard_path = None
 
+        ready_to_arm_guard = None
+
         if account_state is not None:
             trigger_guard = evaluate_paper_order_trigger_guard(
                 account_state=account_state,
@@ -162,6 +164,22 @@ def run_real_paper_executor_report(
                 paper_only=True,
             )
             trigger_guard_path = write_paper_order_trigger_guard_result(trigger_guard)
+
+            prospective_execution_gate = evaluate_paper_execution_gate(
+                config=config,
+                intent=intent,
+                order_submission_enabled=True,
+            )
+            ready_to_arm_guard = evaluate_paper_order_trigger_guard(
+                account_state=account_state,
+                market_session=market_session,
+                intent=intent,
+                execution_gate=prospective_execution_gate,
+                real_paper_execution_enabled=True,
+                confirmation=PAPER_ORDER_CONFIRMATION,
+                live_trading_enabled=False,
+                paper_only=True,
+            )
 
         paper_client_factory = None
         if (
@@ -225,6 +243,14 @@ def run_real_paper_executor_report(
         print(f"Trigger guard allowed: {trigger_guard.allowed_to_attempt_order}")
         print(f"Trigger guard blocked reasons: {trigger_guard.blocked_reasons}")
         print(f"Trigger guard report written to: {trigger_guard_path}")
+
+    if ready_to_arm_guard is not None:
+        print(f"READY TO ARM: {str(ready_to_arm_guard.allowed_to_attempt_order).lower()}")
+        print(f"READY TO ARM REASONS: {ready_to_arm_guard.blocked_reasons}")
+        if ready_to_arm_guard.allowed_to_attempt_order:
+            print("READY TO ARM ACTION: You may consider the armed PAPER command after manual review.")
+        else:
+            print("READY TO ARM ACTION: DO NOT RUN THE ARMED COMMAND.")
     print(f"Real paper execution report written to: {real_paper_path}")
 
     return 0

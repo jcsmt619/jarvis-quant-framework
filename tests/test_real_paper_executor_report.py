@@ -294,3 +294,77 @@ def test_real_paper_report_trigger_guard_allows_executor_when_clean(capsys, tmp_
     assert "Trigger guard blocked reasons: []" in output
     assert "REAL PAPER EXECUTION ENABLED: true" in output
     assert captured["intent"].intent_action in {"BUY", "EXIT", "HOLD", "BLOCKED"}
+
+
+def test_real_paper_report_ready_to_arm_true_when_disabled_but_prospectively_clean(
+    capsys, tmp_path, monkeypatch
+):
+    captured = {}
+    patch_common(monkeypatch, captured, make_result())
+
+    code = script.run_real_paper_executor_report(
+        env_file=Path(".env"),
+        close_csv=make_csv(tmp_path),
+        enable_real_paper_execution=False,
+        confirmation=None,
+        account_state=make_account_state_for_trigger_guard(),
+    )
+    output = capsys.readouterr().out
+
+    assert code == 0
+    assert "Trigger guard allowed: False" in output
+    assert "real paper execution is disabled" in output
+    assert "real paper confirmation phrase was not accepted" in output
+    assert "READY TO ARM: true" in output
+    assert "READY TO ARM REASONS: []" in output
+    assert "READY TO ARM ACTION: You may consider the armed PAPER command after manual review." in output
+    assert "REAL PAPER ORDER SUBMITTED: false" in output
+
+
+def test_real_paper_report_ready_to_arm_false_on_hold(capsys, tmp_path, monkeypatch):
+    captured = {}
+    patch_common(monkeypatch, captured, make_result())
+
+    monkeypatch.setattr(
+        script,
+        "build_paper_order_intent",
+        lambda **kwargs: make_intent("HOLD"),
+    )
+
+    code = script.run_real_paper_executor_report(
+        env_file=Path(".env"),
+        close_csv=make_csv(tmp_path),
+        enable_real_paper_execution=False,
+        confirmation=None,
+        account_state=make_account_state_for_trigger_guard(),
+    )
+    output = capsys.readouterr().out
+
+    assert code == 0
+    assert "Intent action: HOLD" in output
+    assert "READY TO ARM: false" in output
+    assert "intent action is not executable: HOLD" in output
+    assert "READY TO ARM ACTION: DO NOT RUN THE ARMED COMMAND." in output
+    assert "REAL PAPER ORDER SUBMITTED: false" in output
+
+
+def test_real_paper_report_ready_to_arm_false_when_open_orders_exist(
+    capsys, tmp_path, monkeypatch
+):
+    captured = {}
+    patch_common(monkeypatch, captured, make_result())
+
+    code = script.run_real_paper_executor_report(
+        env_file=Path(".env"),
+        close_csv=make_csv(tmp_path),
+        enable_real_paper_execution=False,
+        confirmation=None,
+        account_state=make_account_state_for_trigger_guard(open_order_count=1),
+    )
+    output = capsys.readouterr().out
+
+    assert code == 0
+    assert "open EEM paper orders exist: 1" in output
+    assert "READY TO ARM: false" in output
+    assert "READY TO ARM ACTION: DO NOT RUN THE ARMED COMMAND." in output
+    assert "REAL PAPER ORDER SUBMITTED: false" in output
