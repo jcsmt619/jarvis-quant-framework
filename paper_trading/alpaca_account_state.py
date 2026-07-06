@@ -88,6 +88,33 @@ def _is_open_order(order: Any) -> bool:
     return status not in FINAL_ORDER_STATUSES
 
 
+def _read_positions(client: Any) -> list[Any]:
+    if hasattr(client, "get_all_positions"):
+        return list(client.get_all_positions())
+
+    if hasattr(client, "list_positions"):
+        return list(client.list_positions())
+
+    raise AttributeError(
+        "paper client does not support position listing; expected get_all_positions() or list_positions()"
+    )
+
+
+def _read_orders(client: Any) -> list[Any]:
+    if hasattr(client, "get_orders"):
+        return list(client.get_orders())
+
+    if hasattr(client, "list_orders"):
+        try:
+            return list(client.list_orders(status="open"))
+        except TypeError:
+            return list(client.list_orders())
+
+    raise AttributeError(
+        "paper client does not support order listing; expected get_orders() or list_orders()"
+    )
+
+
 def build_alpaca_paper_symbol_state(
     *,
     config: AlpacaPaperConfig,
@@ -108,8 +135,8 @@ def build_alpaca_paper_symbol_state(
     client = paper_client_factory()
 
     account = client.get_account()
-    positions = client.get_all_positions()
-    orders = client.get_orders()
+    positions = _read_positions(client)
+    orders = _read_orders(client)
 
     position_quantity = 0.0
     for position in positions:

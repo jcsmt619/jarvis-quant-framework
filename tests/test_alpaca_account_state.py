@@ -154,3 +154,51 @@ def test_write_symbol_state_json_excludes_secrets(tmp_path):
     assert '"live_trading_enabled": false' in text
     assert "paper_key" not in text
     assert "paper_secret" not in text
+
+class LegacyRestPaperClient:
+    def __init__(self):
+        self.list_orders_kwargs = None
+        self.order_submit_called = False
+
+    def get_account(self):
+        return SimpleNamespace(
+            status="ACTIVE",
+            cash="100000",
+            buying_power="400000",
+            portfolio_value="100000",
+        )
+
+    def list_positions(self):
+        return [SimpleNamespace(symbol="EEM", qty="7")]
+
+    def list_orders(self, **kwargs):
+        self.list_orders_kwargs = kwargs
+        return [
+            SimpleNamespace(symbol="EEM", status="new", id="legacy_order_1"),
+            SimpleNamespace(symbol="EEM", status="filled", id="legacy_filled_ignored"),
+        ]
+
+    def submit_order(self, *args, **kwargs):
+        self.order_submit_called = True
+        raise AssertionError("submit_order must not be called")
+
+
+def test_symbol_state_supports_legacy_rest_list_methods_without_submitting():
+    client = LegacyRestPaperClient()
+
+    state = build_alpaca_paper_symbol_state(
+        config=valid_config(),
+        symbol="EEM",
+        paper_client_factory=lambda: client,
+    )
+
+    assert state.position_quantity == 7.0
+    assert state.position_open is True
+    assert state.open_symbol_orders_count == 1
+    assert state.open_symbol_order_ids == ["legacy_order_1"]
+    assert client.list_orders_kwargs == {"status": "open"}
+    assert client.order_submit_called is False
+    assert state.read_only is True
+    assert state.order_submission_enabled is False
+    assert state.broker_order_call_performed is False
+    assert state.live_trading_enabled is False
