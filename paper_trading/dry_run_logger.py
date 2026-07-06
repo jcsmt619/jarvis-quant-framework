@@ -188,6 +188,7 @@ def evaluate_dry_run(
         bar_count=bar_count,
         is_market_open=is_market_open,
         kill_switch_engaged=kill_switch_engaged,
+        now=now,
     )
 
     final_signal = raw_signal

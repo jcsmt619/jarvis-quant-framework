@@ -81,18 +81,45 @@ def check_max_total_drawdown(drawdown_pct: float | None) -> tuple[bool, str]:
     return True, "within max total drawdown"
 
 
-def check_stale_data(latest_bar_timestamp: datetime | None, now: datetime | None = None) -> tuple[bool, str]:
-    """Section 7: refuse to evaluate a signal on data older than
-    ~1 trading day. Defaults to the SAFE (blocking) side if the
-    timestamp is missing entirely."""
+def check_stale_data(
+    latest_bar_timestamp: datetime | None,
+    now: datetime | None = None,
+    is_market_open: bool | None = None,
+) -> tuple[bool, str]:
+    """Section 7: refuse to evaluate a signal on stale data.
+
+    For daily bars, the latest completed bar can look old during weekends,
+    holidays, and closed sessions. If the market is closed, allow a slightly
+    wider freshness buffer because execution is blocked separately by the
+    market-hours gate. If the market is open, keep the stricter threshold.
+    """
     if latest_bar_timestamp is None:
         return False, "no bar timestamp supplied; treated as stale (fail-safe)"
+
     now = now or datetime.now(timezone.utc)
+
     if latest_bar_timestamp.tzinfo is None:
         latest_bar_timestamp = latest_bar_timestamp.replace(tzinfo=timezone.utc)
+
     age_days = (now - latest_bar_timestamp).total_seconds() / 86400.0
-    if age_days > MAX_STALE_BARS_TRADING_DAYS + 3.0:  # + weekend/holiday buffer
-        return False, f"latest bar is {age_days:.1f} days old; exceeds staleness threshold"
+    threshold_days = MAX_STALE_BARS_TRADING_DAYS + 3.0  # weekend/holiday buffer
+
+    if is_market_open is False:
+        threshold_days += 2.0  # closed-session daily-bar grace buffer
+
+    if age_days > threshold_days:
+        return (
+            False,
+            f"latest bar is {age_days:.1f} days old; exceeds staleness threshold "
+            f"of {threshold_days:.1f} days",
+        )
+
+    if is_market_open is False:
+        return (
+            True,
+            f"latest bar age {age_days:.1f} days; within closed-market daily-bar threshold",
+        )
+
     return True, f"latest bar age {age_days:.1f} days; within threshold"
 
 
@@ -132,6 +159,7 @@ def evaluate_all_gates(
     bar_count: int = 0,
     is_market_open: bool | None = None,
     kill_switch_engaged: bool = False,
+    now: datetime | None = None,
 ) -> RiskGateStatus:
     """Run every gate and aggregate the result. `passed` is True only if
     every individual check passes -- there is no partial-pass state."""
@@ -139,7 +167,11 @@ def evaluate_all_gates(
         "max_position_size": check_max_position_size(target_notional),
         "max_daily_loss": check_max_daily_loss(daily_pnl_pct),
         "max_total_drawdown": check_max_total_drawdown(drawdown_pct),
-        "stale_data": check_stale_data(latest_bar_timestamp),
+        "stale_data": check_stale_data(
+            latest_bar_timestamp,
+            now=now,
+            is_market_open=is_market_open,
+        ),
         "sufficient_bars": check_sufficient_bars(bar_count),
         "market_hours": check_market_hours(is_market_open),
         "kill_switch": check_kill_switch(kill_switch_engaged),
