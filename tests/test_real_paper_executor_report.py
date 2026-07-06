@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import pandas as pd
 
+from paper_trading.order_intent import PaperOrderIntent
 from paper_trading.paper_executor import PAPER_ORDER_CONFIRMATION, RealPaperExecutionResult
 from scripts import run_real_paper_executor_report as script
 
@@ -31,7 +32,8 @@ def make_preflight(ready=True, signal="BUY"):
 
 
 def make_intent(action="BUY"):
-    return SimpleNamespace(
+    return PaperOrderIntent(
+        timestamp_utc="2026-07-06T00:00:00+00:00",
         symbol="EEM",
         strategy="rsi_revert",
         requested_signal=action,
@@ -39,10 +41,9 @@ def make_intent(action="BUY"):
         estimated_quantity=10 if action == "BUY" else 0,
         estimated_notional=657.10 if action == "BUY" else 0.0,
         latest_price=65.71,
+        preflight_ready=True,
         blocked_reasons=[],
-        live_trading_enabled=False,
-        broker_call_performed=False,
-        order_submission_enabled=False,
+        reason=f"{action} test intent",
     )
 
 
@@ -178,3 +179,46 @@ def test_real_paper_report_missing_price_column_returns_one(capsys, tmp_path, mo
     assert code == 1
     assert "ARMED REAL PAPER EXECUTOR REPORT: FAIL" in output
     assert "price column" in output
+
+
+def test_real_paper_report_applies_external_blocked_reasons(capsys, tmp_path, monkeypatch):
+    captured = {}
+    patch_common(monkeypatch, captured, make_result())
+
+    def fake_execute(**kwargs):
+        captured.update(kwargs)
+        intent = kwargs["intent"]
+        return RealPaperExecutionResult(
+            timestamp_utc="2026-07-06T00:00:00+00:00",
+            symbol=intent.symbol,
+            strategy=intent.strategy,
+            intent_action=intent.intent_action,
+            requested_signal=intent.requested_signal,
+            execution_attempted=False,
+            execution_status="BLOCKED",
+            submitted_side=None,
+            submitted_quantity=0,
+            submitted_order_type=None,
+            submitted_time_in_force=None,
+            paper_order_id=None,
+            blocked_reasons=list(intent.blocked_reasons),
+            paper_client_used=False,
+            real_broker_client_used=False,
+            live_trading_enabled=False,
+            order_submission_to_real_broker_enabled=False,
+        )
+
+    monkeypatch.setattr(script, "execute_real_alpaca_paper_order", fake_execute)
+
+    code = script.run_real_paper_executor_report(
+        env_file=Path(".env"),
+        close_csv=make_csv(tmp_path),
+        external_blocked_reasons=["open EEM paper orders exist: 1"],
+    )
+    output = capsys.readouterr().out
+
+    assert code == 0
+    assert "Intent action: BLOCKED" in output
+    assert "open EEM paper orders exist: 1" in output
+    assert captured["intent"].intent_action == "BLOCKED"
+    assert "open EEM paper orders exist: 1" in captured["intent"].blocked_reasons

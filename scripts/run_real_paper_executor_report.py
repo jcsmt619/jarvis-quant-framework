@@ -18,6 +18,7 @@ Live trading remains disabled.
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 from pathlib import Path
 from typing import Callable
 
@@ -53,6 +54,7 @@ def run_real_paper_executor_report(
     enable_real_paper_execution: bool = False,
     confirmation: str | None = None,
     injected_paper_client_factory: Callable[[], object] | None = None,
+    external_blocked_reasons: list[str] | None = None,
 ) -> int:
     if env_file is not None:
         load_env_file(env_file)
@@ -86,6 +88,18 @@ def run_real_paper_executor_report(
             max_position_notional=max_position_notional,
             max_equity_fraction=max_equity_fraction,
         )
+
+        extra_blocked_reasons = [reason for reason in (external_blocked_reasons or []) if reason]
+        if extra_blocked_reasons:
+            intent = replace(
+                intent,
+                intent_action="BLOCKED",
+                estimated_quantity=0,
+                estimated_notional=0.0,
+                blocked_reasons=list(intent.blocked_reasons) + extra_blocked_reasons,
+                reason="BLOCKED: " + "; ".join(extra_blocked_reasons),
+            )
+
         intent_path = write_paper_order_intent(intent)
 
         execution_gate = evaluate_paper_execution_gate(
