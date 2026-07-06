@@ -61,6 +61,23 @@ class PaperPreflightReport:
         return asdict(self)
 
 
+def _failed_risk_gate_reasons(risk_gate_checks: dict) -> list[str]:
+    """Convert failed risk gate checks into specific human-readable reasons."""
+    reasons: list[str] = []
+
+    for gate_name, check in sorted(risk_gate_checks.items()):
+        try:
+            passed, message = check
+        except (TypeError, ValueError):
+            reasons.append(f"{gate_name}: malformed risk gate result")
+            continue
+
+        if not passed:
+            reasons.append(f"{gate_name}: {message}")
+
+    return reasons
+
+
 def _build_blocked_reasons(
     *,
     snapshot: AlpacaPaperAccountSnapshot,
@@ -78,7 +95,8 @@ def _build_blocked_reasons(
         reasons.append("paper account account_blocked is True")
 
     if not dry_run.risk_gate_passed:
-        reasons.append("dry-run risk gates did not pass")
+        risk_gate_reasons = _failed_risk_gate_reasons(dry_run.risk_gate_checks)
+        reasons.extend(risk_gate_reasons or ["dry-run risk gates did not pass"])
 
     if dry_run.order_submitted:
         reasons.append("dry-run unexpectedly reported order_submitted=True")

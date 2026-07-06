@@ -185,7 +185,7 @@ def test_preflight_blocks_kill_switch():
     )
 
     assert report.ready_for_paper_order_phase is False
-    assert any("risk gates" in reason for reason in report.blocked_reasons)
+    assert any("kill_switch" in reason or "kill switch" in reason for reason in report.blocked_reasons)
 
 
 def test_preflight_rejects_live_endpoint_before_client_creation():
