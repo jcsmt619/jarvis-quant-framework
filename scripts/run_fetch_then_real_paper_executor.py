@@ -156,6 +156,7 @@ def run_fetch_then_real_paper_executor_report(
         enable_real_paper_execution=enable_real_paper_execution,
         confirmation=confirmation,
         external_blocked_reasons=account_state_blocked_reasons,
+        account_state=account_state,
     )
 
     print("")

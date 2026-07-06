@@ -8,7 +8,9 @@ order attempt is allowed.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import asdict, dataclass
+from pathlib import Path
 from datetime import UTC, datetime
 from typing import Any
 
@@ -73,7 +75,11 @@ def evaluate_paper_order_trigger_guard(
         _get_attr(
             market_session,
             "is_open",
-            _get_attr(market_session, "market_is_open", False),
+            _get_attr(
+                market_session,
+                "is_market_open",
+                _get_attr(market_session, "market_is_open", False),
+            ),
         )
     )
 
@@ -125,3 +131,15 @@ def evaluate_paper_order_trigger_guard(
         live_trading_enabled=live_trading_enabled,
         paper_only=paper_only,
     )
+
+
+def write_paper_order_trigger_guard_result(
+    result: PaperOrderTriggerGuardResult,
+    *,
+    output_dir: Path = Path("reports/paper_trading"),
+) -> Path:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    path = output_dir / f"paper_order_trigger_guard_{result.symbol.lower()}_{timestamp}.json"
+    path.write_text(json.dumps(asdict(result), indent=2, sort_keys=True), encoding="utf-8")
+    return path

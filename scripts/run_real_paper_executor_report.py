@@ -20,8 +20,10 @@ from __future__ import annotations
 import argparse
 from dataclasses import replace
 from pathlib import Path
+from datetime import UTC, datetime
 from typing import Callable
 
+from paper_trading.alpaca_account_state import AlpacaPaperSymbolState
 from paper_trading.alpaca_config import AlpacaConfigError, load_alpaca_paper_config
 from paper_trading.alpaca_health import create_alpaca_paper_client
 from paper_trading.execution_gate import (
@@ -32,12 +34,47 @@ from paper_trading.market_session import get_us_equity_market_session_status
 from paper_trading.order_intent import build_paper_order_intent, write_paper_order_intent
 from paper_trading.paper_executor import (
     PAPER_ORDER_CONFIRMATION,
+    RealPaperExecutionResult,
     execute_real_alpaca_paper_order,
     write_real_paper_execution_result,
+)
+from paper_trading.paper_order_trigger_guard import (
+    PaperOrderTriggerGuardResult,
+    evaluate_paper_order_trigger_guard,
+    write_paper_order_trigger_guard_result,
 )
 from paper_trading.preflight import build_paper_preflight_report, write_paper_preflight_report
 from scripts.check_alpaca_paper_connection import load_env_file
 from scripts.run_disabled_real_paper_executor_report import _load_close_prices
+
+
+
+def _build_trigger_guard_blocked_real_paper_result(
+    *,
+    intent,
+    trigger_guard: PaperOrderTriggerGuardResult,
+) -> RealPaperExecutionResult:
+    execution_status = "NO_ACTION" if trigger_guard.intent_action == "HOLD" else "BLOCKED"
+
+    return RealPaperExecutionResult(
+        timestamp_utc=datetime.now(UTC).isoformat(),
+        symbol=trigger_guard.symbol,
+        strategy=getattr(intent, "strategy", "unknown"),
+        intent_action=trigger_guard.intent_action,
+        requested_signal=getattr(intent, "requested_signal", trigger_guard.intent_action),
+        execution_attempted=False,
+        execution_status=execution_status,
+        submitted_side=None,
+        submitted_quantity=0,
+        submitted_order_type=None,
+        submitted_time_in_force=None,
+        paper_order_id=None,
+        blocked_reasons=list(trigger_guard.blocked_reasons),
+        paper_client_used=False,
+        real_broker_client_used=False,
+        live_trading_enabled=False,
+        order_submission_to_real_broker_enabled=False,
+    )
 
 
 def run_real_paper_executor_report(
@@ -55,6 +92,7 @@ def run_real_paper_executor_report(
     confirmation: str | None = None,
     injected_paper_client_factory: Callable[[], object] | None = None,
     external_blocked_reasons: list[str] | None = None,
+    account_state: AlpacaPaperSymbolState | None = None,
 ) -> int:
     if env_file is not None:
         load_env_file(env_file)
@@ -109,20 +147,45 @@ def run_real_paper_executor_report(
         )
         execution_gate_path = write_paper_execution_gate_result(execution_gate)
 
+        trigger_guard = None
+        trigger_guard_path = None
+
+        if account_state is not None:
+            trigger_guard = evaluate_paper_order_trigger_guard(
+                account_state=account_state,
+                market_session=market_session,
+                intent=intent,
+                execution_gate=execution_gate,
+                real_paper_execution_enabled=enable_real_paper_execution,
+                confirmation=confirmation,
+                live_trading_enabled=False,
+                paper_only=True,
+            )
+            trigger_guard_path = write_paper_order_trigger_guard_result(trigger_guard)
+
         paper_client_factory = None
-        if enable_real_paper_execution and confirmation == PAPER_ORDER_CONFIRMATION:
+        if (
+            trigger_guard is None or trigger_guard.allowed_to_attempt_order
+        ) and enable_real_paper_execution and confirmation == PAPER_ORDER_CONFIRMATION:
             paper_client_factory = injected_paper_client_factory or (
                 lambda: create_alpaca_paper_client(config)
             )
 
-        real_paper_result = execute_real_alpaca_paper_order(
-            config=config,
-            intent=intent,
-            execution_gate=execution_gate,
-            paper_client_factory=paper_client_factory,
-            real_paper_execution_enabled=enable_real_paper_execution,
-            confirmation=confirmation,
-        )
+        if trigger_guard is not None and not trigger_guard.allowed_to_attempt_order:
+            real_paper_result = _build_trigger_guard_blocked_real_paper_result(
+                intent=intent,
+                trigger_guard=trigger_guard,
+            )
+        else:
+            real_paper_result = execute_real_alpaca_paper_order(
+                config=config,
+                intent=intent,
+                execution_gate=execution_gate,
+                paper_client_factory=paper_client_factory,
+                real_paper_execution_enabled=enable_real_paper_execution,
+                confirmation=confirmation,
+            )
+
         real_paper_path = write_real_paper_execution_result(real_paper_result)
 
     except (AlpacaConfigError, ValueError) as exc:
@@ -158,6 +221,10 @@ def run_real_paper_executor_report(
     print(f"Preflight report written to: {preflight_path}")
     print(f"Intent report written to: {intent_path}")
     print(f"Execution gate report written to: {execution_gate_path}")
+    if trigger_guard is not None:
+        print(f"Trigger guard allowed: {trigger_guard.allowed_to_attempt_order}")
+        print(f"Trigger guard blocked reasons: {trigger_guard.blocked_reasons}")
+        print(f"Trigger guard report written to: {trigger_guard_path}")
     print(f"Real paper execution report written to: {real_paper_path}")
 
     return 0

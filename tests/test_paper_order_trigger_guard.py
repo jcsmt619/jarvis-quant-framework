@@ -184,3 +184,22 @@ def test_trigger_guard_blocks_live_trading_and_non_paper_mode():
     assert result.allowed_to_attempt_order is False
     assert "paper_only is false" in result.blocked_reasons
     assert "live trading is enabled" in result.blocked_reasons
+
+
+def test_trigger_guard_accepts_is_market_open_field_name():
+    market_session = SimpleNamespace(is_market_open=True)
+
+    result = evaluate_paper_order_trigger_guard(
+        account_state=make_account_state(),
+        market_session=market_session,
+        intent=make_intent("BUY"),
+        execution_gate=make_execution_gate("ALLOWED"),
+        real_paper_execution_enabled=True,
+        confirmation=PAPER_ORDER_CONFIRMATION,
+        live_trading_enabled=False,
+        paper_only=True,
+    )
+
+    assert result.allowed_to_attempt_order is True
+    assert result.market_session_open is True
+    assert result.blocked_reasons == []

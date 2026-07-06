@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import pandas as pd
 
+from paper_trading.alpaca_account_state import AlpacaPaperSymbolState
 from paper_trading.order_intent import PaperOrderIntent
 from paper_trading.paper_executor import PAPER_ORDER_CONFIRMATION, RealPaperExecutionResult
 from scripts import run_real_paper_executor_report as script
@@ -222,3 +223,74 @@ def test_real_paper_report_applies_external_blocked_reasons(capsys, tmp_path, mo
     assert "open EEM paper orders exist: 1" in output
     assert captured["intent"].intent_action == "BLOCKED"
     assert "open EEM paper orders exist: 1" in captured["intent"].blocked_reasons
+
+
+def make_account_state_for_trigger_guard(
+    *,
+    account_status="ACTIVE",
+    open_order_count=0,
+):
+    return AlpacaPaperSymbolState(
+        timestamp_utc="2026-07-06T00:00:00+00:00",
+        symbol="EEM",
+        account_status=account_status,
+        cash="100000",
+        portfolio_value="100000",
+        buying_power="400000",
+        position_quantity=0.0,
+        position_open=False,
+        open_symbol_orders_count=open_order_count,
+        open_symbol_order_ids=[f"order_{i}" for i in range(open_order_count)],
+        read_only=True,
+        order_submission_enabled=False,
+        broker_order_call_performed=False,
+        live_trading_enabled=False,
+    )
+
+
+def test_real_paper_report_trigger_guard_blocks_before_executor(capsys, tmp_path, monkeypatch):
+    captured = {}
+    patch_common(monkeypatch, captured, make_result())
+
+    def forbidden_execute(**kwargs):
+        raise AssertionError("execute_real_alpaca_paper_order must not be called when trigger guard blocks")
+
+    monkeypatch.setattr(script, "execute_real_alpaca_paper_order", forbidden_execute)
+
+    code = script.run_real_paper_executor_report(
+        env_file=Path(".env"),
+        close_csv=make_csv(tmp_path),
+        enable_real_paper_execution=True,
+        confirmation=PAPER_ORDER_CONFIRMATION,
+        account_state=make_account_state_for_trigger_guard(open_order_count=1),
+    )
+    output = capsys.readouterr().out
+
+    assert code == 0
+    assert "Trigger guard allowed: False" in output
+    assert "open EEM paper orders exist: 1" in output
+    assert "Execution attempted: False" in output
+    assert "PAPER CLIENT USED: false" in output
+    assert "REAL BROKER CLIENT USED: false" in output
+    assert "REAL PAPER ORDER SUBMITTED: false" in output
+    assert "LIVE TRADING: DISABLED" in output
+
+
+def test_real_paper_report_trigger_guard_allows_executor_when_clean(capsys, tmp_path, monkeypatch):
+    captured = {}
+    patch_common(monkeypatch, captured, make_result())
+
+    code = script.run_real_paper_executor_report(
+        env_file=Path(".env"),
+        close_csv=make_csv(tmp_path),
+        enable_real_paper_execution=True,
+        confirmation=PAPER_ORDER_CONFIRMATION,
+        account_state=make_account_state_for_trigger_guard(),
+    )
+    output = capsys.readouterr().out
+
+    assert code == 0
+    assert "Trigger guard allowed: True" in output
+    assert "Trigger guard blocked reasons: []" in output
+    assert "REAL PAPER EXECUTION ENABLED: true" in output
+    assert captured["intent"].intent_action in {"BUY", "EXIT", "HOLD", "BLOCKED"}
