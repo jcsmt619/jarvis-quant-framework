@@ -12,6 +12,13 @@ from automation.orchestrator_audit import (
     build_audit_event,
 )
 from automation.orchestrator_controls import read_control_state
+from automation.orchestrator_session import (
+    SESSION_MANIFESTS_DIR_NAME,
+    build_session_manifest,
+    create_session_id,
+    timestamp_utc,
+    write_session_manifest,
+)
 from paper_trading.email_alerts import GMAIL_EMAIL_CONFIRMATION
 from scripts.run_ready_to_arm_approval_request import run_ready_to_arm_approval_request
 
@@ -76,6 +83,8 @@ def run_local_autonomous_orchestrator(
     approvals_dir: Path = Path("reports/approvals"),
     orchestrator_dir: Path = Path("reports/orchestrator"),
     audit_dir: Path | None = None,
+    session_dir: Path | None = None,
+    session_id: str | None = None,
     symbol: str = "EEM",
     limit: int = 120,
     feed: str = "iex",
@@ -90,13 +99,46 @@ def run_local_autonomous_orchestrator(
     approvals_dir.mkdir(parents=True, exist_ok=True)
     orchestrator_dir.mkdir(parents=True, exist_ok=True)
     audit_dir = audit_dir or (orchestrator_dir / "audit")
+    session_dir = session_dir or (orchestrator_dir / SESSION_MANIFESTS_DIR_NAME)
     audit_dir.mkdir(parents=True, exist_ok=True)
+    session_dir.mkdir(parents=True, exist_ok=True)
 
+    actual_session_id = session_id or create_session_id(now)
+    started_at_utc = timestamp_utc(now)
     control_state = read_control_state(orchestrator_dir)
     email_confirmation_accepted = email_confirmation == GMAIL_EMAIL_CONFIRMATION
     ledger_path = audit_dir / AUDIT_LEDGER_FILE_NAME
+    session_manifest_path = session_dir / f"{actual_session_id}.json"
+
+    def finalize(final_decision: str, final_return_code: int, cycles_attempted: int, notes: list[str] | None = None) -> int:
+        end_state = read_control_state(orchestrator_dir)
+        manifest = build_session_manifest(
+            session_id=actual_session_id,
+            started_at_utc=started_at_utc,
+            ended_at_utc=timestamp_utc(now),
+            symbol=symbol,
+            engine=engine,
+            max_cycles=max_cycles,
+            sleep_seconds=sleep_seconds,
+            cycles_attempted=cycles_attempted,
+            final_decision=final_decision,
+            final_return_code=final_return_code,
+            approvals_dir=approvals_dir,
+            orchestrator_dir=orchestrator_dir,
+            audit_ledger_path=ledger_path,
+            stop_requested_at_end=end_state.stop_requested,
+            pause_requested_at_end=end_state.pause_requested,
+            resume_marker_present_at_end=end_state.resume_marker_present,
+            real_email_send_enabled=enable_real_email_send,
+            notes=notes or [],
+        )
+        path = write_session_manifest(manifest, session_dir=session_dir)
+        print(f"Session manifest written: {path}")
+        return final_return_code
 
     print("LOCAL AUTONOMOUS ORCHESTRATOR REPORT")
+    print(f"Session id: {actual_session_id}")
+    print(f"Session manifest path: {session_manifest_path}")
     print(f"Symbol: {symbol}")
     print(f"Engine: {engine}")
     print(f"Max cycles: {max_cycles}")
@@ -133,7 +175,7 @@ def run_local_autonomous_orchestrator(
         print("Cycles attempted: 0")
         print("Broker order call performed: false")
         print("LIVE TRADING: DISABLED")
-        return 2
+        return finalize("BLOCKED_INVALID_MAX_CYCLES", 2, 0, ["max_cycles must be greater than zero"])
 
     runner = injected_cycle_runner or _default_cycle_runner
     cycles_attempted = 0
@@ -142,44 +184,46 @@ def run_local_autonomous_orchestrator(
         control_state = read_control_state(orchestrator_dir)
 
         if control_state.stop_requested:
+            decision = f"STOP_FILE_PRESENT_BEFORE_CYCLE_{cycle_number}"
             _write_audit(
                 audit_dir=audit_dir,
                 event_type="orchestrator_control_block",
                 cycle_number=cycle_number,
                 symbol=symbol,
                 engine=engine,
-                decision=f"STOP_FILE_PRESENT_BEFORE_CYCLE_{cycle_number}",
+                decision=decision,
                 cycle_return_code=0,
                 control_state=control_state,
                 enable_real_email_send=enable_real_email_send,
                 notes=["stop requested before cycle"],
                 now=now,
             )
-            print(f"ORCHESTRATOR DECISION: STOP_FILE_PRESENT_BEFORE_CYCLE_{cycle_number}")
+            print(f"ORCHESTRATOR DECISION: {decision}")
             print(f"Cycles attempted: {cycles_attempted}")
             print("Broker order call performed: false")
             print("LIVE TRADING: DISABLED")
-            return 0
+            return finalize(decision, 0, cycles_attempted, ["stop requested before cycle"])
 
         if control_state.pause_requested:
+            decision = f"PAUSE_FILE_PRESENT_BEFORE_CYCLE_{cycle_number}"
             _write_audit(
                 audit_dir=audit_dir,
                 event_type="orchestrator_control_block",
                 cycle_number=cycle_number,
                 symbol=symbol,
                 engine=engine,
-                decision=f"PAUSE_FILE_PRESENT_BEFORE_CYCLE_{cycle_number}",
+                decision=decision,
                 cycle_return_code=0,
                 control_state=control_state,
                 enable_real_email_send=enable_real_email_send,
                 notes=["pause requested before cycle"],
                 now=now,
             )
-            print(f"ORCHESTRATOR DECISION: PAUSE_FILE_PRESENT_BEFORE_CYCLE_{cycle_number}")
+            print(f"ORCHESTRATOR DECISION: {decision}")
             print(f"Cycles attempted: {cycles_attempted}")
             print("Broker order call performed: false")
             print("LIVE TRADING: DISABLED")
-            return 0
+            return finalize(decision, 0, cycles_attempted, ["pause requested before cycle"])
 
         print(f"--- ORCHESTRATOR CYCLE {cycle_number} START ---")
         code = runner(
@@ -219,7 +263,7 @@ def run_local_autonomous_orchestrator(
             print(f"Cycles attempted: {cycles_attempted}")
             print("Broker order call performed: false")
             print("LIVE TRADING: DISABLED")
-            return code
+            return finalize("STOPPED_ON_CYCLE_FAILURE", code, cycles_attempted, ["cycle runner failed"])
 
         if cycle_number < max_cycles and sleep_seconds > 0:
             time.sleep(sleep_seconds)
@@ -243,7 +287,7 @@ def run_local_autonomous_orchestrator(
     print(f"Cycles attempted: {cycles_attempted}")
     print("Broker order call performed: false")
     print("LIVE TRADING: DISABLED")
-    return 0
+    return finalize("COMPLETED_MAX_CYCLES", 0, cycles_attempted, [f"cycles attempted: {cycles_attempted}"])
 
 
 def main() -> int:
@@ -252,6 +296,8 @@ def main() -> int:
     parser.add_argument("--approvals-dir", type=Path, default=Path("reports/approvals"))
     parser.add_argument("--orchestrator-dir", type=Path, default=Path("reports/orchestrator"))
     parser.add_argument("--audit-dir", type=Path, default=None)
+    parser.add_argument("--session-dir", type=Path, default=None)
+    parser.add_argument("--session-id", default=None)
     parser.add_argument("--symbol", default="EEM")
     parser.add_argument("--limit", type=int, default=120)
     parser.add_argument("--feed", default="iex")
@@ -267,6 +313,8 @@ def main() -> int:
         approvals_dir=args.approvals_dir,
         orchestrator_dir=args.orchestrator_dir,
         audit_dir=args.audit_dir,
+        session_dir=args.session_dir,
+        session_id=args.session_id,
         symbol=args.symbol,
         limit=args.limit,
         feed=args.feed,
