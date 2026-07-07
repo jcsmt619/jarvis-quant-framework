@@ -34,8 +34,8 @@ if ([string]::IsNullOrWhiteSpace($env:OPENAI_API_KEY)) {
     }
 }
 
-$argsList = @(
-    "tools/jarvis_openai_supervisor.py",
+
+$argLines = @(
     "--phase-name", $PhaseName,
     "--failed-command", $FailedCommand,
     "--exit-code", "$ExitCode",
@@ -43,28 +43,38 @@ $argsList = @(
 )
 
 if (-not [string]::IsNullOrWhiteSpace($ErrorSummary)) {
-    $argsList += @("--error-summary", $ErrorSummary)
+    $argLines += @("--error-summary", $ErrorSummary)
 }
 
 if (-not [string]::IsNullOrWhiteSpace($ErrorLog)) {
-    $argsList += @("--error-log", $ErrorLog)
+    $argLines += @("--error-log", $ErrorLog)
 }
 
 if (-not [string]::IsNullOrWhiteSpace($Model)) {
-    $argsList += @("--model", $Model)
+    $argLines += @("--model", $Model)
 }
 
 if (-not [string]::IsNullOrWhiteSpace($ReasoningEffort)) {
-    $argsList += @("--reasoning-effort", $ReasoningEffort)
+    $argLines += @("--reasoning-effort", $ReasoningEffort)
 }
 
 if ($DryRun) {
-    $argsList += "--dry-run"
+    $argLines += "--dry-run"
 }
+
+$argFile = Join-Path $env:TEMP ("jarvis_openai_supervisor_args_" + [guid]::NewGuid().ToString("N") + ".txt")
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllLines($argFile, $argLines, $utf8NoBom)
 
 Write-Host "`n=== RUN JARVIS OPENAI SUPERVISOR ===" -ForegroundColor Cyan
 
-python @argsList
-if ($LASTEXITCODE -ne 0) {
-    throw "Jarvis OpenAI Supervisor failed."
+try {
+    python "tools/jarvis_openai_supervisor.py" "@$argFile"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Jarvis OpenAI Supervisor failed."
+    }
+} finally {
+    if (Test-Path $argFile) {
+        Remove-Item -Force $argFile
+    }
 }

@@ -283,7 +283,7 @@ def validate_plan(plan: dict[str, Any]) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Jarvis OpenAI Supervisor")
+    parser = argparse.ArgumentParser(description="Jarvis OpenAI Supervisor", fromfile_prefix_chars="@")
     parser.add_argument("--phase-name", required=True)
     parser.add_argument("--failed-command", required=True)
     parser.add_argument("--exit-code", type=int, default=1)

@@ -113,3 +113,14 @@ def test_supervisor_blocks_affirmative_api_key_print_instruction() -> None:
 
     with pytest.raises(ValueError, match="unsafe forbidden phrase"):
         validate_plan(plan)
+
+
+def test_openai_supervisor_supports_arg_file_wrapper_for_quoted_failed_commands() -> None:
+    supervisor_text = Path("tools/jarvis_openai_supervisor.py").read_text(encoding="utf-8")
+    wrapper_text = Path("scripts/run_jarvis_openai_supervisor.ps1").read_text(encoding="utf-8")
+
+    assert 'fromfile_prefix_chars="@"' in supervisor_text
+    assert "$argLines = @(" in wrapper_text
+    assert "[System.IO.File]::WriteAllLines" in wrapper_text
+    assert '"@$argFile"' in wrapper_text
+    assert "python @argsList" not in wrapper_text
