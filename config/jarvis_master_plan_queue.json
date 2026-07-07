@@ -1,0 +1,121 @@
+[
+  {
+    "phase": "10D",
+    "title": "Safety Scanner",
+    "branch": "agent/10d-safety-scanner",
+    "commit_message": "feat: add 10D safety scanner",
+    "spec": "Build the 10D safety scanner from the Jarvis Quant master roadmap. Add or harden deterministic scans that block live trading enablement, broker order submission, API key exposure, secret handling, unsafe labels, and bypassed tests. The scanner must be usable from PowerShell on PC and must integrate with checkpoint automation. Include tests. Do not touch secrets, .env, broker credentials, live-trading toggles, or order execution paths except to scan/block unsafe patterns."
+  },
+  {
+    "phase": "11A",
+    "title": "Dual Engine Folder Structure",
+    "branch": "agent/11a-dual-engine-folder-structure",
+    "commit_message": "feat: add dual engine folder structure",
+    "spec": "Build the 11A dual-engine folder structure for Wealth and Moonshot engines. Keep deterministic strategy code separate from non-deterministic analyst/research outputs. Include README or docs explaining boundaries. Include tests or structure checks. Do not enable live trading or broker orders."
+  },
+  {
+    "phase": "11B",
+    "title": "Wealth Moonshot Risk Policies",
+    "branch": "agent/11b-wealth-moonshot-risk-policies",
+    "commit_message": "feat: add wealth and moonshot risk policies",
+    "spec": "Build 11B risk policy definitions for Wealth and Moonshot engines. Policies must be research-only and paper-only. Include max loss, drawdown, position sizing, promotion gates, and stop conditions. Include tests. No live trading or broker order routing."
+  },
+  {
+    "phase": "11C",
+    "title": "Strategy Cards",
+    "branch": "agent/11c-strategy-cards",
+    "commit_message": "feat: add strategy cards",
+    "spec": "Build 11C strategy cards for deterministic and non-deterministic strategy candidates. Cards should include hypothesis, universe, timeframe, signals, risk rules, validation requirements, and promotion criteria. Include tests or schema validation. Research-only safety boundary: do not enable live trading, do not submit broker orders, do not expose secrets, and do not weaken safety gates."
+  },
+  {
+    "phase": "11D",
+    "title": "Experiment Registry",
+    "branch": "agent/11d-experiment-registry",
+    "commit_message": "feat: add experiment registry",
+    "spec": "Build 11D experiment registry for backtests, paper drills, strategy evaluations, and promotion history. Include append-only records, schema validation, and tests. No secrets or broker execution. Research-only safety boundary: do not enable live trading, do not submit broker orders, do not expose secrets, and do not weaken safety gates."
+  },
+  {
+    "phase": "11E",
+    "title": "Promotion Gate Evaluator",
+    "branch": "agent/11e-promotion-gate-evaluator",
+    "commit_message": "feat: add promotion gate evaluator",
+    "spec": "Build 11E promotion gate evaluator. It should decide whether a strategy remains blocked, research-only, paper-only, or eligible for human review. It must never emit BUY_NOW, SELL_NOW, EXECUTE_TRADE, or AUTO_TRADE. Include tests."
+  },
+  {
+    "phase": "12A",
+    "title": "Wealth Mean Reversion Lab",
+    "branch": "agent/12a-wealth-mean-reversion-lab",
+    "commit_message": "feat: add wealth mean reversion lab",
+    "spec": "Build 12A Wealth mean-reversion research lab. Research-only. Include signal definitions, backtest hooks, report outputs, and tests. No live trading."
+  },
+  {
+    "phase": "12B",
+    "title": "Wealth Backtester",
+    "branch": "agent/12b-wealth-backtester",
+    "commit_message": "feat: add wealth backtester",
+    "spec": "Build 12B Wealth backtester with deterministic, reproducible outputs. Include cost hooks, benchmark comparisons, train/test separation, and tests. Research-only safety boundary: do not enable live trading, do not submit broker orders, do not expose secrets, and do not weaken safety gates."
+  },
+  {
+    "phase": "12C",
+    "title": "Wealth Cost Slippage Model",
+    "branch": "agent/12c-wealth-cost-slippage-model",
+    "commit_message": "feat: add wealth cost and slippage model",
+    "spec": "Build 12C cost and slippage model for Wealth backtests. Include configurable assumptions, default conservative settings, and tests. Research-only safety boundary: do not enable live trading, do not submit broker orders, do not expose secrets, and do not weaken safety gates."
+  },
+  {
+    "phase": "12D",
+    "title": "Wealth Regime Filters",
+    "branch": "agent/12d-wealth-regime-filters",
+    "commit_message": "feat: add wealth regime filters",
+    "spec": "Build 12D regime filters for Wealth strategies. Include volatility, trend, liquidity, and risk-off filters. Include tests. Research-only safety boundary: do not enable live trading, do not submit broker orders, do not expose secrets, and do not weaken safety gates."
+  },
+  {
+    "phase": "13A",
+    "title": "Moonshot Simulator",
+    "branch": "agent/13a-moonshot-simulator",
+    "commit_message": "feat: add moonshot simulator",
+    "spec": "Build 13A Moonshot simulator for high-risk research scenarios. Research-only. Include risk caps, failure modes, reports, and tests."
+  },
+  {
+    "phase": "13B",
+    "title": "Moonshot Options Research",
+    "branch": "agent/13b-moonshot-options-research",
+    "commit_message": "feat: add moonshot options research",
+    "spec": "Build 13B Moonshot options research module. Research-only. Include option thesis structure, Greeks-aware risk notes, expiration handling, and tests. No order execution."
+  },
+  {
+    "phase": "13C",
+    "title": "Moonshot Crypto Risk Guard",
+    "branch": "agent/13c-moonshot-crypto-risk-guard",
+    "commit_message": "feat: add moonshot crypto risk guard",
+    "spec": "Build 13C crypto risk guard. Research-only. Include drawdown caps, liquidity warnings, volatility filters, and tests. No exchange credentials or live orders."
+  },
+  {
+    "phase": "13D",
+    "title": "Moonshot LEAPS Research Engine",
+    "branch": "agent/13d-moonshot-leaps-research-engine",
+    "commit_message": "feat: add moonshot LEAPS research engine",
+    "spec": "Build 13D LEAPS research engine. Research-only. Include thesis, catalyst, expiration, delta, liquidity, risk, and monitoring fields. Include tests."
+  },
+  {
+    "phase": "13E",
+    "title": "Options Monitor Dashboard",
+    "branch": "agent/13e-options-monitor-dashboard",
+    "commit_message": "feat: add options monitor dashboard",
+    "spec": "Build 13E options monitor dashboard/report generator. Research-only. Include static report outputs and tests. No broker integration."
+  },
+  {
+    "phase": "13F",
+    "title": "Paper LEAPS Portfolio",
+    "branch": "agent/13f-paper-leaps-portfolio",
+    "commit_message": "feat: add paper LEAPS portfolio",
+    "spec": "Build 13F paper LEAPS portfolio tracker. Paper-only. Include simulated fills, thesis status, PnL tracking, and tests. No live broker orders. Research-only safety boundary: do not enable live trading, do not submit broker orders, do not expose secrets, and do not weaken safety gates."
+  },
+  {
+    "phase": "13G",
+    "title": "Claude OpenAI Dual Agent Review",
+    "branch": "agent/13g-dual-agent-review",
+    "commit_message": "feat: add dual agent review workflow",
+    "spec": "Build 13G dual-agent review workflow. It should support Claude/Codex/OpenAI review outputs for research and code safety. Include tests. Do not weaken safety gates."
+  }
+]
