@@ -222,8 +222,27 @@ def test_23b_builds_deterministic_read_only_archive_index() -> None:
         by_id = {item["artifact_id"]: item for item in first["indexed_artifacts"]}
         assert by_id["report_index"]["archive_eligible"] is True
         assert by_id["safe_workflow_catalog"]["blocked_delete"] is True
+        required_index_fields = {
+            "artifact_id",
+            "artifact_name",
+            "source_artifact_path",
+            "artifact_status",
+            "label",
+            "generated_date",
+            "generated_at_utc",
+            "signoff_state",
+            "retention_action",
+            "archive_eligible",
+            "blocked_delete",
+            "human_review_notes",
+        }
+        assert all(required_index_fields <= set(item) for item in first["indexed_artifacts"])
+        assert all("payload" not in item for item in first["source_artifacts"])
         assert all(item["dry_run_only"] is True for item in first["dry_run_archive_manifest"])
         assert all(item["automatic_delete_allowed"] is False for item in first["dry_run_archive_manifest"])
+        assert {
+            item["artifact_id"] for item in first["dry_run_archive_manifest"]
+        } == {"report_index", "safe_workflow_catalog"}
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

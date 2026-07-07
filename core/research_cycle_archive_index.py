@@ -15,6 +15,10 @@ from core.operator_acknowledgment_ledger import (
     DEFAULT_OPERATOR_ACKNOWLEDGMENT_LEDGER_DIR,
     OPERATOR_ACKNOWLEDGMENT_LEDGER_JSON,
 )
+from core.operator_dashboard_snapshot import (
+    DEFAULT_OPERATOR_DASHBOARD_SNAPSHOT_DIR,
+    OPERATOR_DASHBOARD_SNAPSHOT_JSON,
+)
 from core.operator_signoff_packet import (
     DEFAULT_OPERATOR_SIGNOFF_PACKET_DIR,
     OPERATOR_SIGNOFF_PACKET_JSON,
@@ -156,7 +160,9 @@ class ResearchCycleArchiveIndexInput:
     audit_summary_path: Path = DEFAULT_RESEARCH_CYCLE_AUDIT_SUMMARY_DIR / RESEARCH_CYCLE_AUDIT_SUMMARY_JSON
     manifest_path: Path = DEFAULT_RESEARCH_CYCLE_RUNNER_DIR / RESEARCH_CYCLE_MANIFEST_JSON
     release_bundle_path: Path = DEFAULT_RESEARCH_RELEASE_BUNDLE_DIR / RESEARCH_RELEASE_BUNDLE_JSON
-    operator_dashboard_snapshot_path: Path = Path("reports/operator_dashboard_snapshot") / "operator_dashboard_snapshot.json"
+    operator_dashboard_snapshot_path: Path = (
+        DEFAULT_OPERATOR_DASHBOARD_SNAPSHOT_DIR / OPERATOR_DASHBOARD_SNAPSHOT_JSON
+    )
     report_index_path: Path = Path("reports/report_index") / REPORT_INDEX_JSON
     safe_workflow_catalog_path: Path = Path("reports/safe_workflow_catalog") / SAFE_WORKFLOW_CATALOG_JSON
     queue_status_path: Path = Path("config/jarvis_master_plan_queue.json")
