@@ -10,6 +10,8 @@ Use this lane for repeatable LEAPS research components:
 - dashboard alert state
 - research-only option thesis memos with Greeks-aware risk notes and
   expiration handling
+- research-only crypto risk guards for drawdown, liquidity, volatility, and
+  stale market data warnings
 
 Outputs must use `RESEARCH_ONLY`, `MONITOR_ONLY`, `PAPER_ONLY`, or
 `BLOCKED_BY_SAFETY_GATE` as appropriate.

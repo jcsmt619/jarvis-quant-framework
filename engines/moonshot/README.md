@@ -37,3 +37,11 @@ thesis memos from supplied thesis, expiration, and Greeks inputs. It classifies
 DTE buckets, moneyness, theta/gamma/vega/delta risks, and keeps all
 trade-relevant output labeled for human review. It does not import broker
 adapters, route orders, or submit orders. LIVE TRADING: DISABLED.
+
+## 13C Moonshot Crypto Risk Guard
+
+`engines.moonshot.deterministic.crypto_risk_guard` evaluates supplied crypto
+market snapshots for drawdown cap breaches, liquidity warnings, volatility
+filter breaches, and stale market data. It is research-only and monitor-only,
+does not use exchange credentials, and does not route or submit orders. LIVE
+TRADING: DISABLED.
