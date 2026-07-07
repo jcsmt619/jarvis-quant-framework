@@ -197,6 +197,59 @@ Return JSON only.
 """
 
 
+
+def _has_negation_before_phrase(text_lower: str, phrase_start: int) -> bool:
+    window = text_lower[max(0, phrase_start - 80):phrase_start]
+    normalized = " ".join(window.split())
+
+    negation_markers = (
+        "do not",
+        "don't",
+        "never",
+        "must not",
+        "must never",
+        "should not",
+        "cannot",
+        "can't",
+        "do not suggest",
+        "do not request",
+        "do not print",
+        "do not modify",
+        "do not remove",
+        "do not bypass",
+        "without explicit human approval, do not",
+    )
+
+    return any(normalized.endswith(marker) for marker in negation_markers)
+
+
+def assert_no_unsafe_repair_instruction(repair_prompt: str) -> None:
+    lowered = repair_prompt.lower()
+
+    hard_forbidden = [
+        "enable live trading",
+        "submit broker order",
+        "print api key",
+        "show api key",
+        "paste api key",
+        "disable safety",
+        "remove safety",
+    ]
+
+    for phrase in hard_forbidden:
+        start = 0
+        while True:
+            idx = lowered.find(phrase, start)
+            if idx == -1:
+                break
+
+            if _has_negation_before_phrase(lowered, idx):
+                start = idx + len(phrase)
+                continue
+
+            raise ValueError(f"Repair prompt contains unsafe forbidden phrase: {phrase}")
+
+
 def validate_plan(plan: dict[str, Any]) -> None:
     required = [
         "status",
@@ -225,20 +278,8 @@ def validate_plan(plan: dict[str, Any]) -> None:
     if agent not in {"codex", "claude", "human"}:
         raise ValueError(f"Unsupported recommended_agent: {agent}")
 
-    repair_prompt = str(plan["repair_prompt_for_agent"]).lower()
-    hard_forbidden = [
-        "enable live trading",
-        "submit broker order",
-        "print api key",
-        "show api key",
-        "paste api key",
-        "disable safety",
-        "remove safety",
-    ]
-
-    for phrase in hard_forbidden:
-        if phrase in repair_prompt:
-            raise ValueError(f"Repair prompt contains forbidden phrase: {phrase}")
+    repair_prompt = str(plan["repair_prompt_for_agent"])
+    assert_no_unsafe_repair_instruction(repair_prompt)
 
 
 def main() -> int:
