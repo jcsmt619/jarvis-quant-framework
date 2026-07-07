@@ -6,6 +6,12 @@ from engines.moonshot.deterministic.crypto_risk_guard import (
     CryptoRiskSnapshot,
     evaluate_crypto_risk_guard,
 )
+from engines.moonshot.deterministic.leaps_research_engine import (
+    LeapsResearchConfig,
+    LeapsResearchInput,
+    LeapsResearchMemo,
+    build_leaps_research_memo,
+)
 from engines.moonshot.deterministic.options_research import (
     GreeksSnapshot,
     OptionThesis,
@@ -24,6 +30,9 @@ __all__ = [
     "CryptoRiskGuardConfig",
     "CryptoRiskGuardResult",
     "CryptoRiskSnapshot",
+    "LeapsResearchConfig",
+    "LeapsResearchInput",
+    "LeapsResearchMemo",
     "MoonshotScenario",
     "MoonshotSimulationResult",
     "MoonshotSimulatorConfig",
@@ -31,6 +40,7 @@ __all__ = [
     "OptionThesis",
     "OptionsResearchConfig",
     "OptionsResearchMemo",
+    "build_leaps_research_memo",
     "build_options_research_memo",
     "evaluate_crypto_risk_guard",
     "simulate_moonshot_scenarios",
