@@ -8,6 +8,8 @@ Use this lane for repeatable LEAPS research components:
 - IV and DTE monitors
 - deterministic candidate scoring
 - dashboard alert state
+- research-only option thesis memos with Greeks-aware risk notes and
+  expiration handling
 
 Outputs must use `RESEARCH_ONLY`, `MONITOR_ONLY`, `PAPER_ONLY`, or
 `BLOCKED_BY_SAFETY_GATE` as appropriate.
