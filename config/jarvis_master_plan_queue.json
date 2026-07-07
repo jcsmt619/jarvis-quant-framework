@@ -271,5 +271,19 @@
     "branch": "agent/24b-next-research-cycle-plan",
     "commit_message": "feat: add next research cycle plan",
     "spec": "Build 24B Next Research Cycle Plan from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown planning reports from the 24A rollover gate, 23B archive index, 23A operations console, 22B signoff packet, 20A readiness gate, 20B retention policy, report index, safe workflow catalog, queue status, and safety scanner status. It should propose a records-only next-cycle plan with planned research/report workflows, required refreshed artifacts, blocked prerequisites, operator review items, safety preflight items, data-quality checks, and next-cycle acceptance criteria. It must not run the next cycle, mutate artifacts, delete artifacts, create broker actions, create trade instructions, enable live trading, or grant execution permissions. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "25A",
+    "title": "Next Cycle Safety Preflight",
+    "branch": "agent/25a-next-cycle-safety-preflight",
+    "commit_message": "feat: add next cycle safety preflight",
+    "spec": "Build 25A Next Cycle Safety Preflight from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown preflight reports from the 24B next research cycle plan, 24A rollover gate, 23B archive index, 23A operations console, 22B signoff packet, 20A readiness gate, 20B retention policy, report index, safe workflow catalog, queue status, and safety scanner status. It should classify the planned next cycle as PREFLIGHT_READY_FOR_HUMAN_REVIEW, NEEDS_OPERATOR_REVIEW, or BLOCKED_BY_SAFETY_GATE. It must list blocked prerequisites, required refreshed artifacts, unresolved operator review items, safety preflight items, data-quality checks, missing artifacts, stale artifacts, queue next phase, and required operator actions. It must be read-only and records-only. It must not start the next cycle, mutate artifacts, delete artifacts, create broker actions, create trade instructions, enable live trading, grant execution permissions, or run research workflows. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "25B",
+    "title": "Next Cycle Dry Run Manifest",
+    "branch": "agent/25b-next-cycle-dry-run-manifest",
+    "commit_message": "feat: add next cycle dry run manifest",
+    "spec": "Build 25B Next Cycle Dry Run Manifest from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown dry-run manifests from the 25A safety preflight, 24B next research cycle plan, 24A rollover gate, report index, safe workflow catalog, queue status, and safety scanner status. It should describe planned next-cycle research and reporting workflow steps, command hints, input artifacts, expected output artifacts, skipped steps, blocked prerequisites, required refreshed artifacts, required operator review items, safety labels, and acceptance criteria. It must be dry-run only and records-only. It must not execute commands, run the next cycle, mutate artifacts, delete artifacts, create broker actions, create trade instructions, enable live trading, grant execution permissions, or submit any order path. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
   }
 ]
