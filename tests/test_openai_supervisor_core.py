@@ -63,7 +63,8 @@ def test_supervisor_loop_script_exists_and_mentions_auto_repair() -> None:
 
     assert "AutoRepairWithCodex" in text
     assert "ASKING OPENAI SUPERVISOR" in text
-    assert "codex exec" in text
+    assert "tools\\jarvis_codex_exec.py" in text or "tools/jarvis_codex_exec.py" in text
+    assert "CodexRepairSandbox" in text
     assert "safe_to_patch" in text
 
 

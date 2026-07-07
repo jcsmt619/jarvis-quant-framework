@@ -40,6 +40,9 @@ if ($ChangedPath.Count -gt 0) {
             throw "Changed path does not exist: $path"
         }
         git add -N $path
+        if ($LASTEXITCODE -ne 0) {
+            throw "Could not register changed path: $path"
+        }
     }
 }
 
@@ -73,7 +76,7 @@ if ($SkipCodexRun) {
 
 $codexCommand = Get-Command codex -ErrorAction SilentlyContinue
 if (-not $codexCommand) {
-    throw "Codex CLI not found on PATH. Run this manually first in PowerShell on PC: codex"
+    throw "Codex CLI not found on PATH. Run this manually first in PowerShell on PC: codex --version"
 }
 
 $promptText = Get-Content -Raw -Path $ReviewPromptPath
@@ -104,34 +107,18 @@ Current git diff files:
 $gitDiffNames
 "@
 
-Write-Host "`n=== Detecting Codex exec flags ===" -ForegroundColor Cyan
+$promptPath = Join-Path $env:TEMP "jarvis_codex_review_prompt.txt"
+$fullPrompt | Set-Content -Path $promptPath -Encoding UTF8
 
-$helpText = (& codex exec --help 2>&1) -join "`n"
+Write-Host "`n=== Running Codex read-only safety review through compatibility wrapper ===" -ForegroundColor Cyan
 
-$codexArgs = @("exec")
+python tools\jarvis_codex_exec.py `
+    --prompt-file $promptPath `
+    --output-path $OutputPath `
+    --sandbox read-only `
+    --timeout-seconds 240
 
-if ($helpText -match "--cd") {
-    $codexArgs += @("--cd", $RepoRoot)
-}
-
-if ($helpText -match "--sandbox") {
-    $codexArgs += @("--sandbox", "read-only")
-}
-
-if ($helpText -match "--ask-for-approval") {
-    $codexArgs += @("--ask-for-approval", "never")
-} elseif ($helpText -match "--approval-policy") {
-    $codexArgs += @("--approval-policy", "never")
-}
-
-$codexArgs += $fullPrompt
-
-Write-Host "`n=== Running Codex read-only safety review ===" -ForegroundColor Cyan
-
-$reviewOutput = & codex @codexArgs 2>&1
 $exitCode = $LASTEXITCODE
-
-$reviewOutput | Set-Content -Path $OutputPath -Encoding UTF8
 
 Write-Host "`n=== CODEX REVIEW OUTPUT SAVED ===" -ForegroundColor Green
 Write-Host $OutputPath
@@ -142,7 +129,7 @@ if ($exitCode -ne 0) {
 }
 
 if ($RequireSafeToCommit) {
-    $reviewText = ($reviewOutput -join "`n")
+    $reviewText = Get-Content -Raw -Path $OutputPath
     if ($reviewText -notmatch "SAFE TO COMMIT:\s*YES") {
         Get-Content -Path $OutputPath
         throw "Codex review did not return SAFE TO COMMIT: YES"

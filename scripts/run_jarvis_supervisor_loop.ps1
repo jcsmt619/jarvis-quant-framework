@@ -10,7 +10,10 @@ param(
 
     [switch]$AutoRepairWithCodex,
 
-    [int]$MaxRepairAttempts = 1
+    [int]$MaxRepairAttempts = 1,
+
+    [ValidateSet("default", "workspace-write", "read-only")]
+    [string]$CodexRepairSandbox = "workspace-write"
 )
 
 Set-StrictMode -Version Latest
@@ -98,14 +101,17 @@ while ($attempt -le $MaxRepairAttempts) {
     $repairPromptPath = Join-Path $runDir "repair_prompt_attempt_$attempt.txt"
     $plan.repair_prompt_for_agent | Set-Content -Path $repairPromptPath -Encoding UTF8
 
-    Write-Host "`n=== RUN CODEX REPAIR ATTEMPT $attempt ===" -ForegroundColor Cyan
-
-    $repairPrompt = Get-Content -Raw -Path $repairPromptPath
-    $codexOutput = & codex exec $repairPrompt 2>&1
-    $codexExit = $LASTEXITCODE
+    Write-Host "`n=== RUN CODEX REPAIR ATTEMPT $attempt THROUGH COMPATIBILITY WRAPPER ===" -ForegroundColor Cyan
 
     $codexLog = Join-Path $runDir "codex_repair_attempt_$attempt.log"
-    ($codexOutput | Out-String) | Set-Content -Path $codexLog -Encoding UTF8
+
+    python tools\jarvis_codex_exec.py `
+        --prompt-file $repairPromptPath `
+        --output-path $codexLog `
+        --sandbox $CodexRepairSandbox `
+        --timeout-seconds 300
+
+    $codexExit = $LASTEXITCODE
 
     if ($codexExit -ne 0) {
         Get-Content -Path $codexLog
