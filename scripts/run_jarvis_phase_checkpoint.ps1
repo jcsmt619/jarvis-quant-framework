@@ -138,33 +138,9 @@ if ($ChangedPath.Count -gt 0) {
 
     if (-not $AllowDangerousPatterns) {
         Write-Host "`n=== Safety pattern scan ===" -ForegroundColor Cyan
-
-        $diffText = & git diff -U0 -- @ChangedPath
-        $addedLines = $diffText -split "`n" | Where-Object {
-            $_.StartsWith("+") -and -not $_.StartsWith("+++")
-        }
-
-        $dangerousPatterns = @(
-            "\+\s*.*(Get-Content|Set-Content|cat|type|open|read_text|write_text).*(\." + "env)",
-            "\+\s*.*(API_" + "KEY|SECRET|TOKEN|PASSWORD|PRIVATE_KEY)\s*=",
-            "\+\s*.*live_trading_" + "enabled\s*=\s*True",
-            "\+\s*.*LIVE TRADING:\s*ENABLED",
-            "\+\s*.*paper\s*=\s*False",
-            "\+\s*.*submit_" + "order\s*\(",
-            "\+\s*.*place_" + "order\s*\(",
-            "\+\s*.*create_" + "order\s*\("
-        )
-
-        foreach ($line in $addedLines) {
-            if (Test-AllowListedSafetyLine -Line $line) {
-                continue
-            }
-
-            foreach ($pattern in $dangerousPatterns) {
-                if ($line -match $pattern) {
-                    throw "Safety scan blocked this checkpoint. Dangerous pattern found: $pattern in line: $line"
-                }
-            }
+        .\scripts\run_jarvis_safety_scanner.ps1 -DiffOnly -Path $ChangedPath
+        if ($LASTEXITCODE -ne 0) {
+            throw "Safety scan blocked this checkpoint."
         }
 
         Write-Host "Safety pattern scan passed." -ForegroundColor Green
