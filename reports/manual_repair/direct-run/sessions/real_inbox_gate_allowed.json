@@ -1,0 +1,26 @@
+{
+  "approvals_dir": "reports\\manual_repair\\direct-run\\approvals",
+  "audit_ledger_path": "reports\\manual_repair\\direct-run\\audit\\orchestrator_audit_ledger.jsonl",
+  "broker_order_call_performed": false,
+  "cycles_attempted": 1,
+  "ended_at_utc": "2026-07-07T08:16:11.175186+00:00",
+  "engine": "Wealth",
+  "final_decision": "COMPLETED_MAX_CYCLES",
+  "final_return_code": 0,
+  "inbox_processing_enabled": false,
+  "live_trading_enabled": false,
+  "max_cycles": 1,
+  "notes": [
+    "cycles attempted: 1"
+  ],
+  "orchestrator_dir": "reports\\manual_repair\\direct-run\\orchestrator",
+  "paper_arm_enabled": false,
+  "pause_requested_at_end": false,
+  "real_email_send_enabled": false,
+  "resume_marker_present_at_end": false,
+  "session_id": "real_inbox_gate_allowed",
+  "sleep_seconds": 0.0,
+  "started_at_utc": "2026-07-07T08:16:11.171185+00:00",
+  "stop_requested_at_end": false,
+  "symbol": "EEM"
+}

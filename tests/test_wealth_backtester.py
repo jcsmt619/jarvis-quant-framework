@@ -12,8 +12,10 @@ from engines.wealth.deterministic.wealth_backtester import (
     REQUIRED_LABELS,
     CostBreakdown,
     WealthBacktestConfig,
+    WealthCostSlippageAssumptions,
     build_benchmark_returns,
     build_report_payload,
+    default_conservative_cost_slippage_hook,
     default_linear_cost_hook,
     render_markdown_report,
     run_wealth_backtest,
@@ -52,6 +54,7 @@ def test_12b_safety_manifest_is_research_only_and_disabled() -> None:
 
     assert REQUIRED_LABELS == (RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED)
     assert manifest["phase"] == "12B"
+    assert manifest["cost_slippage_phase"] == "12C"
     assert manifest["backtester"] == BACKTESTER_NAME
     assert manifest["research_only"] is True
     assert manifest["monitor_only"] is True
@@ -65,7 +68,12 @@ def test_12b_safety_manifest_is_research_only_and_disabled() -> None:
 
 
 def test_12b_train_test_split_ignores_in_sample_weights_and_shifts_execution() -> None:
-    cfg = WealthBacktestConfig(train_size=3, test_size=5, cost_bps=0.0)
+    cfg = WealthBacktestConfig(
+        train_size=3,
+        test_size=5,
+        cost_bps=0.0,
+        cost_slippage=WealthCostSlippageAssumptions.disabled(),
+    )
     result = run_wealth_backtest(_prices(), _weights(), cfg)
 
     assert result.train_prices.index[0] == pd.Timestamp("2024-01-01")
@@ -79,17 +87,57 @@ def test_12b_train_test_split_ignores_in_sample_weights_and_shifts_execution() -
     pd.testing.assert_series_equal(result.strategy_returns, expected.rename("strategy_return"))
 
 
-def test_12b_linear_cost_hook_is_deterministic_and_auditable() -> None:
+def test_12c_conservative_cost_slippage_hook_is_deterministic_and_auditable() -> None:
     cfg = WealthBacktestConfig(train_size=3, cost_bps=10.0)
     result_a = run_wealth_backtest(_prices(), _weights(), cfg)
     result_b = run_wealth_backtest(_prices(), _weights(), cfg)
 
-    expected_costs = default_linear_cost_hook(result_a.execution_weights, result_a.target_weights, cfg)
+    expected_costs = default_conservative_cost_slippage_hook(result_a.execution_weights, result_a.target_weights, cfg)
     pd.testing.assert_series_equal(result_a.cost_returns, expected_costs.total_cost.rename("cost_return"))
     pd.testing.assert_frame_equal(result_a.cost_components, expected_costs.components)
     pd.testing.assert_series_equal(result_a.strategy_returns, result_b.strategy_returns)
     pd.testing.assert_series_equal(result_a.equity_curve, result_b.equity_curve)
     assert result_a.metrics["total_cost"] > 0.0
+    assert set(result_a.cost_components.columns) == {
+        "legacy_linear_bps_cost",
+        "commission_cost",
+        "spread_cost",
+        "market_impact_cost",
+        "min_trade_cost",
+    }
+    assert result_a.cost_components["spread_cost"].sum() > 0.0
+    assert result_a.cost_components["market_impact_cost"].sum() > 0.0
+
+
+def test_12c_cost_slippage_assumptions_validate_and_can_disable_default_drag() -> None:
+    with pytest.raises(ValueError, match="spread_bps"):
+        WealthBacktestConfig(
+            train_size=3,
+            cost_slippage=WealthCostSlippageAssumptions(spread_bps=-0.1),
+        ).validate()
+
+    cfg = WealthBacktestConfig(
+        train_size=3,
+        cost_bps=0.0,
+        cost_slippage=WealthCostSlippageAssumptions.disabled(),
+    )
+    result = run_wealth_backtest(_prices(), _weights(), cfg)
+
+    assert result.cost_returns.sum() == pytest.approx(0.0)
+    assert result.cost_components.sum().sum() == pytest.approx(0.0)
+
+
+def test_12b_linear_cost_hook_remains_available_for_custom_research_overrides() -> None:
+    cfg = WealthBacktestConfig(
+        train_size=3,
+        cost_bps=10.0,
+        cost_slippage=WealthCostSlippageAssumptions.disabled(),
+    )
+    result = run_wealth_backtest(_prices(), _weights(), cfg, cost_hook=default_linear_cost_hook)
+    expected_costs = default_linear_cost_hook(result.execution_weights, result.target_weights, cfg)
+
+    pd.testing.assert_series_equal(result.cost_returns, expected_costs.total_cost.rename("cost_return"))
+    assert list(result.cost_components.columns) == ["linear_bps_cost"]
 
 
 def test_12b_custom_cost_hook_can_add_components() -> None:
@@ -107,7 +155,11 @@ def test_12b_custom_cost_hook_can_add_components() -> None:
     result = run_wealth_backtest(
         _prices(),
         _weights(),
-        WealthBacktestConfig(train_size=3, cost_bps=0.0),
+        WealthBacktestConfig(
+            train_size=3,
+            cost_bps=0.0,
+            cost_slippage=WealthCostSlippageAssumptions.disabled(),
+        ),
         cost_hook=fixed_fee_hook,
     )
 
@@ -120,7 +172,12 @@ def test_12b_custom_cost_hook_can_add_components() -> None:
 
 
 def test_12b_benchmark_comparison_uses_same_test_period() -> None:
-    cfg = WealthBacktestConfig(train_size=3, test_size=5, cost_bps=0.0)
+    cfg = WealthBacktestConfig(
+        train_size=3,
+        test_size=5,
+        cost_bps=0.0,
+        cost_slippage=WealthCostSlippageAssumptions.disabled(),
+    )
     result = run_wealth_backtest(_prices(), _weights(), cfg)
     benchmarks = build_benchmark_returns(result.test_prices)
 
@@ -141,9 +198,12 @@ def test_12b_report_payload_and_markdown_are_research_outputs() -> None:
 
     assert payload["phase"] == "12B"
     assert payload["safety"]["labels"] == REQUIRED_LABELS
+    assert payload["config"]["cost_slippage"]["phase"] == "12C"
+    assert payload["config"]["cost_slippage"]["enabled"] is True
     assert payload["train_period"]["observations"] == 3
     assert payload["test_period"]["observations"] == 5
     assert "LIVE TRADING: DISABLED" in markdown
+    assert "Cost and Slippage" in markdown
     assert "Benchmarks" in markdown
     assert "research" in markdown
 
