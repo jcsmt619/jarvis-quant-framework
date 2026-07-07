@@ -386,6 +386,22 @@ def run_local_autonomous_orchestrator(
     print(f"Paper arm bridge blocked reasons: {paper_arm_bridge_state.blocked_reasons}")
     print("Broker order call performed: false")
     print("LIVE TRADING: DISABLED")
+    _write_audit(
+        audit_dir=audit_dir,
+        event_type="orchestrator_paper_arm_bridge_state",
+        cycle_number=None,
+        symbol=symbol,
+        engine=engine,
+        decision=paper_arm_bridge_state.decision,
+        cycle_return_code=paper_arm_bridge_state.paper_arm_return_code,
+        control_state=control_state,
+        enable_real_email_send=enable_real_email_send,
+        notes=paper_arm_bridge_runtime_notes,
+        now=now,
+    )
+    print("Paper arm bridge audit integration enabled: true")
+    print("Paper arm bridge heartbeat integration enabled: true")
+    print("Paper arm bridge audit event written: true")
 
     if max_cycles <= 0:
         _write_audit(
