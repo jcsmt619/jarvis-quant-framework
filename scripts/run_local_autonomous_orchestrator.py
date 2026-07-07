@@ -435,6 +435,22 @@ def run_local_autonomous_orchestrator(
     print("Paper arm enabled: false")
     print("Broker order call performed: false")
     print("LIVE TRADING: DISABLED")
+    _write_audit(
+        audit_dir=audit_dir,
+        event_type="orchestrator_paper_arm_drill_state",
+        cycle_number=None,
+        symbol=symbol,
+        engine=engine,
+        decision=paper_arm_drill_state.decision,
+        cycle_return_code=paper_arm_drill_state.paper_arm_drill_return_code,
+        control_state=control_state,
+        enable_real_email_send=enable_real_email_send,
+        notes=paper_arm_drill_runtime_notes,
+        now=now,
+    )
+    print("Paper arm drill audit integration enabled: true")
+    print("Paper arm drill heartbeat integration enabled: true")
+    print("Paper arm drill audit event written: true")
 
     if max_cycles <= 0:
         _write_audit(
