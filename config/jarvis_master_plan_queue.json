@@ -131,5 +131,19 @@
     "branch": "agent/14b-weekly-review",
     "commit_message": "feat: add weekly review workflow",
     "spec": "Build 14B Weekly Review workflow from the Jarvis Quant master roadmap. It should summarize weekly research results across Wealth and Moonshot engines, experiments, promotion gates, champion/challenger outcomes, safety scanner findings, blocked decisions, and next-review actions. It must produce deterministic JSON and Markdown report outputs suitable for human review. Include tests. Do not enable live trading, broker routing, broker order submission, secrets, API keys, .env reads/writes, or unsafe trade instructions."
+  },
+  {
+    "phase": "15A",
+    "title": "Daily Research Command Center",
+    "branch": "agent/15a-daily-research-command-center",
+    "commit_message": "feat: add daily research command center",
+    "spec": "Build 15A Daily Research Command Center from the Jarvis Quant master roadmap. It should produce deterministic JSON and Markdown daily research summaries across Wealth and Moonshot engines, strategy cards, experiment registry entries, promotion gates, champion challenger outcomes, weekly review outputs, and safety scanner status. The workflow must remain research-only, monitor-only, paper-only, human-review-required, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, or order execution. Include tests."
+  },
+  {
+    "phase": "15B",
+    "title": "Operator Runbook",
+    "branch": "agent/15b-operator-runbook",
+    "commit_message": "feat: add operator runbook workflow",
+    "spec": "Build 15B Operator Runbook workflow from the Jarvis Quant master roadmap. It should generate deterministic operator checklists for daily startup, safety preflight, research review, experiment review, weekly review, promotion review, and shutdown. It should clearly label allowed human-review workflows and blocked workflows. The workflow must remain research-only, monitor-only, paper-only, human-review-required, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, or order execution. Include tests."
   }
 ]
