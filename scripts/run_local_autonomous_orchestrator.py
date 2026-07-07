@@ -18,6 +18,7 @@ from automation.orchestrator_heartbeat import (
     write_heartbeat,
 )
 from automation.orchestrator_inbox_scaffold import evaluate_inbox_processing_scaffold
+from automation.orchestrator_inbox_processor_hook import evaluate_inbox_processor_hook
 from automation.orchestrator_session import (
     SESSION_MANIFESTS_DIR_NAME,
     build_session_manifest,
@@ -158,6 +159,12 @@ def run_local_autonomous_orchestrator(
         enable_inbox_processing=enable_inbox_processing,
         confirmation=inbox_confirmation,
     )
+    inbox_processor_hook = evaluate_inbox_processor_hook(
+        enable_inbox_processing=enable_inbox_processing,
+        confirmation=inbox_confirmation,
+        allow_processor_attempt=False,
+        processor=None,
+    )
     ledger_path = audit_dir / AUDIT_LEDGER_FILE_NAME
     session_manifest_path = session_dir / f"{actual_session_id}.json"
 
@@ -245,6 +252,13 @@ def run_local_autonomous_orchestrator(
     print(f"Approval records updated: {inbox_scaffold.approval_records_updated}")
     print(f"Inbox processing decision: {inbox_scaffold.decision}")
     print(f"Inbox processing blocked reasons: {inbox_scaffold.blocked_reasons}")
+    print(f"Inbox processor hook present: {str(inbox_processor_hook.hook_present).lower()}")
+    print(f"Inbox processor confirmation accepted: {str(inbox_processor_hook.confirmation_accepted).lower()}")
+    print(f"Inbox processor attempted: {str(inbox_processor_hook.attempted).lower()}")
+    print(f"Inbox processor decision: {inbox_processor_hook.decision}")
+    print(f"Inbox processor blocked reasons: {inbox_processor_hook.blocked_reasons}")
+    print(f"Approval records updated: {inbox_processor_hook.approval_records_updated}")
+    print(f"Real Gmail inbox read: {str(inbox_processor_hook.real_gmail_inbox_read).lower()}")
     print("Paper arm enabled: false")
     print("Broker order call performed: false")
     print("LIVE TRADING: DISABLED")
