@@ -14,6 +14,15 @@ from risk.policies import (
     PolicyState,
     evaluate_policy,
 )
+from risk.promotion_gate import (
+    PROMOTION_BLOCKED,
+    PROMOTION_HUMAN_REVIEW_REQUIRED,
+    PROMOTION_PAPER_ONLY,
+    PROMOTION_RESEARCH_ONLY,
+    PromotionGateDecision,
+    PromotionGateEvidence,
+    evaluate_promotion_gate,
+)
 
 __all__ = [
     "BLOCKED_BY_SAFETY_GATE",
@@ -27,5 +36,12 @@ __all__ = [
     "EngineRiskPolicy",
     "PolicyDecision",
     "PolicyState",
+    "PROMOTION_BLOCKED",
+    "PROMOTION_HUMAN_REVIEW_REQUIRED",
+    "PROMOTION_PAPER_ONLY",
+    "PROMOTION_RESEARCH_ONLY",
+    "PromotionGateDecision",
+    "PromotionGateEvidence",
     "evaluate_policy",
+    "evaluate_promotion_gate",
 ]
