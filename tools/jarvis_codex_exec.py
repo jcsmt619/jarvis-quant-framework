@@ -12,6 +12,10 @@ FORBIDDEN_FLAGS = (
 )
 
 
+def normalize_prompt_text(prompt_text: str) -> str:
+    return prompt_text.lstrip("\ufeff")
+
+
 def build_codex_args(*, sandbox: str) -> list[str]:
     args = ["codex", "exec"]
 
@@ -26,14 +30,16 @@ def read_prompt(*, prompt: str, prompt_file: str) -> str:
         raise ValueError("Use either --prompt or --prompt-file, not both.")
 
     if prompt_file:
-        return Path(prompt_file).read_text(encoding="utf-8", errors="replace")
+        return normalize_prompt_text(
+            Path(prompt_file).read_text(encoding="utf-8-sig", errors="replace")
+        )
 
     if prompt:
-        return prompt
+        return normalize_prompt_text(prompt)
 
     stdin_text = sys.stdin.read()
     if stdin_text.strip():
-        return stdin_text
+        return normalize_prompt_text(stdin_text)
 
     raise ValueError("No prompt supplied. Use --prompt, --prompt-file, or stdin.")
 
@@ -57,13 +63,16 @@ def run_codex_exec(
     assert_safe_args(args)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    safe_prompt = normalize_prompt_text(prompt_text)
 
     try:
         completed = subprocess.run(
             args,
-            input=prompt_text,
+            input=safe_prompt,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout_seconds,
             check=False,
         )
@@ -86,6 +95,14 @@ def run_codex_exec(
             encoding="utf-8",
         )
         return 124
+    except Exception as exc:
+        output_path.write_text(
+            "Codex exec wrapper crashed before Codex completed.\n\n"
+            f"ERROR_TYPE: {type(exc).__name__}\n"
+            f"ERROR: {exc}\n",
+            encoding="utf-8",
+        )
+        return 1
 
     combined = (
         "COMMAND:\n"

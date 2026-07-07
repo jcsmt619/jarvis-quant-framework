@@ -84,3 +84,10 @@ def test_master_plan_autopilot_uses_repo_root_parent_directory() -> None:
 
     assert 'Join-Path $PSScriptRoot ".."' in text
     assert 'Join-Path $PSScriptRoot "."' not in text
+
+
+def test_master_plan_autopilot_handles_missing_codex_log_on_wrapper_crash() -> None:
+    text = Path("scripts/run_jarvis_master_plan_autopilot.ps1").read_text(encoding="utf-8")
+
+    assert "Codex log was not created" in text
+    assert "Test-Path $codexLog" in text
