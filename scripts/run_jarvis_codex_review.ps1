@@ -8,7 +8,9 @@ param(
 
     [switch]$RequireDiff,
 
-    [switch]$RequireSafeToCommit
+    [switch]$RequireSafeToCommit,
+
+    [switch]$SkipCodexRun
 )
 
 Set-StrictMode -Version Latest
@@ -31,11 +33,6 @@ if (-not (Test-Path $ReviewPromptPath)) {
     throw "Review prompt not found: $ReviewPromptPath"
 }
 
-$codexCommand = Get-Command codex -ErrorAction SilentlyContinue
-if (-not $codexCommand) {
-    throw "Codex CLI not found on PATH. Run this manually first in PowerShell on PC: codex"
-}
-
 if ($ChangedPath.Count -gt 0) {
     Write-Host "`n=== Register changed paths for review diff ===" -ForegroundColor Cyan
     foreach ($path in $ChangedPath) {
@@ -53,6 +50,30 @@ if ($LASTEXITCODE -ne 0) {
 
 if ($RequireDiff -and [string]::IsNullOrWhiteSpace(($diffNames -join "`n"))) {
     throw "RequireDiff was set, but there is no working-tree diff to review."
+}
+
+$reviewDir = Split-Path -Parent $OutputPath
+if ($reviewDir -and -not (Test-Path $reviewDir)) {
+    New-Item -ItemType Directory -Force -Path $reviewDir | Out-Null
+}
+
+if ($SkipCodexRun) {
+    @(
+        "CODEX REVIEW SELF-TEST ONLY"
+        "Codex execution skipped by -SkipCodexRun."
+        "Branch: $branch"
+        "Diff files:"
+        ($diffNames -join "`n")
+    ) | Set-Content -Path $OutputPath -Encoding UTF8
+
+    Write-Host "`n=== CODEX REVIEW SCRIPT SELF-TEST COMPLETE ===" -ForegroundColor Green
+    Get-Content -Path $OutputPath
+    return
+}
+
+$codexCommand = Get-Command codex -ErrorAction SilentlyContinue
+if (-not $codexCommand) {
+    throw "Codex CLI not found on PATH. Run this manually first in PowerShell on PC: codex"
 }
 
 $promptText = Get-Content -Raw -Path $ReviewPromptPath
@@ -89,14 +110,9 @@ $reviewOutput = & codex exec `
     --cd $RepoRoot `
     --sandbox read-only `
     --ask-for-approval never `
-    $fullPrompt
+    $fullPrompt 2>&1
 
 $exitCode = $LASTEXITCODE
-
-$reviewDir = Split-Path -Parent $OutputPath
-if ($reviewDir -and -not (Test-Path $reviewDir)) {
-    New-Item -ItemType Directory -Force -Path $reviewDir | Out-Null
-}
 
 $reviewOutput | Set-Content -Path $OutputPath -Encoding UTF8
 
@@ -104,12 +120,14 @@ Write-Host "`n=== CODEX REVIEW OUTPUT SAVED ===" -ForegroundColor Green
 Write-Host $OutputPath
 
 if ($exitCode -ne 0) {
+    Get-Content -Path $OutputPath
     throw "Codex review failed with exit code $exitCode"
 }
 
 if ($RequireSafeToCommit) {
     $reviewText = ($reviewOutput -join "`n")
     if ($reviewText -notmatch "SAFE TO COMMIT:\s*YES") {
+        Get-Content -Path $OutputPath
         throw "Codex review did not return SAFE TO COMMIT: YES"
     }
 }
