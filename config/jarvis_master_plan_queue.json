@@ -229,5 +229,19 @@
     "branch": "agent/21b-operator-acknowledgment-ledger",
     "commit_message": "feat: add operator acknowledgment ledger",
     "spec": "Build 21B Operator Acknowledgment Ledger from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown ledgers for human review acknowledgments, rejections, deferrals, and notes for items from the 21A Human Review Queue. It should preserve immutable review-item IDs, timestamps, operator note fields, review status, safety labels, and blocked-workflow references. It must explicitly prevent acknowledgments from enabling live trading, broker routing, broker calls, order execution, or automatic actions. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "22A",
+    "title": "Human Review Closeout Gate",
+    "branch": "agent/22a-human-review-closeout-gate",
+    "commit_message": "feat: add human review closeout gate",
+    "spec": "Build 22A Human Review Closeout Gate from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown closeout-gate reports from the 21B operator acknowledgment ledger, 21A human review queue, 20A readiness gate, 20B retention policy, 19B audit summary, 19A research cycle manifest, 18B release bundle, 17B dashboard snapshot, report index, safe workflow catalog, queue status, and safety scanner status. It should classify the review cycle as CLOSED_FOR_RECORDS_ONLY, NEEDS_OPERATOR_REVIEW, or BLOCKED_BY_SAFETY_GATE. It must list unresolved review items, rejected items, deferred items, unmatched acknowledgments, blocked workflows, missing artifacts, stale artifacts, safety findings, and required next human-review actions. It must not create trade instructions, broker actions, live-trading approvals, automatic actions, or execution permissions. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "22B",
+    "title": "Operator Signoff Packet",
+    "branch": "agent/22b-operator-signoff-packet",
+    "commit_message": "feat: add operator signoff packet",
+    "spec": "Build 22B Operator Signoff Packet from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown signoff packets from the 22A closeout gate, 21B operator acknowledgment ledger, 21A human review queue, 20A readiness gate, 20B retention policy, 19B audit summary, 19A manifest, 18B release bundle, dashboard snapshot, report index, safe workflow catalog, and queue status. It should provide a final human-readable research-cycle signoff summary with completed items, open items, blocked items, rejected items, deferred items, missing artifacts, stale artifacts, retention items, and safety boundary confirmation. It must explicitly state that signoff is records-only and does not enable live trading, broker routing, broker calls, order execution, or automatic actions. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
   }
 ]
