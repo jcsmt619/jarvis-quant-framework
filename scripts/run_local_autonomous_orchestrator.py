@@ -12,6 +12,11 @@ from automation.orchestrator_audit import (
     build_audit_event,
 )
 from automation.orchestrator_controls import read_control_state
+from automation.orchestrator_heartbeat import (
+    HEARTBEAT_FILE_NAME,
+    build_heartbeat,
+    write_heartbeat,
+)
 from automation.orchestrator_session import (
     SESSION_MANIFESTS_DIR_NAME,
     build_session_manifest,
@@ -77,6 +82,43 @@ def _write_audit(
     return append_audit_event(event, audit_dir=audit_dir)
 
 
+def _write_heartbeat(
+    *,
+    heartbeat_file: Path,
+    session_id: str,
+    cycle_number: int | None,
+    symbol: str,
+    engine: str,
+    last_decision: str,
+    cycles_attempted: int,
+    max_cycles: int,
+    control_state,
+    audit_ledger_path: Path,
+    session_manifest_path: Path,
+    enable_real_email_send: bool,
+    notes: list[str] | None = None,
+    now: datetime | None = None,
+) -> Path:
+    hb = build_heartbeat(
+        session_id=session_id,
+        cycle_number=cycle_number,
+        symbol=symbol,
+        engine=engine,
+        last_decision=last_decision,
+        cycles_attempted=cycles_attempted,
+        max_cycles=max_cycles,
+        stop_requested=control_state.stop_requested,
+        pause_requested=control_state.pause_requested,
+        resume_marker_present=control_state.resume_marker_present,
+        audit_ledger_path=audit_ledger_path,
+        session_manifest_path=session_manifest_path,
+        real_email_send_enabled=enable_real_email_send,
+        notes=notes or [],
+        now=now,
+    )
+    return write_heartbeat(hb, path=heartbeat_file)
+
+
 def run_local_autonomous_orchestrator(
     *,
     env_file: Path | None = Path(".env"),
@@ -84,6 +126,7 @@ def run_local_autonomous_orchestrator(
     orchestrator_dir: Path = Path("reports/orchestrator"),
     audit_dir: Path | None = None,
     session_dir: Path | None = None,
+    heartbeat_file: Path | None = None,
     session_id: str | None = None,
     symbol: str = "EEM",
     limit: int = 120,
@@ -100,6 +143,7 @@ def run_local_autonomous_orchestrator(
     orchestrator_dir.mkdir(parents=True, exist_ok=True)
     audit_dir = audit_dir or (orchestrator_dir / "audit")
     session_dir = session_dir or (orchestrator_dir / SESSION_MANIFESTS_DIR_NAME)
+    heartbeat_file = heartbeat_file or (orchestrator_dir / HEARTBEAT_FILE_NAME)
     audit_dir.mkdir(parents=True, exist_ok=True)
     session_dir.mkdir(parents=True, exist_ok=True)
 
@@ -133,12 +177,47 @@ def run_local_autonomous_orchestrator(
             notes=notes or [],
         )
         path = write_session_manifest(manifest, session_dir=session_dir)
+        _write_heartbeat(
+            heartbeat_file=heartbeat_file,
+            session_id=actual_session_id,
+            cycle_number=None,
+            symbol=symbol,
+            engine=engine,
+            last_decision=final_decision,
+            cycles_attempted=cycles_attempted,
+            max_cycles=max_cycles,
+            control_state=end_state,
+            audit_ledger_path=ledger_path,
+            session_manifest_path=session_manifest_path,
+            enable_real_email_send=enable_real_email_send,
+            notes=notes or [],
+            now=now,
+        )
         print(f"Session manifest written: {path}")
+        print(f"Heartbeat written: {heartbeat_file}")
         return final_return_code
+
+    _write_heartbeat(
+        heartbeat_file=heartbeat_file,
+        session_id=actual_session_id,
+        cycle_number=None,
+        symbol=symbol,
+        engine=engine,
+        last_decision="SESSION_STARTED",
+        cycles_attempted=0,
+        max_cycles=max_cycles,
+        control_state=control_state,
+        audit_ledger_path=ledger_path,
+        session_manifest_path=session_manifest_path,
+        enable_real_email_send=enable_real_email_send,
+        notes=["session started"],
+        now=now,
+    )
 
     print("LOCAL AUTONOMOUS ORCHESTRATOR REPORT")
     print(f"Session id: {actual_session_id}")
     print(f"Session manifest path: {session_manifest_path}")
+    print(f"Heartbeat path: {heartbeat_file}")
     print(f"Symbol: {symbol}")
     print(f"Engine: {engine}")
     print(f"Max cycles: {max_cycles}")
@@ -225,6 +304,23 @@ def run_local_autonomous_orchestrator(
             print("LIVE TRADING: DISABLED")
             return finalize(decision, 0, cycles_attempted, ["pause requested before cycle"])
 
+        _write_heartbeat(
+            heartbeat_file=heartbeat_file,
+            session_id=actual_session_id,
+            cycle_number=cycle_number,
+            symbol=symbol,
+            engine=engine,
+            last_decision="CYCLE_STARTED",
+            cycles_attempted=cycles_attempted,
+            max_cycles=max_cycles,
+            control_state=control_state,
+            audit_ledger_path=ledger_path,
+            session_manifest_path=session_manifest_path,
+            enable_real_email_send=enable_real_email_send,
+            notes=[f"cycle {cycle_number} started"],
+            now=now,
+        )
+
         print(f"--- ORCHESTRATOR CYCLE {cycle_number} START ---")
         code = runner(
             env_file=env_file,
@@ -248,6 +344,22 @@ def run_local_autonomous_orchestrator(
             decision=decision,
             cycle_return_code=code,
             control_state=control_state,
+            enable_real_email_send=enable_real_email_send,
+            notes=["cycle runner returned"],
+            now=now,
+        )
+        _write_heartbeat(
+            heartbeat_file=heartbeat_file,
+            session_id=actual_session_id,
+            cycle_number=cycle_number,
+            symbol=symbol,
+            engine=engine,
+            last_decision=decision,
+            cycles_attempted=cycles_attempted,
+            max_cycles=max_cycles,
+            control_state=control_state,
+            audit_ledger_path=ledger_path,
+            session_manifest_path=session_manifest_path,
             enable_real_email_send=enable_real_email_send,
             notes=["cycle runner returned"],
             now=now,
@@ -297,6 +409,7 @@ def main() -> int:
     parser.add_argument("--orchestrator-dir", type=Path, default=Path("reports/orchestrator"))
     parser.add_argument("--audit-dir", type=Path, default=None)
     parser.add_argument("--session-dir", type=Path, default=None)
+    parser.add_argument("--heartbeat-file", type=Path, default=None)
     parser.add_argument("--session-id", default=None)
     parser.add_argument("--symbol", default="EEM")
     parser.add_argument("--limit", type=int, default=120)
@@ -314,6 +427,7 @@ def main() -> int:
         orchestrator_dir=args.orchestrator_dir,
         audit_dir=args.audit_dir,
         session_dir=args.session_dir,
+        heartbeat_file=args.heartbeat_file,
         session_id=args.session_id,
         symbol=args.symbol,
         limit=args.limit,
