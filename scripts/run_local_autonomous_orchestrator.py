@@ -20,6 +20,7 @@ from automation.orchestrator_heartbeat import (
 from automation.orchestrator_inbox_scaffold import evaluate_inbox_processing_scaffold
 from automation.orchestrator_inbox_processor_hook import evaluate_inbox_processor_hook
 from automation.orchestrator_inbox_processor_bridge import evaluate_inbox_processor_dry_run_bridge
+from automation.orchestrator_real_inbox_gate import evaluate_real_gmail_inbox_read_gate
 from automation.orchestrator_session import (
     SESSION_MANIFESTS_DIR_NAME,
     build_session_manifest,
@@ -131,6 +132,7 @@ def run_local_autonomous_orchestrator(
     session_dir: Path | None = None,
     heartbeat_file: Path | None = None,
     enable_inbox_processing: bool = False,
+    enable_real_gmail_inbox_read: bool = False,
     inbox_confirmation: str | None = None,
     session_id: str | None = None,
     symbol: str = "EEM",
@@ -169,7 +171,12 @@ def run_local_autonomous_orchestrator(
     inbox_processor_bridge = evaluate_inbox_processor_dry_run_bridge(
         enable_inbox_processing=enable_inbox_processing,
         confirmation=inbox_confirmation,
-        enable_real_gmail_inbox_read=False,
+        enable_real_gmail_inbox_read=enable_real_gmail_inbox_read,
+    )
+    real_inbox_gate = evaluate_real_gmail_inbox_read_gate(
+        enable_inbox_processing=enable_inbox_processing,
+        enable_real_gmail_inbox_read=enable_real_gmail_inbox_read,
+        confirmation=inbox_confirmation,
     )
     ledger_path = audit_dir / AUDIT_LEDGER_FILE_NAME
     session_manifest_path = session_dir / f"{actual_session_id}.json"
@@ -270,6 +277,14 @@ def run_local_autonomous_orchestrator(
     print(f"Inbox processor bridge decision: {inbox_processor_bridge.decision}")
     print(f"Inbox processor bridge blocked reasons: {inbox_processor_bridge.blocked_reasons}")
     print(f"Approval records updated: {inbox_processor_bridge.approval_records_updated}")
+    print(f"Real Gmail inbox read requested: {str(real_inbox_gate.real_gmail_inbox_read_requested).lower()}")
+    print(f"Real Gmail inbox read confirmation accepted: {str(real_inbox_gate.confirmation_accepted).lower()}")
+    print(f"Real Gmail inbox read gate allowed: {str(real_inbox_gate.gate_allowed).lower()}")
+    print(f"Real Gmail inbox read attempted: {str(real_inbox_gate.attempted).lower()}")
+    print(f"Real Gmail inbox read performed: {str(real_inbox_gate.real_gmail_inbox_read_performed).lower()}")
+    print(f"Real Gmail inbox read decision: {real_inbox_gate.decision}")
+    print(f"Real Gmail inbox read blocked reasons: {real_inbox_gate.blocked_reasons}")
+    print(f"Approval records updated: {real_inbox_gate.approval_records_updated}")
     print("Paper arm enabled: false")
     print("Broker order call performed: false")
     print("LIVE TRADING: DISABLED")
@@ -449,6 +464,7 @@ def main() -> int:
     parser.add_argument("--session-dir", type=Path, default=None)
     parser.add_argument("--heartbeat-file", type=Path, default=None)
     parser.add_argument("--enable-inbox-processing", action="store_true")
+    parser.add_argument("--enable-real-gmail-inbox-read", action="store_true")
     parser.add_argument("--inbox-confirmation", default=None)
     parser.add_argument("--session-id", default=None)
     parser.add_argument("--symbol", default="EEM")
@@ -469,6 +485,7 @@ def main() -> int:
         session_dir=args.session_dir,
         heartbeat_file=args.heartbeat_file,
         enable_inbox_processing=args.enable_inbox_processing,
+        enable_real_gmail_inbox_read=args.enable_real_gmail_inbox_read,
         inbox_confirmation=args.inbox_confirmation,
         session_id=args.session_id,
         symbol=args.symbol,
