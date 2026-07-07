@@ -64,9 +64,21 @@ def test_15b_builds_deterministic_operator_runbook_payload() -> None:
     assert first["safety_boundary"]["real_paper_order_submitted"] is False
     assert first["safety_boundary"]["broker_order_call_performed"] is False
     assert first["safety_boundary"]["broker_order_routing_enabled"] is False
+    assert first["safety_boundary"]["broker_routing_used"] is False
+    assert first["safety_boundary"]["broker_call_used"] is False
+    assert first["safety_boundary"]["order_execution_used"] is False
     assert first["safety_boundary"]["live_trading_enabled"] is False
     assert first["safety_boundary"]["secrets_required"] is False
+    assert first["safety_boundary"]["credential_file_used"] is False
+    assert first["safety_boundary"]["prohibited_trade_labels_present"] is False
     assert first["safety_boundary"]["status"] == "LIVE TRADING: DISABLED"
+    assert first["required_labels"] == [
+        "RESEARCH_ONLY",
+        "MONITOR_ONLY",
+        "PAPER_ONLY",
+        "HUMAN_REVIEW_REQUIRED",
+        "BLOCKED_BY_SAFETY_GATE",
+    ]
     assert [section["section_id"] for section in first["checklists"]] == [
         "daily_startup",
         "safety_preflight",
@@ -239,6 +251,11 @@ def test_15b_runner_writes_reports() -> None:
         assert completed.returncode == 0
         assert "JARVIS 15B OPERATOR RUNBOOK: COMPLETE" in completed.stdout
         assert "LIVE TRADING: DISABLED" in completed.stdout
+        assert "BLOCKED_BY_SAFETY_GATE workflows remain blocked" in completed.stdout
+        assert (
+            "No secrets, credential files, broker routing, broker calls, or order execution are used"
+            in completed.stdout
+        )
         assert (out_dir / "operator_runbook.json").exists()
         assert (out_dir / "operator_runbook.md").exists()
     finally:
