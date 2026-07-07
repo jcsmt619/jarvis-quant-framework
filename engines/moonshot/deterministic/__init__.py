@@ -1,5 +1,11 @@
 """Repeatable Moonshot engine monitor and scoring modules."""
 
+from engines.moonshot.deterministic.crypto_risk_guard import (
+    CryptoRiskGuardConfig,
+    CryptoRiskGuardResult,
+    CryptoRiskSnapshot,
+    evaluate_crypto_risk_guard,
+)
 from engines.moonshot.deterministic.options_research import (
     GreeksSnapshot,
     OptionThesis,
@@ -15,6 +21,9 @@ from engines.moonshot.deterministic.simulator import (
 )
 
 __all__ = [
+    "CryptoRiskGuardConfig",
+    "CryptoRiskGuardResult",
+    "CryptoRiskSnapshot",
     "MoonshotScenario",
     "MoonshotSimulationResult",
     "MoonshotSimulatorConfig",
@@ -23,5 +32,6 @@ __all__ = [
     "OptionsResearchConfig",
     "OptionsResearchMemo",
     "build_options_research_memo",
+    "evaluate_crypto_risk_guard",
     "simulate_moonshot_scenarios",
 ]
