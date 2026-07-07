@@ -76,7 +76,7 @@ def test_orchestrator_writes_success_cycle_audit(capsys, tmp_path):
     events = [
         event
         for event in events
-        if event.get("event_type") != "orchestrator_inbox_processor_state"
+        if event.get("event_type") not in {"orchestrator_inbox_processor_state", "orchestrator_approval_receipt_state"}
     ]
 
     assert code == 0
@@ -119,7 +119,7 @@ def test_orchestrator_writes_pause_block_audit(capsys, tmp_path):
     events = [
         event
         for event in events
-        if event.get("event_type") != "orchestrator_inbox_processor_state"
+        if event.get("event_type") not in {"orchestrator_inbox_processor_state", "orchestrator_approval_receipt_state"}
     ]
 
     assert code == 0
@@ -150,7 +150,7 @@ def test_orchestrator_writes_failure_audit(capsys, tmp_path):
     events = [
         event
         for event in events
-        if event.get("event_type") != "orchestrator_inbox_processor_state"
+        if event.get("event_type") not in {"orchestrator_inbox_processor_state", "orchestrator_approval_receipt_state"}
     ]
 
     assert code == 7

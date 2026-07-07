@@ -347,6 +347,22 @@ def run_local_autonomous_orchestrator(
     print(f"Paper arm enabled: {str(approval_receipt_state.paper_arm_enabled).lower()}")
     print("Broker order call performed: false")
     print("LIVE TRADING: DISABLED")
+    _write_audit(
+        audit_dir=audit_dir,
+        event_type="orchestrator_approval_receipt_state",
+        cycle_number=None,
+        symbol=symbol,
+        engine=engine,
+        decision=approval_receipt_state.approval_status,
+        cycle_return_code=None,
+        control_state=control_state,
+        enable_real_email_send=enable_real_email_send,
+        notes=approval_receipt_runtime_notes,
+        now=now,
+    )
+    print("Approval receipt audit integration enabled: true")
+    print("Approval receipt heartbeat integration enabled: true")
+    print("Approval receipt audit event written: true")
 
     if max_cycles <= 0:
         _write_audit(
