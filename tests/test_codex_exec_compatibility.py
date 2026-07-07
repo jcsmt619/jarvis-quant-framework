@@ -1,8 +1,8 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from pathlib import Path
 
-from tools.jarvis_codex_exec import build_codex_args
+from tools.jarvis_codex_exec import build_codex_args, normalize_prompt_text
 
 
 def test_codex_wrapper_does_not_emit_broken_approval_flags() -> None:
@@ -51,3 +51,15 @@ def test_supervisor_loop_uses_compatibility_wrapper_for_repairs() -> None:
     assert "CodexRepairSandbox" in text
     assert "--ask-for-approval" not in text
     assert "--approval-policy" not in text
+
+
+def test_codex_wrapper_strips_utf8_bom_from_prompt_text() -> None:
+    assert normalize_prompt_text("\ufeffReply with exactly CODEX_OK.") == "Reply with exactly CODEX_OK."
+
+
+def test_codex_wrapper_uses_explicit_utf8_subprocess_encoding() -> None:
+    text = Path("tools/jarvis_codex_exec.py").read_text(encoding="utf-8")
+
+    assert 'encoding="utf-8"' in text
+    assert 'errors="replace"' in text
+    assert "utf-8-sig" in text

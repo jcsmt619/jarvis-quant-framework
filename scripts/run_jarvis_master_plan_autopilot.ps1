@@ -286,7 +286,11 @@ foreach ($phase in $phases) {
         --timeout-seconds 600
 
     if ($LASTEXITCODE -ne 0) {
-        Get-Content -Path $codexLog
+        if (Test-Path $codexLog) {
+            Get-Content -Path $codexLog
+        } else {
+            Write-Host "Codex log was not created: $codexLog" -ForegroundColor Yellow
+        }
         throw "Codex roadmap patch failed for $($phase.phase). STOP."
     }
 
