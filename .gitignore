@@ -63,3 +63,7 @@ browser-mcp/node_modules/
 
 # Local paper-trading runtime reports
 reports/paper_trading/
+# Jarvis generated local reports
+reports/codex_probe/
+reports/codex_exec/
+reports/supervisor_runs/
