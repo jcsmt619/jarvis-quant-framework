@@ -10,6 +10,7 @@ Use this lane for repeatable LEAPS research components:
 - dashboard alert state
 - research-only option thesis memos with Greeks-aware risk notes and
   expiration handling
+- static options monitor dashboards and JSON/Markdown report outputs
 - research-only crypto risk guards for drawdown, liquidity, volatility, and
   stale market data warnings
 
