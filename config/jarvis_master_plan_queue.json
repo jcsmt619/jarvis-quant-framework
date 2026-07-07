@@ -173,5 +173,19 @@
     "branch": "agent/17b-operator-dashboard-snapshot",
     "commit_message": "feat: add operator dashboard snapshot",
     "spec": "Build 17B Operator Dashboard Snapshot workflow from the Jarvis Quant master roadmap. It should generate a deterministic read-only JSON and Markdown dashboard snapshot for the human operator, summarizing current system state, latest report index entries, daily research status, weekly review status, evidence pack status, decision journal status, operator runbook status, queue status, blocked workflows, and safety scanner status. It must clearly separate allowed human-review workflows from blocked workflows. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "18A",
+    "title": "Safe Workflow Catalog",
+    "branch": "agent/18a-safe-workflow-catalog",
+    "commit_message": "feat: add safe workflow catalog",
+    "spec": "Build 18A Safe Workflow Catalog from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown catalogs of safe Jarvis workflows, including report generators, operator dashboards, evidence packs, decision journals, weekly reviews, daily research summaries, safety scanners, and queue readers. For each workflow, record command hints, input paths, output paths, required labels, safety status, allowed human-review behavior, and blocked behavior. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "18B",
+    "title": "Research Release Bundle",
+    "branch": "agent/18b-research-release-bundle",
+    "commit_message": "feat: add research release bundle",
+    "spec": "Build 18B Research Release Bundle from the Jarvis Quant master roadmap. It should generate a deterministic read-only JSON and Markdown release bundle manifest for the human operator, tying together the report index, operator dashboard snapshot, research evidence pack, decision journal, operator runbook, weekly review, daily research command center, safe workflow catalog, queue status, and safety scanner status. It should include paths, labels, generated timestamps, missing artifact statuses, and blocked workflow summaries. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
   }
 ]
