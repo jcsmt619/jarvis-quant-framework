@@ -187,5 +187,19 @@
     "branch": "agent/18b-research-release-bundle",
     "commit_message": "feat: add research release bundle",
     "spec": "Build 18B Research Release Bundle from the Jarvis Quant master roadmap. It should generate a deterministic read-only JSON and Markdown release bundle manifest for the human operator, tying together the report index, operator dashboard snapshot, research evidence pack, decision journal, operator runbook, weekly review, daily research command center, safe workflow catalog, queue status, and safety scanner status. It should include paths, labels, generated timestamps, missing artifact statuses, and blocked workflow summaries. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "19A",
+    "title": "Research Cycle Runner",
+    "branch": "agent/19a-research-cycle-runner",
+    "commit_message": "feat: add research cycle runner",
+    "spec": "Build 19A Research Cycle Runner from the Jarvis Quant master roadmap. It should provide a deterministic, repo-local runner that executes the safe research/reporting cycle in order: daily research command center, weekly review when requested or stubbed, operator runbook, research evidence pack, decision journal, report index, operator dashboard snapshot, safe workflow catalog, and research release bundle. It should write a JSON and Markdown cycle manifest with command outcomes, artifact paths, skipped steps, missing artifacts, blocked workflows, and safety scanner status. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "19B",
+    "title": "Research Cycle Audit Summary",
+    "branch": "agent/19b-research-cycle-audit-summary",
+    "commit_message": "feat: add research cycle audit summary",
+    "spec": "Build 19B Research Cycle Audit Summary from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown audit summaries for a completed 19A research cycle, including cycle manifest status, generated reports, missing artifacts, skipped steps, blocked workflows, safety scanner status, release bundle status, dashboard status, queue status, and human review notes. It should clearly separate allowed human-review workflows from blocked workflows. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
   }
 ]
