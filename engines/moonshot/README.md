@@ -14,3 +14,10 @@ watchlist conditions, summarize news, and produce human-review-required memos.
 Moonshot outputs are research-only, monitor-only, paper-only, or
 human-review-required. This engine must not place options trades or route
 orders.
+
+## 11B Risk Policy
+
+The Moonshot risk policy is defined as `MOONSHOT_RISK_POLICY` in
+`risk.policies`. It is `RESEARCH_ONLY`, `MONITOR_ONLY`, `PAPER_ONLY`, and
+`HUMAN_REVIEW_REQUIRED`, with max loss, drawdown, position sizing, promotion
+gate, and stop-condition limits for LEAPS research. LIVE TRADING: DISABLED.

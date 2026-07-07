@@ -31,3 +31,10 @@ Allowed safety labels are:
 This structure does not add broker adapters, order routing, or live execution.
 Engine outputs are research, monitoring, paper-only drills, or human-review
 records. LIVE TRADING: DISABLED.
+
+## 11B Risk Policies
+
+Wealth and Moonshot risk policies live in `risk.policies`. They define
+research-only and paper-only limits for max loss, drawdown, position sizing,
+promotion gates, and stop conditions. Policy decisions can return
+`BLOCKED_BY_SAFETY_GATE` but cannot enable live execution or broker routing.
