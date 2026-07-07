@@ -257,5 +257,19 @@
     "branch": "agent/23b-research-cycle-archive-index",
     "commit_message": "feat: add research cycle archive index",
     "spec": "Build 23B Research Cycle Archive Index from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown archive-index reports from the 23A research operations console, 22B operator signoff packet, 22A closeout gate, 21B ledger, 21A queue, 20A readiness gate, 20B retention policy, 19B audit summary, 19A manifest, 18B release bundle, dashboard snapshot, report index, safe workflow catalog, and queue status. It should index completed research-cycle artifacts, source artifact paths, artifact status, safety labels, generated dates, signoff state, retention action, archive eligibility, blocked-delete status, and human-review notes. It must not delete, move, rename, compress, or mutate artifacts. It may only produce a read-only archive index and dry-run archive manifest. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "24A",
+    "title": "Research Cycle Rollover Gate",
+    "branch": "agent/24a-research-cycle-rollover-gate",
+    "commit_message": "feat: add research cycle rollover gate",
+    "spec": "Build 24A Research Cycle Rollover Gate from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown rollover-gate reports from the 23B research cycle archive index, 23A research operations console, 22B operator signoff packet, 22A human review closeout gate, 21B operator acknowledgment ledger, 21A human review queue, 20A readiness gate, 20B retention policy, 19B audit summary, 19A research cycle manifest, 18B release bundle, report index, safe workflow catalog, queue status, and safety scanner status. It should classify whether the completed research cycle is ROLLOVER_READY_FOR_HUMAN_REVIEW, NEEDS_OPERATOR_REVIEW, or BLOCKED_BY_SAFETY_GATE. It must list unresolved items, missing artifacts, stale artifacts, blocked items, safety findings, archive-index findings, retention items, signoff state, and required operator actions before the next cycle. It must be read-only and records-only. It must not create trade instructions, broker actions, live-trading approvals, automatic actions, or execution permissions. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "24B",
+    "title": "Next Research Cycle Plan",
+    "branch": "agent/24b-next-research-cycle-plan",
+    "commit_message": "feat: add next research cycle plan",
+    "spec": "Build 24B Next Research Cycle Plan from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown planning reports from the 24A rollover gate, 23B archive index, 23A operations console, 22B signoff packet, 20A readiness gate, 20B retention policy, report index, safe workflow catalog, queue status, and safety scanner status. It should propose a records-only next-cycle plan with planned research/report workflows, required refreshed artifacts, blocked prerequisites, operator review items, safety preflight items, data-quality checks, and next-cycle acceptance criteria. It must not run the next cycle, mutate artifacts, delete artifacts, create broker actions, create trade instructions, enable live trading, or grant execution permissions. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
   }
 ]
