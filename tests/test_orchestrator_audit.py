@@ -73,6 +73,11 @@ def test_orchestrator_writes_success_cycle_audit(capsys, tmp_path):
     )
     output = capsys.readouterr().out
     events = read_audit_events(audit_dir=tmp_path / "audit")
+    events = [
+        event
+        for event in events
+        if event.get("event_type") != "orchestrator_inbox_processor_state"
+    ]
 
     assert code == 0
     assert len(calls) == 1
@@ -111,6 +116,11 @@ def test_orchestrator_writes_pause_block_audit(capsys, tmp_path):
     )
     output = capsys.readouterr().out
     events = read_audit_events(audit_dir=tmp_path / "audit")
+    events = [
+        event
+        for event in events
+        if event.get("event_type") != "orchestrator_inbox_processor_state"
+    ]
 
     assert code == 0
     assert calls == []
@@ -137,6 +147,11 @@ def test_orchestrator_writes_failure_audit(capsys, tmp_path):
     )
     output = capsys.readouterr().out
     events = read_audit_events(audit_dir=tmp_path / "audit")
+    events = [
+        event
+        for event in events
+        if event.get("event_type") != "orchestrator_inbox_processor_state"
+    ]
 
     assert code == 7
     assert len(events) == 1

@@ -41,6 +41,7 @@ def run_orchestrator_heartbeat_report(
     print(f"Paper arm enabled: {str(data.get('paper_arm_enabled')).lower()}")
     print(f"Broker order call performed: {str(data.get('broker_order_call_performed')).lower()}")
     print(f"Live trading enabled: {str(data.get('live_trading_enabled')).lower()}")
+    print(f"Heartbeat notes: {data.get('notes')}")
     print("Broker order call performed: false")
     print("LIVE TRADING: DISABLED")
     return 0

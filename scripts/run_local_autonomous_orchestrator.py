@@ -22,6 +22,7 @@ from automation.orchestrator_inbox_processor_hook import evaluate_inbox_processo
 from automation.orchestrator_inbox_processor_bridge import evaluate_inbox_processor_dry_run_bridge
 from automation.orchestrator_real_inbox_gate import evaluate_real_gmail_inbox_read_gate
 from automation.orchestrator_inbox_processor_once import run_orchestrator_inbox_processor_once
+from automation.orchestrator_inbox_runtime_record import build_inbox_processor_runtime_notes
 from automation.orchestrator_session import (
     SESSION_MANIFESTS_DIR_NAME,
     build_session_manifest,
@@ -191,6 +192,7 @@ def run_local_autonomous_orchestrator(
     )
     ledger_path = audit_dir / AUDIT_LEDGER_FILE_NAME
     session_manifest_path = session_dir / f"{actual_session_id}.json"
+    inbox_processor_runtime_notes = build_inbox_processor_runtime_notes(inbox_processor_once)
 
     def finalize(final_decision: str, final_return_code: int, cycles_attempted: int, notes: list[str] | None = None) -> int:
         end_state = read_control_state(orchestrator_dir)
@@ -228,7 +230,7 @@ def run_local_autonomous_orchestrator(
             audit_ledger_path=ledger_path,
             session_manifest_path=session_manifest_path,
             enable_real_email_send=enable_real_email_send,
-            notes=notes or [],
+            notes=(notes or []) + inbox_processor_runtime_notes,
             now=now,
         )
         print(f"Session manifest written: {path}")
@@ -307,6 +309,22 @@ def run_local_autonomous_orchestrator(
     print("Paper arm enabled: false")
     print("Broker order call performed: false")
     print("LIVE TRADING: DISABLED")
+    _write_audit(
+        audit_dir=audit_dir,
+        event_type="orchestrator_inbox_processor_state",
+        cycle_number=None,
+        symbol=symbol,
+        engine=engine,
+        decision=inbox_processor_once.decision,
+        cycle_return_code=inbox_processor_once.processor_return_code,
+        control_state=control_state,
+        enable_real_email_send=enable_real_email_send,
+        notes=inbox_processor_runtime_notes,
+        now=now,
+    )
+    print("Inbox processor audit integration enabled: true")
+    print("Inbox processor heartbeat integration enabled: true")
+    print("Inbox processor audit event written: true")
 
     if max_cycles <= 0:
         _write_audit(
