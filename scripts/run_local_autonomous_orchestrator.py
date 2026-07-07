@@ -31,6 +31,10 @@ from automation.orchestrator_paper_arm_bridge import (
     build_paper_arm_bridge_runtime_notes,
     evaluate_orchestrator_paper_arm_bridge,
 )
+from automation.orchestrator_paper_arm_drill import (
+    build_paper_arm_drill_runtime_notes,
+    run_orchestrator_paper_arm_drill,
+)
 from automation.orchestrator_session import (
     SESSION_MANIFESTS_DIR_NAME,
     build_session_manifest,
@@ -148,6 +152,8 @@ def run_local_autonomous_orchestrator(
     approval_id: str | None = None,
     enable_paper_arm: bool = False,
     paper_arm_confirmation: str | None = None,
+    enable_paper_arm_drill: bool = False,
+    paper_arm_drill_confirmation: str | None = None,
     session_id: str | None = None,
     symbol: str = "EEM",
     limit: int = 120,
@@ -159,6 +165,7 @@ def run_local_autonomous_orchestrator(
     email_confirmation: str | None = None,
     injected_cycle_runner: Callable[..., int] | None = None,
     injected_inbox_processor_once: Callable[[], int] | None = None,
+    injected_paper_arm_drill: Callable[[], int] | None = None,
     now: datetime | None = None,
 ) -> int:
     approvals_dir.mkdir(parents=True, exist_ok=True)
@@ -216,6 +223,19 @@ def run_local_autonomous_orchestrator(
         approval_receipt_gate_allowed=approval_receipt_state.gate_allowed,
     )
     paper_arm_bridge_runtime_notes = build_paper_arm_bridge_runtime_notes(paper_arm_bridge_state)
+    paper_arm_bridge_allows_drill = bool(
+        paper_arm_bridge_state.paper_arm_requested
+        and paper_arm_bridge_state.paper_arm_confirmation_accepted
+        and paper_arm_bridge_state.approval_receipt_gate_allowed
+    )
+    paper_arm_drill_state = run_orchestrator_paper_arm_drill(
+        enable_paper_arm_drill=enable_paper_arm_drill,
+        paper_arm_drill_confirmation=paper_arm_drill_confirmation,
+        approval_receipt_gate_allowed=approval_receipt_state.gate_allowed,
+        paper_arm_bridge_allows_drill=paper_arm_bridge_allows_drill,
+        paper_arm_callable=injected_paper_arm_drill,
+    )
+    paper_arm_drill_runtime_notes = build_paper_arm_drill_runtime_notes(paper_arm_drill_state)
 
     def finalize(final_decision: str, final_return_code: int, cycles_attempted: int, notes: list[str] | None = None) -> int:
         end_state = read_control_state(orchestrator_dir)
@@ -253,7 +273,7 @@ def run_local_autonomous_orchestrator(
             audit_ledger_path=ledger_path,
             session_manifest_path=session_manifest_path,
             enable_real_email_send=enable_real_email_send,
-            notes=(notes or []) + inbox_processor_runtime_notes + approval_receipt_runtime_notes + paper_arm_bridge_runtime_notes,
+            notes=(notes or []) + inbox_processor_runtime_notes + approval_receipt_runtime_notes + paper_arm_bridge_runtime_notes + paper_arm_drill_runtime_notes,
             now=now,
         )
         print(f"Session manifest written: {path}")
@@ -402,6 +422,19 @@ def run_local_autonomous_orchestrator(
     print("Paper arm bridge audit integration enabled: true")
     print("Paper arm bridge heartbeat integration enabled: true")
     print("Paper arm bridge audit event written: true")
+    print(f"Paper arm drill integrated: {str(paper_arm_drill_state.integrated).lower()}")
+    print(f"Paper arm drill requested: {str(paper_arm_drill_state.paper_arm_drill_requested).lower()}")
+    print(f"Paper arm drill confirmation accepted: {str(paper_arm_drill_state.paper_arm_drill_confirmation_accepted).lower()}")
+    print(f"Paper arm bridge allows drill: {str(paper_arm_drill_state.paper_arm_bridge_allows_drill).lower()}")
+    print(f"Injected paper arm callable wired: {str(paper_arm_drill_state.injected_paper_arm_callable_wired).lower()}")
+    print(f"Paper arm drill attempted: {str(paper_arm_drill_state.paper_arm_drill_attempted).lower()}")
+    print(f"Paper arm drill return code: {paper_arm_drill_state.paper_arm_drill_return_code}")
+    print(f"Paper arm drill decision: {paper_arm_drill_state.decision}")
+    print(f"Paper arm drill blocked reasons: {paper_arm_drill_state.blocked_reasons}")
+    print(f"Real paper order submitted: {str(paper_arm_drill_state.real_paper_order_submitted).lower()}")
+    print("Paper arm enabled: false")
+    print("Broker order call performed: false")
+    print("LIVE TRADING: DISABLED")
 
     if max_cycles <= 0:
         _write_audit(
@@ -584,6 +617,8 @@ def main() -> int:
     parser.add_argument("--approval-id", default=None)
     parser.add_argument("--enable-paper-arm", action="store_true")
     parser.add_argument("--paper-arm-confirmation", default=None)
+    parser.add_argument("--enable-paper-arm-drill", action="store_true")
+    parser.add_argument("--paper-arm-drill-confirmation", default=None)
     parser.add_argument("--session-id", default=None)
     parser.add_argument("--symbol", default="EEM")
     parser.add_argument("--limit", type=int, default=120)
@@ -609,6 +644,8 @@ def main() -> int:
         approval_id=args.approval_id,
         enable_paper_arm=args.enable_paper_arm,
         paper_arm_confirmation=args.paper_arm_confirmation,
+        enable_paper_arm_drill=args.enable_paper_arm_drill,
+        paper_arm_drill_confirmation=args.paper_arm_drill_confirmation,
         session_id=args.session_id,
         symbol=args.symbol,
         limit=args.limit,
