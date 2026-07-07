@@ -1,0 +1,559 @@
+{
+  "blocked_workflows": [
+    {
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "source_artifact_id": "21a_safety_boundary",
+      "status": "blocked",
+      "summary": "Workflow remains blocked by 21A safety boundary.",
+      "workflow_id": "broker_order_call"
+    },
+    {
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "source_artifact_id": "21a_safety_boundary",
+      "status": "blocked",
+      "summary": "Workflow remains blocked by 21A safety boundary.",
+      "workflow_id": "broker_order_routing"
+    },
+    {
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "source_artifact_id": "21a_safety_boundary",
+      "status": "blocked",
+      "summary": "Workflow remains blocked by 21A safety boundary.",
+      "workflow_id": "live_trading"
+    },
+    {
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "source_artifact_id": "21a_safety_boundary",
+      "status": "blocked",
+      "summary": "Workflow remains blocked by 21A safety boundary.",
+      "workflow_id": "order_execution"
+    },
+    {
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "source_artifact_id": "21a_safety_boundary",
+      "status": "blocked",
+      "summary": "Workflow remains blocked by 21A safety boundary.",
+      "workflow_id": "secret_or_credential_access"
+    }
+  ],
+  "generated_at_utc": "2026-07-07T19:47:50.055091+00:00",
+  "missing_artifacts": [
+    {
+      "artifact_id": "audit_summary",
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "path": "reports/research_cycle_audit_summary/research_cycle_audit_summary.json",
+      "source_artifact_id": "21a_source_artifacts",
+      "status": "missing",
+      "summary": "19B Research Cycle Audit Summary JSON was not found or could not be parsed.",
+      "workflow_id": "missing_audit_summary"
+    },
+    {
+      "artifact_id": "operator_dashboard_snapshot",
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "path": "reports/operator_dashboard_snapshot/operator_dashboard_snapshot.json",
+      "source_artifact_id": "21a_source_artifacts",
+      "status": "missing",
+      "summary": "17B Operator Dashboard Snapshot JSON was not found or could not be parsed.",
+      "workflow_id": "missing_operator_dashboard_snapshot"
+    },
+    {
+      "artifact_id": "readiness_gate",
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "path": "reports/research_cycle_readiness_gate/research_cycle_readiness_gate.json",
+      "source_artifact_id": "21a_source_artifacts",
+      "status": "missing",
+      "summary": "20A Research Cycle Readiness Gate JSON was not found or could not be parsed.",
+      "workflow_id": "missing_readiness_gate"
+    },
+    {
+      "artifact_id": "release_bundle",
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "path": "reports/research_release_bundle/research_release_bundle.json",
+      "source_artifact_id": "21a_source_artifacts",
+      "status": "missing",
+      "summary": "18B Research Release Bundle JSON was not found or could not be parsed.",
+      "workflow_id": "missing_release_bundle"
+    },
+    {
+      "artifact_id": "report_index",
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "path": "reports/report_index/report_index.json",
+      "source_artifact_id": "21a_source_artifacts",
+      "status": "missing",
+      "summary": "Report Index JSON was not found or could not be parsed.",
+      "workflow_id": "missing_report_index"
+    },
+    {
+      "artifact_id": "research_cycle_manifest",
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "path": "reports/research_cycle_runner/research_cycle_manifest.json",
+      "source_artifact_id": "21a_source_artifacts",
+      "status": "missing",
+      "summary": "19A Research Cycle Manifest JSON was not found or could not be parsed.",
+      "workflow_id": "missing_research_cycle_manifest"
+    },
+    {
+      "artifact_id": "retention_policy",
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "path": "reports/research_artifact_retention_policy/research_artifact_retention_policy.json",
+      "source_artifact_id": "21a_source_artifacts",
+      "status": "missing",
+      "summary": "20B Research Artifact Retention Policy JSON was not found or could not be parsed.",
+      "workflow_id": "missing_retention_policy"
+    },
+    {
+      "artifact_id": "safety_scanner_status",
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "path": "reports/safety_scanner/safety_scanner_status.json",
+      "source_artifact_id": "21a_source_artifacts",
+      "status": "missing",
+      "summary": "Safety Scanner Status JSON was not found or could not be parsed.",
+      "workflow_id": "missing_safety_scanner_status"
+    }
+  ],
+  "next_operator_actions": [
+    {
+      "action_id": "21A-CONFIRM-BLOCKED-WORKFLOWS",
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "status": "open_review_item",
+      "summary": "Confirm blocked workflows remain blocked and resolve only non-baseline issues."
+    },
+    {
+      "action_id": "21A-RESOLVE-MISSING-ARTIFACTS",
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "status": "open_review_item",
+      "summary": "Resolve or explicitly accept missing source artifacts."
+    },
+    {
+      "action_id": "21A-REVIEW-HUMAN-REVIEW-QUEUE",
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "status": "open_review_item",
+      "summary": "Review this 21A queue as a research-only, monitor-only, paper-only artifact."
+    }
+  ],
+  "phase": "21A",
+  "queue_id": "21A-HUMAN-REVIEW-QUEUE-2026-07-07",
+  "queue_state": "BLOCKED_HUMAN_REVIEW_QUEUE",
+  "queue_status": {
+    "items": [
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "10D",
+        "status": "queued",
+        "summary": "Build the 10D safety scanner from the Jarvis Quant master roadmap. Add or harden deterministic scans that block live trading enablement, broker order submission, API key exposure, secret handling, unsafe labels, and bypassed tests. The scanner must be usable from PowerShell on PC and must integrate with checkpoint automation. Include tests. Do not touch secrets, .env, broker credentials, live-trading toggles, or order execution paths except to scan/block unsafe patterns.",
+        "title": "Safety Scanner"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "11A",
+        "status": "queued",
+        "summary": "Build the 11A dual-engine folder structure for Wealth and Moonshot engines. Keep deterministic strategy code separate from non-deterministic analyst/research outputs. Include README or docs explaining boundaries. Include tests or structure checks. Do not enable live trading or broker orders.",
+        "title": "Dual Engine Folder Structure"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "11B",
+        "status": "queued",
+        "summary": "Build 11B risk policy definitions for Wealth and Moonshot engines. Policies must be research-only and paper-only. Include max loss, drawdown, position sizing, promotion gates, and stop conditions. Include tests. No live trading or broker order routing.",
+        "title": "Wealth Moonshot Risk Policies"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "11C",
+        "status": "queued",
+        "summary": "Build 11C strategy cards for deterministic and non-deterministic strategy candidates. Cards should include hypothesis, universe, timeframe, signals, risk rules, validation requirements, and promotion criteria. Include tests or schema validation. Research-only safety boundary: do not enable live trading, do not submit broker orders, do not expose secrets, and do not weaken safety gates.",
+        "title": "Strategy Cards"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "11D",
+        "status": "queued",
+        "summary": "Build 11D experiment registry for backtests, paper drills, strategy evaluations, and promotion history. Include append-only records, schema validation, and tests. No secrets or broker execution. Research-only safety boundary: do not enable live trading, do not submit broker orders, do not expose secrets, and do not weaken safety gates.",
+        "title": "Experiment Registry"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "11E",
+        "status": "queued",
+        "summary": "Build 11E promotion gate evaluator. It should decide whether a strategy remains blocked, research-only, paper-only, or eligible for human review. It must never emit BUY-NOW, SELL-NOW, EXECUTE-TRADE, or AUTO-TRADE. Include tests.",
+        "title": "Promotion Gate Evaluator"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "12A",
+        "status": "queued",
+        "summary": "Build 12A Wealth mean-reversion research lab. Research-only. Include signal definitions, backtest hooks, report outputs, and tests. No live trading.",
+        "title": "Wealth Mean Reversion Lab"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "12B",
+        "status": "queued",
+        "summary": "Build 12B Wealth backtester with deterministic, reproducible outputs. Include cost hooks, benchmark comparisons, train/test separation, and tests. Research-only safety boundary: do not enable live trading, do not submit broker orders, do not expose secrets, and do not weaken safety gates.",
+        "title": "Wealth Backtester"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "12C",
+        "status": "queued",
+        "summary": "Build 12C cost and slippage model for Wealth backtests. Include configurable assumptions, default conservative settings, and tests. Research-only safety boundary: do not enable live trading, do not submit broker orders, do not expose secrets, and do not weaken safety gates.",
+        "title": "Wealth Cost Slippage Model"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "12D",
+        "status": "queued",
+        "summary": "Build 12D regime filters for Wealth strategies. Include volatility, trend, liquidity, and risk-off filters. Include tests. Research-only safety boundary: do not enable live trading, do not submit broker orders, do not expose secrets, and do not weaken safety gates.",
+        "title": "Wealth Regime Filters"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "13A",
+        "status": "queued",
+        "summary": "Build 13A Moonshot simulator for high-risk research scenarios. Research-only. Include risk caps, failure modes, reports, and tests.",
+        "title": "Moonshot Simulator"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "13B",
+        "status": "queued",
+        "summary": "Build 13B Moonshot options research module. Research-only. Include option thesis structure, Greeks-aware risk notes, expiration handling, and tests. No order execution.",
+        "title": "Moonshot Options Research"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "13C",
+        "status": "queued",
+        "summary": "Build 13C crypto risk guard. Research-only. Include drawdown caps, liquidity warnings, volatility filters, and tests. No exchange credentials or live orders.",
+        "title": "Moonshot Crypto Risk Guard"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "13D",
+        "status": "queued",
+        "summary": "Build 13D LEAPS research engine. Research-only. Include thesis, catalyst, expiration, delta, liquidity, risk, and monitoring fields. Include tests.",
+        "title": "Moonshot LEAPS Research Engine"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "13E",
+        "status": "queued",
+        "summary": "Build 13E options monitor dashboard/report generator. Research-only. Include static report outputs and tests. No broker integration.",
+        "title": "Options Monitor Dashboard"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "13F",
+        "status": "queued",
+        "summary": "Build 13F paper LEAPS portfolio tracker. Paper-only. Include simulated fills, thesis status, PnL tracking, and tests. No live broker orders. Research-only safety boundary: do not enable live trading, do not submit broker orders, do not expose secrets, and do not weaken safety gates.",
+        "title": "Paper LEAPS Portfolio"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "13G",
+        "status": "queued",
+        "summary": "Build 13G dual-agent review workflow. It should support Claude/Codex/OpenAI review outputs for research and code safety. Include tests. Do not weaken safety gates.",
+        "title": "Claude OpenAI Dual Agent Review"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "14A",
+        "status": "queued",
+        "summary": "Build 14A Champion/Challenger evaluator from the Jarvis Quant master roadmap. It should compare candidate research strategies against incumbent strategy cards using deterministic metrics, promotion-gate rules, out-of-sample performance summaries, risk-policy compatibility, and human-review-required decisions. Outputs must remain research-only, monitor-only, paper-only, and blocked-by-safety-gate when appropriate. Include tests. Do not enable live trading, broker routing, broker order submission, secrets, API keys, .env reads/writes, or unsafe trade instructions.",
+        "title": "Champion Challenger"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "14B",
+        "status": "queued",
+        "summary": "Build 14B Weekly Review workflow from the Jarvis Quant master roadmap. It should summarize weekly research results across Wealth and Moonshot engines, experiments, promotion gates, champion/challenger outcomes, safety scanner findings, blocked decisions, and next-review actions. It must produce deterministic JSON and Markdown report outputs suitable for human review. Include tests. Do not enable live trading, broker routing, broker order submission, secrets, API keys, .env reads/writes, or unsafe trade instructions.",
+        "title": "Weekly Review"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "15A",
+        "status": "queued",
+        "summary": "Build 15A Daily Research Command Center from the Jarvis Quant master roadmap. It should produce deterministic JSON and Markdown daily research summaries across Wealth and Moonshot engines, strategy cards, experiment registry entries, promotion gates, champion challenger outcomes, weekly review outputs, and safety scanner status. The workflow must remain research-only, monitor-only, paper-only, human-review-required, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, or order execution. Include tests.",
+        "title": "Daily Research Command Center"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "15B",
+        "status": "queued",
+        "summary": "Build 15B Operator Runbook workflow from the Jarvis Quant master roadmap. It should generate deterministic operator checklists for daily startup, safety preflight, research review, experiment review, weekly review, promotion review, and shutdown. It should clearly label allowed human-review workflows and blocked workflows. The workflow must remain research-only, monitor-only, paper-only, human-review-required, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, or order execution. Include tests.",
+        "title": "Operator Runbook"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "16A",
+        "status": "queued",
+        "summary": "Build 16A Research Evidence Pack workflow from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown evidence packets for human review by bundling strategy cards, experiment registry entries, promotion gate results, champion challenger outcomes, weekly review outputs, daily research command center summaries, operator runbook status, and safety scanner status. It must clearly preserve research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED boundaries. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests.",
+        "title": "Research Evidence Pack"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "16B",
+        "status": "queued",
+        "summary": "Build 16B Decision Journal workflow from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown decision records for human review outcomes, blocked outcomes, follow-up actions, evidence pack references, safety scanner status, and operator notes. It must preserve an auditable history of research decisions without enabling execution. It must clearly label allowed review workflows and blocked workflows. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests.",
+        "title": "Decision Journal"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "17A",
+        "status": "queued",
+        "summary": "Build 17A Report Index workflow from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown indexes of major Jarvis reports, including daily research command center, weekly review, operator runbook, research evidence pack, decision journal, promotion gate outputs, champion challenger outcomes, and safety scanner status. It should summarize report paths, report types, generated dates, labels, safety status, and missing reports without opening secrets or credential files. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests.",
+        "title": "Report Index"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "17B",
+        "status": "queued",
+        "summary": "Build 17B Operator Dashboard Snapshot workflow from the Jarvis Quant master roadmap. It should generate a deterministic read-only JSON and Markdown dashboard snapshot for the human operator, summarizing current system state, latest report index entries, daily research status, weekly review status, evidence pack status, decision journal status, operator runbook status, queue status, blocked workflows, and safety scanner status. It must clearly separate allowed human-review workflows from blocked workflows. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests.",
+        "title": "Operator Dashboard Snapshot"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "18A",
+        "status": "queued",
+        "summary": "Build 18A Safe Workflow Catalog from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown catalogs of safe Jarvis workflows, including report generators, operator dashboards, evidence packs, decision journals, weekly reviews, daily research summaries, safety scanners, and queue readers. For each workflow, record command hints, input paths, output paths, required labels, safety status, allowed human-review behavior, and blocked behavior. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests.",
+        "title": "Safe Workflow Catalog"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "18B",
+        "status": "queued",
+        "summary": "Build 18B Research Release Bundle from the Jarvis Quant master roadmap. It should generate a deterministic read-only JSON and Markdown release bundle manifest for the human operator, tying together the report index, operator dashboard snapshot, research evidence pack, decision journal, operator runbook, weekly review, daily research command center, safe workflow catalog, queue status, and safety scanner status. It should include paths, labels, generated timestamps, missing artifact statuses, and blocked workflow summaries. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests.",
+        "title": "Research Release Bundle"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "19A",
+        "status": "queued",
+        "summary": "Build 19A Research Cycle Runner from the Jarvis Quant master roadmap. It should provide a deterministic, repo-local runner that executes the safe research/reporting cycle in order: daily research command center, weekly review when requested or stubbed, operator runbook, research evidence pack, decision journal, report index, operator dashboard snapshot, safe workflow catalog, and research release bundle. It should write a JSON and Markdown cycle manifest with command outcomes, artifact paths, skipped steps, missing artifacts, blocked workflows, and safety scanner status. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests.",
+        "title": "Research Cycle Runner"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "19B",
+        "status": "queued",
+        "summary": "Build 19B Research Cycle Audit Summary from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown audit summaries for a completed 19A research cycle, including cycle manifest status, generated reports, missing artifacts, skipped steps, blocked workflows, safety scanner status, release bundle status, dashboard status, queue status, and human review notes. It should clearly separate allowed human-review workflows from blocked workflows. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests.",
+        "title": "Research Cycle Audit Summary"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "20A",
+        "status": "queued",
+        "summary": "Build 20A Research Cycle Readiness Gate from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown readiness-gate outputs from the 19A research cycle manifest, 19B audit summary, 18B release bundle, 17B operator dashboard snapshot, 17A report index, 18A safe workflow catalog, queue status, and safety scanner status. It should decide only whether the next research cycle is READY_FOR_HUMAN_REVIEW, BLOCKED_BY_SAFETY_GATE, or NEEDS_OPERATOR_REVIEW. It must list missing artifacts, skipped steps, stale reports, blocked workflows, failed safety findings, and required human-review actions. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests.",
+        "title": "Research Cycle Readiness Gate"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "20B",
+        "status": "queued",
+        "summary": "Build 20B Research Artifact Retention Policy from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown retention-policy reports for generated research artifacts and report directories. It should classify artifacts as keep, review, archive_candidate, or blocked_delete, based on report type, date, safety label, missing status, and whether the artifact is referenced by release bundles, audit summaries, dashboards, evidence packs, journals, or runbooks. It must not delete files automatically. It may only produce a reviewable policy and dry-run manifest. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests.",
+        "title": "Research Artifact Retention Policy"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "21A",
+        "status": "queued",
+        "summary": "Build 21A Human Review Queue from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown review queues from the 20A readiness gate, 20B retention policy, 19B audit summary, 19A research cycle manifest, 18B release bundle, 17B operator dashboard snapshot, report index, safe workflow catalog, queue status, and safety scanner status. It should list required human-review items, missing artifacts, stale artifacts, skipped steps, blocked workflows, safety findings, retention review items, and next operator actions. It must only create review items and must never create trade instructions, execution instructions, broker actions, or live-trading approvals. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests.",
+        "title": "Human Review Queue"
+      },
+      {
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "phase": "21B",
+        "status": "queued",
+        "summary": "Build 21B Operator Acknowledgment Ledger from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown ledgers for human review acknowledgments, rejections, deferrals, and notes for items from the 21A Human Review Queue. It should preserve immutable review-item IDs, timestamps, operator note fields, review status, safety labels, and blocked-workflow references. It must explicitly prevent acknowledgments from enabling live trading, broker routing, broker calls, order execution, or automatic actions. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests.",
+        "title": "Operator Acknowledgment Ledger"
+      }
+    ],
+    "label": "HUMAN_REVIEW_REQUIRED",
+    "next_phase": {
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "phase": "21A",
+      "status": "queued",
+      "summary": "Build 21A Human Review Queue from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown review queues from the 20A readiness gate, 20B retention policy, 19B audit summary, 19A research cycle manifest, 18B release bundle, 17B operator dashboard snapshot, report index, safe workflow catalog, queue status, and safety scanner status. It should list required human-review items, missing artifacts, stale artifacts, skipped steps, blocked workflows, safety findings, retention review items, and next operator actions. It must only create review items and must never create trade instructions, execution instructions, broker actions, or live-trading approvals. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests.",
+      "title": "Human Review Queue"
+    },
+    "path": "config/jarvis_master_plan_queue.json",
+    "queue_item_count": 33,
+    "status": "read_only",
+    "summary": "Master plan queue read for 21A human review context only.",
+    "workflow_id": "master_plan_queue"
+  },
+  "required_human_review_items": [],
+  "required_labels": [
+    "RESEARCH_ONLY",
+    "MONITOR_ONLY",
+    "PAPER_ONLY",
+    "HUMAN_REVIEW_REQUIRED",
+    "BLOCKED_BY_SAFETY_GATE"
+  ],
+  "retention_review_items": [],
+  "review_date": "2026-07-07",
+  "safety_boundary": {
+    "broker_call_used": false,
+    "broker_order_call_performed": false,
+    "broker_order_routing_enabled": false,
+    "broker_routing_used": false,
+    "credential_file_used": false,
+    "human_review_required": true,
+    "label": "HUMAN_REVIEW_REQUIRED",
+    "live_trading_approval_granted": false,
+    "live_trading_enabled": false,
+    "monitor_only": true,
+    "order_execution_used": false,
+    "paper_only": true,
+    "prohibited_trade_labels_present": false,
+    "real_paper_order_submitted": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_wrapper_connected": false,
+    "research_only": true,
+    "review_items_only": true,
+    "secrets_required": false,
+    "status": "LIVE TRADING: DISABLED"
+  },
+  "safety_findings": [],
+  "safety_scanner_status": {
+    "finding_count": 0,
+    "findings": [],
+    "label": "HUMAN_REVIEW_REQUIRED",
+    "passed": null,
+    "path": "reports/safety_scanner/safety_scanner_status.json",
+    "status": "not_run",
+    "summary": "Safety scanner status was not supplied to 21A.",
+    "workflow_id": "safety_scanner"
+  },
+  "skipped_steps": [],
+  "source_artifacts": [
+    {
+      "artifact_id": "readiness_gate",
+      "generated_at_utc": null,
+      "generated_date": null,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "name": "20A Research Cycle Readiness Gate",
+      "path": "reports/research_cycle_readiness_gate/research_cycle_readiness_gate.json",
+      "phase": null,
+      "status": "missing",
+      "summary": "20A Research Cycle Readiness Gate JSON was not found or could not be parsed.",
+      "workflow": null
+    },
+    {
+      "artifact_id": "retention_policy",
+      "generated_at_utc": null,
+      "generated_date": null,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "name": "20B Research Artifact Retention Policy",
+      "path": "reports/research_artifact_retention_policy/research_artifact_retention_policy.json",
+      "phase": null,
+      "status": "missing",
+      "summary": "20B Research Artifact Retention Policy JSON was not found or could not be parsed.",
+      "workflow": null
+    },
+    {
+      "artifact_id": "audit_summary",
+      "generated_at_utc": null,
+      "generated_date": null,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "name": "19B Research Cycle Audit Summary",
+      "path": "reports/research_cycle_audit_summary/research_cycle_audit_summary.json",
+      "phase": null,
+      "status": "missing",
+      "summary": "19B Research Cycle Audit Summary JSON was not found or could not be parsed.",
+      "workflow": null
+    },
+    {
+      "artifact_id": "research_cycle_manifest",
+      "generated_at_utc": null,
+      "generated_date": null,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "name": "19A Research Cycle Manifest",
+      "path": "reports/research_cycle_runner/research_cycle_manifest.json",
+      "phase": null,
+      "status": "missing",
+      "summary": "19A Research Cycle Manifest JSON was not found or could not be parsed.",
+      "workflow": null
+    },
+    {
+      "artifact_id": "release_bundle",
+      "generated_at_utc": null,
+      "generated_date": null,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "name": "18B Research Release Bundle",
+      "path": "reports/research_release_bundle/research_release_bundle.json",
+      "phase": null,
+      "status": "missing",
+      "summary": "18B Research Release Bundle JSON was not found or could not be parsed.",
+      "workflow": null
+    },
+    {
+      "artifact_id": "operator_dashboard_snapshot",
+      "generated_at_utc": null,
+      "generated_date": null,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "name": "17B Operator Dashboard Snapshot",
+      "path": "reports/operator_dashboard_snapshot/operator_dashboard_snapshot.json",
+      "phase": null,
+      "status": "missing",
+      "summary": "17B Operator Dashboard Snapshot JSON was not found or could not be parsed.",
+      "workflow": null
+    },
+    {
+      "artifact_id": "report_index",
+      "generated_at_utc": null,
+      "generated_date": null,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "name": "Report Index",
+      "path": "reports/report_index/report_index.json",
+      "phase": null,
+      "status": "missing",
+      "summary": "Report Index JSON was not found or could not be parsed.",
+      "workflow": null
+    },
+    {
+      "artifact_id": "safe_workflow_catalog",
+      "generated_at_utc": "2026-07-07T17:36:23.773114+00:00",
+      "generated_date": "2026-07-07",
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "name": "Safe Workflow Catalog",
+      "path": "reports/safe_workflow_catalog/safe_workflow_catalog.json",
+      "phase": "18A",
+      "status": "present",
+      "summary": "Safe Workflow Catalog status: workflow_count=10.",
+      "workflow": "Safe Workflow Catalog"
+    },
+    {
+      "artifact_id": "safety_scanner_status",
+      "generated_at_utc": null,
+      "generated_date": null,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "name": "Safety Scanner Status",
+      "path": "reports/safety_scanner/safety_scanner_status.json",
+      "phase": null,
+      "status": "missing",
+      "summary": "Safety Scanner Status JSON was not found or could not be parsed.",
+      "workflow": null
+    }
+  ],
+  "stale_artifacts": [],
+  "summary": {
+    "blocked_workflow_count": 5,
+    "label_counts": {
+      "BLOCKED_BY_SAFETY_GATE": 21,
+      "HUMAN_REVIEW_REQUIRED": 6
+    },
+    "missing_artifact_count": 8,
+    "next_operator_action_count": 3,
+    "present_source_artifact_count": 1,
+    "queue_status": "read_only",
+    "required_human_review_item_count": 0,
+    "retention_review_item_count": 0,
+    "safety_finding_count": 0,
+    "safety_scanner_status": "not_run",
+    "skipped_step_count": 0,
+    "source_artifact_count": 9,
+    "stale_artifact_count": 0
+  },
+  "workflow": "Human Review Queue"
+}
