@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import sqrt
 from pathlib import Path
 from typing import Any, Callable
@@ -17,6 +17,38 @@ DEFAULT_REPORT_DIR = Path("reports/wealth_backtester")
 
 
 @dataclass(frozen=True)
+class WealthCostSlippageAssumptions:
+    commission_bps: float = 1.0
+    spread_bps: float = 2.0
+    market_impact_bps: float = 5.0
+    min_trade_cost_bps: float = 0.5
+    impact_exponent: float = 1.5
+    enabled: bool = True
+
+    def validate(self) -> None:
+        for name, value in (
+            ("commission_bps", self.commission_bps),
+            ("spread_bps", self.spread_bps),
+            ("market_impact_bps", self.market_impact_bps),
+            ("min_trade_cost_bps", self.min_trade_cost_bps),
+        ):
+            if value < 0:
+                raise ValueError(f"{name} cannot be negative")
+        if self.impact_exponent < 1.0:
+            raise ValueError("impact_exponent must be at least 1.0")
+
+    @classmethod
+    def disabled(cls) -> "WealthCostSlippageAssumptions":
+        return cls(
+            commission_bps=0.0,
+            spread_bps=0.0,
+            market_impact_bps=0.0,
+            min_trade_cost_bps=0.0,
+            enabled=False,
+        )
+
+
+@dataclass(frozen=True)
 class WealthBacktestConfig:
     train_size: int
     test_size: int | None = None
@@ -24,6 +56,7 @@ class WealthBacktestConfig:
     cost_bps: float = 1.0
     annualization: int = 252
     max_abs_weight: float = 1.0
+    cost_slippage: WealthCostSlippageAssumptions = field(default_factory=WealthCostSlippageAssumptions)
 
     def validate(self) -> None:
         if self.train_size < 1:
@@ -38,6 +71,7 @@ class WealthBacktestConfig:
             raise ValueError("annualization must be positive")
         if self.max_abs_weight <= 0:
             raise ValueError("max_abs_weight must be positive")
+        self.cost_slippage.validate()
 
 
 @dataclass(frozen=True)
@@ -71,6 +105,7 @@ class WealthBacktestResult:
 def safety_manifest() -> dict[str, Any]:
     return {
         "phase": PHASE_ID,
+        "cost_slippage_phase": "12C",
         "backtester": BACKTESTER_NAME,
         "labels": REQUIRED_LABELS,
         "research_only": True,
@@ -83,6 +118,56 @@ def safety_manifest() -> dict[str, Any]:
         "broker_order_submitted": False,
         "LIVE TRADING": "DISABLED",
     }
+
+
+def default_conservative_cost_slippage_hook(
+    execution_weights: pd.DataFrame,
+    target_weights: pd.DataFrame,
+    config: WealthBacktestConfig,
+) -> CostBreakdown:
+    assumptions = config.cost_slippage
+    trade_abs = execution_weights.diff().abs().fillna(execution_weights.abs())
+    turnover = trade_abs.sum(axis=1)
+    legacy_linear_cost = turnover * (config.cost_bps / 10_000.0)
+
+    if not assumptions.enabled:
+        total = legacy_linear_cost
+        return CostBreakdown(
+            total_cost=total.rename("total_cost"),
+            components=pd.DataFrame(
+                {
+                    "legacy_linear_bps_cost": legacy_linear_cost,
+                    "commission_cost": 0.0,
+                    "spread_cost": 0.0,
+                    "market_impact_cost": 0.0,
+                    "min_trade_cost": 0.0,
+                },
+                index=execution_weights.index,
+            ),
+        )
+
+    commission_cost = turnover * (assumptions.commission_bps / 10_000.0)
+    spread_cost = turnover * (assumptions.spread_bps / 10_000.0)
+    market_impact_cost = (
+        trade_abs.pow(assumptions.impact_exponent).sum(axis=1)
+        * (assumptions.market_impact_bps / 10_000.0)
+    )
+    min_trade_cost = (turnover > 0.0).astype(float) * (assumptions.min_trade_cost_bps / 10_000.0)
+    total = legacy_linear_cost + commission_cost + spread_cost + market_impact_cost + min_trade_cost
+
+    return CostBreakdown(
+        total_cost=total.rename("total_cost"),
+        components=pd.DataFrame(
+            {
+                "legacy_linear_bps_cost": legacy_linear_cost,
+                "commission_cost": commission_cost,
+                "spread_cost": spread_cost,
+                "market_impact_cost": market_impact_cost,
+                "min_trade_cost": min_trade_cost,
+            },
+            index=execution_weights.index,
+        ),
+    )
 
 
 def default_linear_cost_hook(
@@ -128,7 +213,7 @@ def run_wealth_backtest(
     execution_weights = test_weights.shift(1).fillna(0.0)
     gross_returns = (execution_weights * asset_returns).sum(axis=1).rename("gross_return")
 
-    hook = cost_hook or default_linear_cost_hook
+    hook = cost_hook or default_conservative_cost_slippage_hook
     costs = hook(execution_weights, test_weights, config)
     cost_returns = costs.total_cost.reindex(test_prices.index).fillna(0.0).rename("cost_return")
     cost_components = costs.components.reindex(test_prices.index).fillna(0.0)
@@ -221,6 +306,15 @@ def build_report_payload(result: WealthBacktestResult) -> dict[str, Any]:
             "test_size": result.config.test_size,
             "initial_equity": result.config.initial_equity,
             "cost_bps": result.config.cost_bps,
+            "cost_slippage": {
+                "phase": "12C",
+                "commission_bps": result.config.cost_slippage.commission_bps,
+                "spread_bps": result.config.cost_slippage.spread_bps,
+                "market_impact_bps": result.config.cost_slippage.market_impact_bps,
+                "min_trade_cost_bps": result.config.cost_slippage.min_trade_cost_bps,
+                "impact_exponent": result.config.cost_slippage.impact_exponent,
+                "enabled": result.config.cost_slippage.enabled,
+            },
             "annualization": result.config.annualization,
             "max_abs_weight": result.config.max_abs_weight,
         },
@@ -254,6 +348,13 @@ def render_markdown_report(result: WealthBacktestResult) -> str:
 
     lines.extend(
         [
+            "",
+            "## Cost and Slippage",
+            f"- Model phase: {payload['config']['cost_slippage']['phase']}",
+            f"- Enabled: {payload['config']['cost_slippage']['enabled']}",
+            f"- Commission bps: {payload['config']['cost_slippage']['commission_bps']:.6f}",
+            f"- Spread bps: {payload['config']['cost_slippage']['spread_bps']:.6f}",
+            f"- Market impact bps: {payload['config']['cost_slippage']['market_impact_bps']:.6f}",
             "",
             "## Safety",
             "- No broker imports, order routing, or order submission are used.",

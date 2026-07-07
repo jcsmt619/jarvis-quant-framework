@@ -1,0 +1,19 @@
+﻿You are repairing Jarvis Quant after Phase 12B Wealth Backtester locally merged into main but full regression failed.
+
+Failure:
+- tests/test_orchestrator_real_inbox_gate.py::test_orchestrator_real_inbox_gate_allowed_but_processor_still_not_attempted
+- scripts/run_local_autonomous_orchestrator.py called run_orchestrator_inbox_processor_once
+- That then called the default Gmail processor subprocess and timed out after 120 seconds.
+- The test uses injected_cycle_runner=fake_runner and expects the real Gmail inbox processor not to be attempted.
+
+Task:
+- Inspect scripts/run_local_autonomous_orchestrator.py and tests/test_orchestrator_real_inbox_gate.py.
+- Fix the orchestrator real inbox gate so test/injected mode does not launch the real Gmail inbox subprocess.
+- Prefer a production-safe injectable/seam or guard that preserves the safety intent.
+- Do not weaken or delete the failing test.
+- Do not touch .env, secrets, API keys, broker credentials, OAuth tokens, private keys, live trading toggles, broker order execution, or order submission paths.
+- Do not enable live trading.
+- Do not submit broker orders.
+- Keep all trading-related outputs research-only / monitor-only / paper-only / human-review-required.
+- Keep the patch narrow.
+- Do not commit.
