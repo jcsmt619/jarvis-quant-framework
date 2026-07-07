@@ -29,3 +29,11 @@ scenario simulation for Moonshot research. It applies Moonshot risk caps,
 records failure modes, and writes JSON/Markdown reports. Outputs are
 research-only and paper-only, and blocked scenarios are retained for audit
 visibility. LIVE TRADING: DISABLED.
+
+## 13B Moonshot Options Research
+
+`engines.moonshot.deterministic.options_research` builds research-only option
+thesis memos from supplied thesis, expiration, and Greeks inputs. It classifies
+DTE buckets, moneyness, theta/gamma/vega/delta risks, and keeps all
+trade-relevant output labeled for human review. It does not import broker
+adapters, route orders, or submit orders. LIVE TRADING: DISABLED.
