@@ -145,5 +145,19 @@
     "branch": "agent/15b-operator-runbook",
     "commit_message": "feat: add operator runbook workflow",
     "spec": "Build 15B Operator Runbook workflow from the Jarvis Quant master roadmap. It should generate deterministic operator checklists for daily startup, safety preflight, research review, experiment review, weekly review, promotion review, and shutdown. It should clearly label allowed human-review workflows and blocked workflows. The workflow must remain research-only, monitor-only, paper-only, human-review-required, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, or order execution. Include tests."
+  },
+  {
+    "phase": "16A",
+    "title": "Research Evidence Pack",
+    "branch": "agent/16a-research-evidence-pack",
+    "commit_message": "feat: add research evidence pack workflow",
+    "spec": "Build 16A Research Evidence Pack workflow from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown evidence packets for human review by bundling strategy cards, experiment registry entries, promotion gate results, champion challenger outcomes, weekly review outputs, daily research command center summaries, operator runbook status, and safety scanner status. It must clearly preserve research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED boundaries. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "16B",
+    "title": "Decision Journal",
+    "branch": "agent/16b-decision-journal",
+    "commit_message": "feat: add decision journal workflow",
+    "spec": "Build 16B Decision Journal workflow from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown decision records for human review outcomes, blocked outcomes, follow-up actions, evidence pack references, safety scanner status, and operator notes. It must preserve an auditable history of research decisions without enabling execution. It must clearly label allowed review workflows and blocked workflows. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
   }
 ]
