@@ -104,14 +104,31 @@ Current git diff files:
 $gitDiffNames
 "@
 
+Write-Host "`n=== Detecting Codex exec flags ===" -ForegroundColor Cyan
+
+$helpText = (& codex exec --help 2>&1) -join "`n"
+
+$codexArgs = @("exec")
+
+if ($helpText -match "--cd") {
+    $codexArgs += @("--cd", $RepoRoot)
+}
+
+if ($helpText -match "--sandbox") {
+    $codexArgs += @("--sandbox", "read-only")
+}
+
+if ($helpText -match "--ask-for-approval") {
+    $codexArgs += @("--ask-for-approval", "never")
+} elseif ($helpText -match "--approval-policy") {
+    $codexArgs += @("--approval-policy", "never")
+}
+
+$codexArgs += $fullPrompt
+
 Write-Host "`n=== Running Codex read-only safety review ===" -ForegroundColor Cyan
 
-$reviewOutput = & codex exec `
-    --cd $RepoRoot `
-    --sandbox read-only `
-    --ask-for-approval never `
-    $fullPrompt 2>&1
-
+$reviewOutput = & codex @codexArgs 2>&1
 $exitCode = $LASTEXITCODE
 
 $reviewOutput | Set-Content -Path $OutputPath -Encoding UTF8
