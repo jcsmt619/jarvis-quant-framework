@@ -17,6 +17,7 @@ from automation.orchestrator_heartbeat import (
     build_heartbeat,
     write_heartbeat,
 )
+from automation.orchestrator_inbox_scaffold import evaluate_inbox_processing_scaffold
 from automation.orchestrator_session import (
     SESSION_MANIFESTS_DIR_NAME,
     build_session_manifest,
@@ -127,6 +128,8 @@ def run_local_autonomous_orchestrator(
     audit_dir: Path | None = None,
     session_dir: Path | None = None,
     heartbeat_file: Path | None = None,
+    enable_inbox_processing: bool = False,
+    inbox_confirmation: str | None = None,
     session_id: str | None = None,
     symbol: str = "EEM",
     limit: int = 120,
@@ -151,6 +154,10 @@ def run_local_autonomous_orchestrator(
     started_at_utc = timestamp_utc(now)
     control_state = read_control_state(orchestrator_dir)
     email_confirmation_accepted = email_confirmation == GMAIL_EMAIL_CONFIRMATION
+    inbox_scaffold = evaluate_inbox_processing_scaffold(
+        enable_inbox_processing=enable_inbox_processing,
+        confirmation=inbox_confirmation,
+    )
     ledger_path = audit_dir / AUDIT_LEDGER_FILE_NAME
     session_manifest_path = session_dir / f"{actual_session_id}.json"
 
@@ -232,6 +239,12 @@ def run_local_autonomous_orchestrator(
     print(f"Real email send enabled: {str(enable_real_email_send).lower()}")
     print(f"Email confirmation accepted: {str(email_confirmation_accepted).lower()}")
     print("Inbox processing enabled: false")
+    print(f"Inbox processing requested: {str(inbox_scaffold.requested).lower()}")
+    print(f"Inbox processing confirmation accepted: {str(inbox_scaffold.confirmation_accepted).lower()}")
+    print(f"Inbox processing attempted: {str(inbox_scaffold.attempted).lower()}")
+    print(f"Approval records updated: {inbox_scaffold.approval_records_updated}")
+    print(f"Inbox processing decision: {inbox_scaffold.decision}")
+    print(f"Inbox processing blocked reasons: {inbox_scaffold.blocked_reasons}")
     print("Paper arm enabled: false")
     print("Broker order call performed: false")
     print("LIVE TRADING: DISABLED")
@@ -410,6 +423,8 @@ def main() -> int:
     parser.add_argument("--audit-dir", type=Path, default=None)
     parser.add_argument("--session-dir", type=Path, default=None)
     parser.add_argument("--heartbeat-file", type=Path, default=None)
+    parser.add_argument("--enable-inbox-processing", action="store_true")
+    parser.add_argument("--inbox-confirmation", default=None)
     parser.add_argument("--session-id", default=None)
     parser.add_argument("--symbol", default="EEM")
     parser.add_argument("--limit", type=int, default=120)
@@ -428,6 +443,8 @@ def main() -> int:
         audit_dir=args.audit_dir,
         session_dir=args.session_dir,
         heartbeat_file=args.heartbeat_file,
+        enable_inbox_processing=args.enable_inbox_processing,
+        inbox_confirmation=args.inbox_confirmation,
         session_id=args.session_id,
         symbol=args.symbol,
         limit=args.limit,
