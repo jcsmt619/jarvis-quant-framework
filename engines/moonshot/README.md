@@ -21,3 +21,11 @@ The Moonshot risk policy is defined as `MOONSHOT_RISK_POLICY` in
 `risk.policies`. It is `RESEARCH_ONLY`, `MONITOR_ONLY`, `PAPER_ONLY`, and
 `HUMAN_REVIEW_REQUIRED`, with max loss, drawdown, position sizing, promotion
 gate, and stop-condition limits for LEAPS research. LIVE TRADING: DISABLED.
+
+## 13A Moonshot Simulator
+
+`engines.moonshot.deterministic.simulator` provides deterministic high-risk
+scenario simulation for Moonshot research. It applies Moonshot risk caps,
+records failure modes, and writes JSON/Markdown reports. Outputs are
+research-only and paper-only, and blocked scenarios are retained for audit
+visibility. LIVE TRADING: DISABLED.
