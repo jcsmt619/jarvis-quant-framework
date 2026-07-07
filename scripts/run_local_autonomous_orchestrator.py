@@ -27,6 +27,10 @@ from automation.orchestrator_approval_receipt_state import (
     build_approval_receipt_runtime_notes,
     evaluate_orchestrator_approval_receipt_state,
 )
+from automation.orchestrator_paper_arm_bridge import (
+    build_paper_arm_bridge_runtime_notes,
+    evaluate_orchestrator_paper_arm_bridge,
+)
 from automation.orchestrator_session import (
     SESSION_MANIFESTS_DIR_NAME,
     build_session_manifest,
@@ -142,6 +146,8 @@ def run_local_autonomous_orchestrator(
     inbox_confirmation: str | None = None,
     inbox_max_results: int = 25,
     approval_id: str | None = None,
+    enable_paper_arm: bool = False,
+    paper_arm_confirmation: str | None = None,
     session_id: str | None = None,
     symbol: str = "EEM",
     limit: int = 120,
@@ -204,6 +210,12 @@ def run_local_autonomous_orchestrator(
         now=now,
     )
     approval_receipt_runtime_notes = build_approval_receipt_runtime_notes(approval_receipt_state)
+    paper_arm_bridge_state = evaluate_orchestrator_paper_arm_bridge(
+        enable_paper_arm=enable_paper_arm,
+        paper_arm_confirmation=paper_arm_confirmation,
+        approval_receipt_gate_allowed=approval_receipt_state.gate_allowed,
+    )
+    paper_arm_bridge_runtime_notes = build_paper_arm_bridge_runtime_notes(paper_arm_bridge_state)
 
     def finalize(final_decision: str, final_return_code: int, cycles_attempted: int, notes: list[str] | None = None) -> int:
         end_state = read_control_state(orchestrator_dir)
@@ -241,7 +253,7 @@ def run_local_autonomous_orchestrator(
             audit_ledger_path=ledger_path,
             session_manifest_path=session_manifest_path,
             enable_real_email_send=enable_real_email_send,
-            notes=(notes or []) + inbox_processor_runtime_notes + approval_receipt_runtime_notes,
+            notes=(notes or []) + inbox_processor_runtime_notes + approval_receipt_runtime_notes + paper_arm_bridge_runtime_notes,
             now=now,
         )
         print(f"Session manifest written: {path}")
@@ -363,6 +375,17 @@ def run_local_autonomous_orchestrator(
     print("Approval receipt audit integration enabled: true")
     print("Approval receipt heartbeat integration enabled: true")
     print("Approval receipt audit event written: true")
+    print(f"Paper arm bridge integrated: {str(paper_arm_bridge_state.integrated).lower()}")
+    print(f"Paper arm requested: {str(paper_arm_bridge_state.paper_arm_requested).lower()}")
+    print(f"Paper arm confirmation accepted: {str(paper_arm_bridge_state.paper_arm_confirmation_accepted).lower()}")
+    print(f"Paper arm callable wired: {str(paper_arm_bridge_state.paper_arm_callable_wired).lower()}")
+    print(f"Paper arm attempted: {str(paper_arm_bridge_state.paper_arm_attempted).lower()}")
+    print(f"Paper arm enabled: {str(paper_arm_bridge_state.paper_arm_enabled).lower()}")
+    print(f"Paper arm return code: {paper_arm_bridge_state.paper_arm_return_code}")
+    print(f"Paper arm bridge decision: {paper_arm_bridge_state.decision}")
+    print(f"Paper arm bridge blocked reasons: {paper_arm_bridge_state.blocked_reasons}")
+    print("Broker order call performed: false")
+    print("LIVE TRADING: DISABLED")
 
     if max_cycles <= 0:
         _write_audit(
@@ -543,6 +566,8 @@ def main() -> int:
     parser.add_argument("--inbox-confirmation", default=None)
     parser.add_argument("--inbox-max-results", type=int, default=25)
     parser.add_argument("--approval-id", default=None)
+    parser.add_argument("--enable-paper-arm", action="store_true")
+    parser.add_argument("--paper-arm-confirmation", default=None)
     parser.add_argument("--session-id", default=None)
     parser.add_argument("--symbol", default="EEM")
     parser.add_argument("--limit", type=int, default=120)
@@ -566,6 +591,8 @@ def main() -> int:
         inbox_confirmation=args.inbox_confirmation,
         inbox_max_results=args.inbox_max_results,
         approval_id=args.approval_id,
+        enable_paper_arm=args.enable_paper_arm,
+        paper_arm_confirmation=args.paper_arm_confirmation,
         session_id=args.session_id,
         symbol=args.symbol,
         limit=args.limit,
