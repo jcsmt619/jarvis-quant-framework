@@ -45,3 +45,11 @@ market snapshots for drawdown cap breaches, liquidity warnings, volatility
 filter breaches, and stale market data. It is research-only and monitor-only,
 does not use exchange credentials, and does not route or submit orders. LIVE
 TRADING: DISABLED.
+
+## 13D Moonshot LEAPS Research Engine
+
+`engines.moonshot.deterministic.leaps_research_engine` builds research-only
+LEAPS memos from supplied thesis, catalyst, expiration, delta, liquidity, risk,
+and monitoring inputs. It flags DTE, delta, liquidity, premium-at-risk, stale
+data, and human-review warnings. It does not import broker adapters, route
+orders, or submit orders. LIVE TRADING: DISABLED.
