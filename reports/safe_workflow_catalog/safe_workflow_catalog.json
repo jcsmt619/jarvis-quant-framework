@@ -1,0 +1,578 @@
+{
+  "allowed_human_review_behaviors": [
+    "review generated research artifacts",
+    "record operator notes",
+    "record blocked outcomes",
+    "request more deterministic evidence",
+    "keep trade-relevant interpretation HUMAN_REVIEW_REQUIRED"
+  ],
+  "blocked_behaviors": [
+    "enable live trading",
+    "submit broker orders",
+    "add broker order routing",
+    "perform broker order calls",
+    "open secrets or credential files",
+    "convert research output into trade instructions"
+  ],
+  "catalog_date": "2026-07-07",
+  "catalog_id": "18A-SAFE-WORKFLOW-CATALOG-2026-07-07",
+  "generated_at_utc": "2026-07-07T17:36:23.773114+00:00",
+  "phase": "18A",
+  "required_labels": [
+    "RESEARCH_ONLY",
+    "MONITOR_ONLY",
+    "PAPER_ONLY",
+    "HUMAN_REVIEW_REQUIRED",
+    "BLOCKED_BY_SAFETY_GATE"
+  ],
+  "safety_boundary": {
+    "broker_call_used": false,
+    "broker_order_call_performed": false,
+    "broker_order_routing_enabled": false,
+    "broker_routing_used": false,
+    "credential_file_used": false,
+    "human_review_required": true,
+    "label": "HUMAN_REVIEW_REQUIRED",
+    "live_trading_enabled": false,
+    "monitor_only": true,
+    "order_execution_used": false,
+    "paper_only": true,
+    "prohibited_trade_labels_present": false,
+    "real_paper_order_submitted": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_wrapper_connected": false,
+    "research_only": true,
+    "secrets_required": false,
+    "status": "LIVE TRADING: DISABLED"
+  },
+  "summary": {
+    "category_counts": {
+      "daily_research_summaries": 1,
+      "decision_journals": 1,
+      "evidence_packs": 1,
+      "operator_dashboards": 2,
+      "queue_readers": 2,
+      "report_generators": 1,
+      "safety_scanners": 1,
+      "weekly_reviews": 1
+    },
+    "label_counts": {
+      "BLOCKED_BY_SAFETY_GATE": 9,
+      "HUMAN_REVIEW_REQUIRED": 10,
+      "MONITOR_ONLY": 10,
+      "PAPER_ONLY": 6,
+      "RESEARCH_ONLY": 6
+    },
+    "safety_status_counts": {
+      "LIVE TRADING: DISABLED": 10
+    },
+    "workflow_count": 10
+  },
+  "workflow": "Safe Workflow Catalog",
+  "workflows": [
+    {
+      "allowed_human_review_behavior": [
+        "review generated research artifacts",
+        "record operator notes",
+        "record blocked outcomes",
+        "request more deterministic evidence",
+        "keep trade-relevant interpretation HUMAN_REVIEW_REQUIRED"
+      ],
+      "blocked_behavior": [
+        "enable live trading",
+        "submit broker orders",
+        "add broker order routing",
+        "perform broker order calls",
+        "open secrets or credential files",
+        "convert research output into trade instructions"
+      ],
+      "blocked_by_safety_gate": false,
+      "broker_order_call_performed": false,
+      "broker_order_routing_enabled": false,
+      "category": "daily_research_summaries",
+      "command_hints": [
+        "python scripts/run_daily_research_command_center.py"
+      ],
+      "credential_file_used": false,
+      "description": "Summarize deterministic research and safety context for human review.",
+      "human_review_required": true,
+      "input_paths": [
+        "reports/experiment_registry",
+        "engines"
+      ],
+      "live_trading_enabled": false,
+      "monitor_only": true,
+      "name": "Daily Research Summary",
+      "output_paths": [
+        "reports/daily_research_command_center/daily_research_summary.json",
+        "reports/daily_research_command_center/daily_research_summary.md"
+      ],
+      "paper_only": true,
+      "real_paper_order_submitted": false,
+      "required_labels": [
+        "RESEARCH_ONLY",
+        "MONITOR_ONLY",
+        "PAPER_ONLY",
+        "HUMAN_REVIEW_REQUIRED"
+      ],
+      "research_only": true,
+      "safety_status": "LIVE TRADING: DISABLED",
+      "secrets_required": false,
+      "workflow_id": "daily_research_summary"
+    },
+    {
+      "allowed_human_review_behavior": [
+        "review generated research artifacts",
+        "record operator notes",
+        "record blocked outcomes",
+        "request more deterministic evidence",
+        "keep trade-relevant interpretation HUMAN_REVIEW_REQUIRED"
+      ],
+      "blocked_behavior": [
+        "enable live trading",
+        "submit broker orders",
+        "add broker order routing",
+        "perform broker order calls",
+        "open secrets or credential files",
+        "convert research output into trade instructions"
+      ],
+      "blocked_by_safety_gate": true,
+      "broker_order_call_performed": false,
+      "broker_order_routing_enabled": false,
+      "category": "weekly_reviews",
+      "command_hints": [
+        "python scripts/run_weekly_review.py"
+      ],
+      "credential_file_used": false,
+      "description": "Compile weekly research, blocked decisions, and next review actions.",
+      "human_review_required": true,
+      "input_paths": [
+        "reports/daily_research_command_center",
+        "reports/experiment_registry"
+      ],
+      "live_trading_enabled": false,
+      "monitor_only": true,
+      "name": "Weekly Review",
+      "output_paths": [
+        "reports/weekly_review/weekly_review.json",
+        "reports/weekly_review/weekly_review.md"
+      ],
+      "paper_only": true,
+      "real_paper_order_submitted": false,
+      "required_labels": [
+        "RESEARCH_ONLY",
+        "MONITOR_ONLY",
+        "PAPER_ONLY",
+        "HUMAN_REVIEW_REQUIRED",
+        "BLOCKED_BY_SAFETY_GATE"
+      ],
+      "research_only": true,
+      "safety_status": "LIVE TRADING: DISABLED",
+      "secrets_required": false,
+      "workflow_id": "weekly_review"
+    },
+    {
+      "allowed_human_review_behavior": [
+        "review generated research artifacts",
+        "record operator notes",
+        "record blocked outcomes",
+        "request more deterministic evidence",
+        "keep trade-relevant interpretation HUMAN_REVIEW_REQUIRED"
+      ],
+      "blocked_behavior": [
+        "enable live trading",
+        "submit broker orders",
+        "add broker order routing",
+        "perform broker order calls",
+        "open secrets or credential files",
+        "convert research output into trade instructions"
+      ],
+      "blocked_by_safety_gate": true,
+      "broker_order_call_performed": false,
+      "broker_order_routing_enabled": false,
+      "category": "operator_dashboards",
+      "command_hints": [
+        "python scripts/run_operator_dashboard_snapshot.py"
+      ],
+      "credential_file_used": false,
+      "description": "Create a monitor-only operator dashboard snapshot.",
+      "human_review_required": true,
+      "input_paths": [
+        "reports/operator_runbook",
+        "reports/orchestrator"
+      ],
+      "live_trading_enabled": false,
+      "monitor_only": true,
+      "name": "Operator Dashboard Snapshot",
+      "output_paths": [
+        "reports/operator_dashboard_snapshot/operator_dashboard_snapshot.json",
+        "reports/operator_dashboard_snapshot/operator_dashboard_snapshot.md"
+      ],
+      "paper_only": true,
+      "real_paper_order_submitted": false,
+      "required_labels": [
+        "MONITOR_ONLY",
+        "HUMAN_REVIEW_REQUIRED",
+        "BLOCKED_BY_SAFETY_GATE"
+      ],
+      "research_only": true,
+      "safety_status": "LIVE TRADING: DISABLED",
+      "secrets_required": false,
+      "workflow_id": "operator_dashboard_snapshot"
+    },
+    {
+      "allowed_human_review_behavior": [
+        "review generated research artifacts",
+        "record operator notes",
+        "record blocked outcomes",
+        "request more deterministic evidence",
+        "keep trade-relevant interpretation HUMAN_REVIEW_REQUIRED"
+      ],
+      "blocked_behavior": [
+        "enable live trading",
+        "submit broker orders",
+        "add broker order routing",
+        "perform broker order calls",
+        "open secrets or credential files",
+        "convert research output into trade instructions"
+      ],
+      "blocked_by_safety_gate": true,
+      "broker_order_call_performed": false,
+      "broker_order_routing_enabled": false,
+      "category": "operator_dashboards",
+      "command_hints": [
+        "python scripts/run_operator_runbook.py"
+      ],
+      "credential_file_used": false,
+      "description": "Provide an operator checklist for review-only workflows.",
+      "human_review_required": true,
+      "input_paths": [
+        "reports/daily_research_command_center",
+        "reports/weekly_review"
+      ],
+      "live_trading_enabled": false,
+      "monitor_only": true,
+      "name": "Operator Runbook",
+      "output_paths": [
+        "reports/operator_runbook/operator_runbook.json",
+        "reports/operator_runbook/operator_runbook.md"
+      ],
+      "paper_only": true,
+      "real_paper_order_submitted": false,
+      "required_labels": [
+        "RESEARCH_ONLY",
+        "MONITOR_ONLY",
+        "PAPER_ONLY",
+        "HUMAN_REVIEW_REQUIRED",
+        "BLOCKED_BY_SAFETY_GATE"
+      ],
+      "research_only": true,
+      "safety_status": "LIVE TRADING: DISABLED",
+      "secrets_required": false,
+      "workflow_id": "operator_runbook"
+    },
+    {
+      "allowed_human_review_behavior": [
+        "review generated research artifacts",
+        "record operator notes",
+        "record blocked outcomes",
+        "request more deterministic evidence",
+        "keep trade-relevant interpretation HUMAN_REVIEW_REQUIRED"
+      ],
+      "blocked_behavior": [
+        "enable live trading",
+        "submit broker orders",
+        "add broker order routing",
+        "perform broker order calls",
+        "open secrets or credential files",
+        "convert research output into trade instructions"
+      ],
+      "blocked_by_safety_gate": true,
+      "broker_order_call_performed": false,
+      "broker_order_routing_enabled": false,
+      "category": "evidence_packs",
+      "command_hints": [
+        "python scripts/run_research_evidence_pack.py"
+      ],
+      "credential_file_used": false,
+      "description": "Bundle research evidence for human review without changing execution state.",
+      "human_review_required": true,
+      "input_paths": [
+        "reports/daily_research_command_center",
+        "reports/operator_runbook"
+      ],
+      "live_trading_enabled": false,
+      "monitor_only": true,
+      "name": "Research Evidence Pack",
+      "output_paths": [
+        "reports/research_evidence_pack/research_evidence_pack.json",
+        "reports/research_evidence_pack/research_evidence_pack.md"
+      ],
+      "paper_only": true,
+      "real_paper_order_submitted": false,
+      "required_labels": [
+        "RESEARCH_ONLY",
+        "MONITOR_ONLY",
+        "PAPER_ONLY",
+        "HUMAN_REVIEW_REQUIRED",
+        "BLOCKED_BY_SAFETY_GATE"
+      ],
+      "research_only": true,
+      "safety_status": "LIVE TRADING: DISABLED",
+      "secrets_required": false,
+      "workflow_id": "research_evidence_pack"
+    },
+    {
+      "allowed_human_review_behavior": [
+        "review generated research artifacts",
+        "record operator notes",
+        "record blocked outcomes",
+        "request more deterministic evidence",
+        "keep trade-relevant interpretation HUMAN_REVIEW_REQUIRED"
+      ],
+      "blocked_behavior": [
+        "enable live trading",
+        "submit broker orders",
+        "add broker order routing",
+        "perform broker order calls",
+        "open secrets or credential files",
+        "convert research output into trade instructions"
+      ],
+      "blocked_by_safety_gate": true,
+      "broker_order_call_performed": false,
+      "broker_order_routing_enabled": false,
+      "category": "decision_journals",
+      "command_hints": [
+        "python scripts/run_decision_journal.py"
+      ],
+      "credential_file_used": false,
+      "description": "Record human-review outcomes, blocked outcomes, and follow-up actions.",
+      "human_review_required": true,
+      "input_paths": [
+        "reports/research_evidence_pack",
+        "reports/safety_scanner"
+      ],
+      "live_trading_enabled": false,
+      "monitor_only": true,
+      "name": "Decision Journal",
+      "output_paths": [
+        "reports/decision_journal/decision_journal.json",
+        "reports/decision_journal/decision_journal.md"
+      ],
+      "paper_only": true,
+      "real_paper_order_submitted": false,
+      "required_labels": [
+        "RESEARCH_ONLY",
+        "MONITOR_ONLY",
+        "PAPER_ONLY",
+        "HUMAN_REVIEW_REQUIRED",
+        "BLOCKED_BY_SAFETY_GATE"
+      ],
+      "research_only": true,
+      "safety_status": "LIVE TRADING: DISABLED",
+      "secrets_required": false,
+      "workflow_id": "decision_journal"
+    },
+    {
+      "allowed_human_review_behavior": [
+        "review generated research artifacts",
+        "record operator notes",
+        "record blocked outcomes",
+        "request more deterministic evidence",
+        "keep trade-relevant interpretation HUMAN_REVIEW_REQUIRED"
+      ],
+      "blocked_behavior": [
+        "enable live trading",
+        "submit broker orders",
+        "add broker order routing",
+        "perform broker order calls",
+        "open secrets or credential files",
+        "convert research output into trade instructions"
+      ],
+      "blocked_by_safety_gate": true,
+      "broker_order_call_performed": false,
+      "broker_order_routing_enabled": false,
+      "category": "report_generators",
+      "command_hints": [
+        "python scripts/run_report_index.py"
+      ],
+      "credential_file_used": false,
+      "description": "Index safe report artifacts and mark missing artifacts blocked.",
+      "human_review_required": true,
+      "input_paths": [
+        "reports/daily_research_command_center",
+        "reports/weekly_review",
+        "reports/decision_journal"
+      ],
+      "live_trading_enabled": false,
+      "monitor_only": true,
+      "name": "Report Index",
+      "output_paths": [
+        "reports/report_index/report_index.json",
+        "reports/report_index/report_index.md"
+      ],
+      "paper_only": true,
+      "real_paper_order_submitted": false,
+      "required_labels": [
+        "RESEARCH_ONLY",
+        "MONITOR_ONLY",
+        "PAPER_ONLY",
+        "HUMAN_REVIEW_REQUIRED",
+        "BLOCKED_BY_SAFETY_GATE"
+      ],
+      "research_only": true,
+      "safety_status": "LIVE TRADING: DISABLED",
+      "secrets_required": false,
+      "workflow_id": "report_index"
+    },
+    {
+      "allowed_human_review_behavior": [
+        "review generated research artifacts",
+        "record operator notes",
+        "record blocked outcomes",
+        "request more deterministic evidence",
+        "keep trade-relevant interpretation HUMAN_REVIEW_REQUIRED"
+      ],
+      "blocked_behavior": [
+        "enable live trading",
+        "submit broker orders",
+        "add broker order routing",
+        "perform broker order calls",
+        "open secrets or credential files",
+        "convert research output into trade instructions"
+      ],
+      "blocked_by_safety_gate": true,
+      "broker_order_call_performed": false,
+      "broker_order_routing_enabled": false,
+      "category": "safety_scanners",
+      "command_hints": [
+        "python scripts/check_jarvis_safety_scanner.py",
+        "powershell scripts/run_jarvis_safety_scanner.ps1"
+      ],
+      "credential_file_used": false,
+      "description": "Scan for safety boundary regressions and block unsafe findings.",
+      "human_review_required": true,
+      "input_paths": [
+        "automation",
+        "core",
+        "risk",
+        "scripts"
+      ],
+      "live_trading_enabled": false,
+      "monitor_only": true,
+      "name": "Safety Scanner",
+      "output_paths": [
+        "reports/safety_scanner/safety_scanner_status.json",
+        "reports/safety_scanner/safety_scanner_status.md"
+      ],
+      "paper_only": true,
+      "real_paper_order_submitted": false,
+      "required_labels": [
+        "MONITOR_ONLY",
+        "HUMAN_REVIEW_REQUIRED",
+        "BLOCKED_BY_SAFETY_GATE"
+      ],
+      "research_only": true,
+      "safety_status": "LIVE TRADING: DISABLED",
+      "secrets_required": false,
+      "workflow_id": "safety_scanner"
+    },
+    {
+      "allowed_human_review_behavior": [
+        "review generated research artifacts",
+        "record operator notes",
+        "record blocked outcomes",
+        "request more deterministic evidence",
+        "keep trade-relevant interpretation HUMAN_REVIEW_REQUIRED"
+      ],
+      "blocked_behavior": [
+        "enable live trading",
+        "submit broker orders",
+        "add broker order routing",
+        "perform broker order calls",
+        "open secrets or credential files",
+        "convert research output into trade instructions"
+      ],
+      "blocked_by_safety_gate": true,
+      "broker_order_call_performed": false,
+      "broker_order_routing_enabled": false,
+      "category": "queue_readers",
+      "command_hints": [
+        "python scripts/view_orchestrator_audit.py"
+      ],
+      "credential_file_used": false,
+      "description": "Read audit ledger entries without mutating queue state.",
+      "human_review_required": true,
+      "input_paths": [
+        "reports/orchestrator/audit",
+        "reports/manual_repair/direct-run/audit"
+      ],
+      "live_trading_enabled": false,
+      "monitor_only": true,
+      "name": "Orchestrator Audit Reader",
+      "output_paths": [
+        "reports/orchestrator/audit_reader/audit_reader.json",
+        "reports/orchestrator/audit_reader/audit_reader.md"
+      ],
+      "paper_only": true,
+      "real_paper_order_submitted": false,
+      "required_labels": [
+        "MONITOR_ONLY",
+        "HUMAN_REVIEW_REQUIRED",
+        "BLOCKED_BY_SAFETY_GATE"
+      ],
+      "research_only": true,
+      "safety_status": "LIVE TRADING: DISABLED",
+      "secrets_required": false,
+      "workflow_id": "orchestrator_audit_reader"
+    },
+    {
+      "allowed_human_review_behavior": [
+        "review generated research artifacts",
+        "record operator notes",
+        "record blocked outcomes",
+        "request more deterministic evidence",
+        "keep trade-relevant interpretation HUMAN_REVIEW_REQUIRED"
+      ],
+      "blocked_behavior": [
+        "enable live trading",
+        "submit broker orders",
+        "add broker order routing",
+        "perform broker order calls",
+        "open secrets or credential files",
+        "convert research output into trade instructions"
+      ],
+      "blocked_by_safety_gate": true,
+      "broker_order_call_performed": false,
+      "broker_order_routing_enabled": false,
+      "category": "queue_readers",
+      "command_hints": [
+        "python scripts/view_orchestrator_heartbeat.py"
+      ],
+      "credential_file_used": false,
+      "description": "Read heartbeat state and surface stale or blocked conditions.",
+      "human_review_required": true,
+      "input_paths": [
+        "reports/orchestrator/heartbeat.json"
+      ],
+      "live_trading_enabled": false,
+      "monitor_only": true,
+      "name": "Orchestrator Heartbeat Reader",
+      "output_paths": [
+        "reports/orchestrator/heartbeat_reader/heartbeat_reader.json",
+        "reports/orchestrator/heartbeat_reader/heartbeat_reader.md"
+      ],
+      "paper_only": true,
+      "real_paper_order_submitted": false,
+      "required_labels": [
+        "MONITOR_ONLY",
+        "HUMAN_REVIEW_REQUIRED",
+        "BLOCKED_BY_SAFETY_GATE"
+      ],
+      "research_only": true,
+      "safety_status": "LIVE TRADING: DISABLED",
+      "secrets_required": false,
+      "workflow_id": "orchestrator_heartbeat_reader"
+    }
+  ]
+}
