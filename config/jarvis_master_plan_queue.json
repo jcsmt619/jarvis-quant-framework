@@ -159,5 +159,19 @@
     "branch": "agent/16b-decision-journal",
     "commit_message": "feat: add decision journal workflow",
     "spec": "Build 16B Decision Journal workflow from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown decision records for human review outcomes, blocked outcomes, follow-up actions, evidence pack references, safety scanner status, and operator notes. It must preserve an auditable history of research decisions without enabling execution. It must clearly label allowed review workflows and blocked workflows. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "17A",
+    "title": "Report Index",
+    "branch": "agent/17a-report-index",
+    "commit_message": "feat: add report index workflow",
+    "spec": "Build 17A Report Index workflow from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown indexes of major Jarvis reports, including daily research command center, weekly review, operator runbook, research evidence pack, decision journal, promotion gate outputs, champion challenger outcomes, and safety scanner status. It should summarize report paths, report types, generated dates, labels, safety status, and missing reports without opening secrets or credential files. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "17B",
+    "title": "Operator Dashboard Snapshot",
+    "branch": "agent/17b-operator-dashboard-snapshot",
+    "commit_message": "feat: add operator dashboard snapshot",
+    "spec": "Build 17B Operator Dashboard Snapshot workflow from the Jarvis Quant master roadmap. It should generate a deterministic read-only JSON and Markdown dashboard snapshot for the human operator, summarizing current system state, latest report index entries, daily research status, weekly review status, evidence pack status, decision journal status, operator runbook status, queue status, blocked workflows, and safety scanner status. It must clearly separate allowed human-review workflows from blocked workflows. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
   }
 ]
