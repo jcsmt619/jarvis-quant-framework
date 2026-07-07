@@ -13,3 +13,10 @@ backtests, dashboards, paper-only drills, and human-review-required memos.
 
 Deterministic components must not depend on analyst memo text for execution.
 Analyst outputs must not override deterministic gates.
+
+## 11B Risk Policy
+
+The Wealth risk policy is defined as `WEALTH_RISK_POLICY` in `risk.policies`.
+It is `RESEARCH_ONLY`, `MONITOR_ONLY`, `PAPER_ONLY`, and
+`HUMAN_REVIEW_REQUIRED`, with max loss, drawdown, position sizing, promotion
+gate, and stop-condition limits. LIVE TRADING: DISABLED.
