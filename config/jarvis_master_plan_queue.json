@@ -201,5 +201,19 @@
     "branch": "agent/19b-research-cycle-audit-summary",
     "commit_message": "feat: add research cycle audit summary",
     "spec": "Build 19B Research Cycle Audit Summary from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown audit summaries for a completed 19A research cycle, including cycle manifest status, generated reports, missing artifacts, skipped steps, blocked workflows, safety scanner status, release bundle status, dashboard status, queue status, and human review notes. It should clearly separate allowed human-review workflows from blocked workflows. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "20A",
+    "title": "Research Cycle Readiness Gate",
+    "branch": "agent/20a-research-cycle-readiness-gate",
+    "commit_message": "feat: add research cycle readiness gate",
+    "spec": "Build 20A Research Cycle Readiness Gate from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown readiness-gate outputs from the 19A research cycle manifest, 19B audit summary, 18B release bundle, 17B operator dashboard snapshot, 17A report index, 18A safe workflow catalog, queue status, and safety scanner status. It should decide only whether the next research cycle is READY_FOR_HUMAN_REVIEW, BLOCKED_BY_SAFETY_GATE, or NEEDS_OPERATOR_REVIEW. It must list missing artifacts, skipped steps, stale reports, blocked workflows, failed safety findings, and required human-review actions. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "20B",
+    "title": "Research Artifact Retention Policy",
+    "branch": "agent/20b-research-artifact-retention-policy",
+    "commit_message": "feat: add research artifact retention policy",
+    "spec": "Build 20B Research Artifact Retention Policy from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown retention-policy reports for generated research artifacts and report directories. It should classify artifacts as keep, review, archive_candidate, or blocked_delete, based on report type, date, safety label, missing status, and whether the artifact is referenced by release bundles, audit summaries, dashboards, evidence packs, journals, or runbooks. It must not delete files automatically. It may only produce a reviewable policy and dry-run manifest. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
   }
 ]
