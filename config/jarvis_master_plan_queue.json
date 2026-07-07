@@ -39,7 +39,7 @@
     "title": "Promotion Gate Evaluator",
     "branch": "agent/11e-promotion-gate-evaluator",
     "commit_message": "feat: add promotion gate evaluator",
-    "spec": "Build 11E promotion gate evaluator. It should decide whether a strategy remains blocked, research-only, paper-only, or eligible for human review. It must never emit BUY_NOW, SELL_NOW, EXECUTE_TRADE, or AUTO_TRADE. Include tests."
+    "spec": "Build 11E promotion gate evaluator. It should decide whether a strategy remains blocked, research-only, paper-only, or eligible for human review. It must never emit BUY-NOW, SELL-NOW, EXECUTE-TRADE, or AUTO-TRADE. Include tests."
   },
   {
     "phase": "12A",
@@ -117,5 +117,19 @@
     "branch": "agent/13g-dual-agent-review",
     "commit_message": "feat: add dual agent review workflow",
     "spec": "Build 13G dual-agent review workflow. It should support Claude/Codex/OpenAI review outputs for research and code safety. Include tests. Do not weaken safety gates."
+  },
+  {
+    "phase": "14A",
+    "title": "Champion Challenger",
+    "branch": "agent/14a-champion-challenger",
+    "commit_message": "feat: add champion challenger evaluator",
+    "spec": "Build 14A Champion/Challenger evaluator from the Jarvis Quant master roadmap. It should compare candidate research strategies against incumbent strategy cards using deterministic metrics, promotion-gate rules, out-of-sample performance summaries, risk-policy compatibility, and human-review-required decisions. Outputs must remain research-only, monitor-only, paper-only, and blocked-by-safety-gate when appropriate. Include tests. Do not enable live trading, broker routing, broker order submission, secrets, API keys, .env reads/writes, or unsafe trade instructions."
+  },
+  {
+    "phase": "14B",
+    "title": "Weekly Review",
+    "branch": "agent/14b-weekly-review",
+    "commit_message": "feat: add weekly review workflow",
+    "spec": "Build 14B Weekly Review workflow from the Jarvis Quant master roadmap. It should summarize weekly research results across Wealth and Moonshot engines, experiments, promotion gates, champion/challenger outcomes, safety scanner findings, blocked decisions, and next-review actions. It must produce deterministic JSON and Markdown report outputs suitable for human review. Include tests. Do not enable live trading, broker routing, broker order submission, secrets, API keys, .env reads/writes, or unsafe trade instructions."
   }
 ]
