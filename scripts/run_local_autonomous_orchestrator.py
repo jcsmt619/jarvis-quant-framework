@@ -21,6 +21,7 @@ from automation.orchestrator_inbox_scaffold import evaluate_inbox_processing_sca
 from automation.orchestrator_inbox_processor_hook import evaluate_inbox_processor_hook
 from automation.orchestrator_inbox_processor_bridge import evaluate_inbox_processor_dry_run_bridge
 from automation.orchestrator_real_inbox_gate import evaluate_real_gmail_inbox_read_gate
+from automation.orchestrator_inbox_processor_once import run_orchestrator_inbox_processor_once
 from automation.orchestrator_session import (
     SESSION_MANIFESTS_DIR_NAME,
     build_session_manifest,
@@ -134,6 +135,7 @@ def run_local_autonomous_orchestrator(
     enable_inbox_processing: bool = False,
     enable_real_gmail_inbox_read: bool = False,
     inbox_confirmation: str | None = None,
+    inbox_max_results: int = 25,
     session_id: str | None = None,
     symbol: str = "EEM",
     limit: int = 120,
@@ -144,6 +146,7 @@ def run_local_autonomous_orchestrator(
     enable_real_email_send: bool = False,
     email_confirmation: str | None = None,
     injected_cycle_runner: Callable[..., int] | None = None,
+    injected_inbox_processor_once: Callable[[], int] | None = None,
     now: datetime | None = None,
 ) -> int:
     approvals_dir.mkdir(parents=True, exist_ok=True)
@@ -177,6 +180,14 @@ def run_local_autonomous_orchestrator(
         enable_inbox_processing=enable_inbox_processing,
         enable_real_gmail_inbox_read=enable_real_gmail_inbox_read,
         confirmation=inbox_confirmation,
+    )
+    inbox_processor_once = run_orchestrator_inbox_processor_once(
+        enable_inbox_processing=enable_inbox_processing,
+        enable_real_gmail_inbox_read=enable_real_gmail_inbox_read,
+        confirmation=inbox_confirmation,
+        env_file=env_file,
+        max_results=inbox_max_results,
+        processor_callable=injected_inbox_processor_once,
     )
     ledger_path = audit_dir / AUDIT_LEDGER_FILE_NAME
     session_manifest_path = session_dir / f"{actual_session_id}.json"
@@ -285,6 +296,14 @@ def run_local_autonomous_orchestrator(
     print(f"Real Gmail inbox read decision: {real_inbox_gate.decision}")
     print(f"Real Gmail inbox read blocked reasons: {real_inbox_gate.blocked_reasons}")
     print(f"Approval records updated: {real_inbox_gate.approval_records_updated}")
+    print(f"Inbox processor one-cycle hook present: {str(inbox_processor_once.hook_present).lower()}")
+    print(f"Inbox processor one-cycle callable wired: {str(inbox_processor_once.processor_callable_wired).lower()}")
+    print(f"Inbox processor one-cycle attempted: {str(inbox_processor_once.attempted).lower()}")
+    print(f"Inbox processor one-cycle return code: {inbox_processor_once.processor_return_code}")
+    print(f"Inbox processor one-cycle decision: {inbox_processor_once.decision}")
+    print(f"Inbox processor one-cycle blocked reasons: {inbox_processor_once.blocked_reasons}")
+    print(f"Approval records updated: {inbox_processor_once.approval_records_updated}")
+    print(f"Real Gmail inbox read performed: {str(inbox_processor_once.real_gmail_inbox_read_performed).lower()}")
     print("Paper arm enabled: false")
     print("Broker order call performed: false")
     print("LIVE TRADING: DISABLED")
@@ -466,6 +485,7 @@ def main() -> int:
     parser.add_argument("--enable-inbox-processing", action="store_true")
     parser.add_argument("--enable-real-gmail-inbox-read", action="store_true")
     parser.add_argument("--inbox-confirmation", default=None)
+    parser.add_argument("--inbox-max-results", type=int, default=25)
     parser.add_argument("--session-id", default=None)
     parser.add_argument("--symbol", default="EEM")
     parser.add_argument("--limit", type=int, default=120)
@@ -487,6 +507,7 @@ def main() -> int:
         enable_inbox_processing=args.enable_inbox_processing,
         enable_real_gmail_inbox_read=args.enable_real_gmail_inbox_read,
         inbox_confirmation=args.inbox_confirmation,
+        inbox_max_results=args.inbox_max_results,
         session_id=args.session_id,
         symbol=args.symbol,
         limit=args.limit,
