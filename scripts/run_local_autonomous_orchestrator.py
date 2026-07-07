@@ -19,6 +19,7 @@ from automation.orchestrator_heartbeat import (
 )
 from automation.orchestrator_inbox_scaffold import evaluate_inbox_processing_scaffold
 from automation.orchestrator_inbox_processor_hook import evaluate_inbox_processor_hook
+from automation.orchestrator_inbox_processor_bridge import evaluate_inbox_processor_dry_run_bridge
 from automation.orchestrator_session import (
     SESSION_MANIFESTS_DIR_NAME,
     build_session_manifest,
@@ -165,6 +166,11 @@ def run_local_autonomous_orchestrator(
         allow_processor_attempt=False,
         processor=None,
     )
+    inbox_processor_bridge = evaluate_inbox_processor_dry_run_bridge(
+        enable_inbox_processing=enable_inbox_processing,
+        confirmation=inbox_confirmation,
+        enable_real_gmail_inbox_read=False,
+    )
     ledger_path = audit_dir / AUDIT_LEDGER_FILE_NAME
     session_manifest_path = session_dir / f"{actual_session_id}.json"
 
@@ -259,6 +265,11 @@ def run_local_autonomous_orchestrator(
     print(f"Inbox processor blocked reasons: {inbox_processor_hook.blocked_reasons}")
     print(f"Approval records updated: {inbox_processor_hook.approval_records_updated}")
     print(f"Real Gmail inbox read: {str(inbox_processor_hook.real_gmail_inbox_read).lower()}")
+    print(f"Inbox processor callable wired: {str(inbox_processor_bridge.processor_callable_wired).lower()}")
+    print(f"Real Gmail inbox read enabled: {str(inbox_processor_bridge.real_gmail_inbox_read_enabled).lower()}")
+    print(f"Inbox processor bridge decision: {inbox_processor_bridge.decision}")
+    print(f"Inbox processor bridge blocked reasons: {inbox_processor_bridge.blocked_reasons}")
+    print(f"Approval records updated: {inbox_processor_bridge.approval_records_updated}")
     print("Paper arm enabled: false")
     print("Broker order call performed: false")
     print("LIVE TRADING: DISABLED")
