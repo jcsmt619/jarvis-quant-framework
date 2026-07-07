@@ -243,5 +243,19 @@
     "branch": "agent/22b-operator-signoff-packet",
     "commit_message": "feat: add operator signoff packet",
     "spec": "Build 22B Operator Signoff Packet from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown signoff packets from the 22A closeout gate, 21B operator acknowledgment ledger, 21A human review queue, 20A readiness gate, 20B retention policy, 19B audit summary, 19A manifest, 18B release bundle, dashboard snapshot, report index, safe workflow catalog, and queue status. It should provide a final human-readable research-cycle signoff summary with completed items, open items, blocked items, rejected items, deferred items, missing artifacts, stale artifacts, retention items, and safety boundary confirmation. It must explicitly state that signoff is records-only and does not enable live trading, broker routing, broker calls, order execution, or automatic actions. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "23A",
+    "title": "Research Operations Console",
+    "branch": "agent/23a-research-operations-console",
+    "commit_message": "feat: add research operations console",
+    "spec": "Build 23A Research Operations Console from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown operations-console reports from the 22B operator signoff packet, 22A human review closeout gate, 21B operator acknowledgment ledger, 21A human review queue, 20A readiness gate, 20B retention policy, 19B audit summary, 19A research cycle manifest, 18B release bundle, 17B operator dashboard snapshot, 17A report index, 18A safe workflow catalog, queue status, and safety scanner status. It should summarize current research-cycle state, signoff state, open items, blocked items, missing artifacts, stale artifacts, rejected items, deferred items, retention items, required operator actions, and safety boundary confirmation. It must be read-only and records-only. It must not create trade instructions, broker actions, live-trading approvals, automatic actions, or execution permissions. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "23B",
+    "title": "Research Cycle Archive Index",
+    "branch": "agent/23b-research-cycle-archive-index",
+    "commit_message": "feat: add research cycle archive index",
+    "spec": "Build 23B Research Cycle Archive Index from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown archive-index reports from the 23A research operations console, 22B operator signoff packet, 22A closeout gate, 21B ledger, 21A queue, 20A readiness gate, 20B retention policy, 19B audit summary, 19A manifest, 18B release bundle, dashboard snapshot, report index, safe workflow catalog, and queue status. It should index completed research-cycle artifacts, source artifact paths, artifact status, safety labels, generated dates, signoff state, retention action, archive eligibility, blocked-delete status, and human-review notes. It must not delete, move, rename, compress, or mutate artifacts. It may only produce a read-only archive index and dry-run archive manifest. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
   }
 ]
