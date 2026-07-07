@@ -207,6 +207,7 @@ def run_local_autonomous_orchestrator(
         env_file=env_file,
         max_results=inbox_max_results,
         processor_callable=injected_inbox_processor_once,
+        allow_default_processor_attempt=injected_cycle_runner is None,
     )
     ledger_path = audit_dir / AUDIT_LEDGER_FILE_NAME
     session_manifest_path = session_dir / f"{actual_session_id}.json"

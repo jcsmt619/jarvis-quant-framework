@@ -78,6 +78,7 @@ def run_orchestrator_inbox_processor_once(
     env_file: Path | None = Path(".env"),
     max_results: int = 25,
     processor_callable: Callable[[], int] | None = None,
+    allow_default_processor_attempt: bool = True,
 ) -> OrchestratorInboxProcessorOnceResult:
     gate = evaluate_real_gmail_inbox_read_gate(
         enable_inbox_processing=enable_inbox_processing,
@@ -121,6 +122,25 @@ def run_orchestrator_inbox_processor_once(
             blocked_reasons=[],
             approval_records_updated=updated_count,
             real_gmail_inbox_read_performed=True,
+            paper_arm_enabled=False,
+            broker_order_call_performed=False,
+            live_trading_enabled=False,
+        )
+
+    if not allow_default_processor_attempt:
+        return OrchestratorInboxProcessorOnceResult(
+            hook_present=True,
+            processor_callable_wired=True,
+            inbox_processing_requested=True,
+            real_gmail_inbox_read_requested=True,
+            confirmation_accepted=True,
+            gate_allowed=True,
+            attempted=False,
+            processor_return_code=None,
+            decision="GATE_ALLOWED_PROCESSOR_NOT_ATTEMPTED_IN_INJECTED_MODE",
+            blocked_reasons=["default Gmail inbox processor disabled for injected orchestrator mode"],
+            approval_records_updated=0,
+            real_gmail_inbox_read_performed=False,
             paper_arm_enabled=False,
             broker_order_call_performed=False,
             live_trading_enabled=False,
