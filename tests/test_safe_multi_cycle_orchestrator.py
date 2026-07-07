@@ -1,4 +1,5 @@
 import scripts.run_safe_multi_cycle_orchestrator as script
+from automation.orchestrator_controls import PAUSE_FILE_NAME, STOP_FILE_NAME
 
 
 def test_multi_cycle_blocks_without_confirmation(capsys, tmp_path):
@@ -20,9 +21,69 @@ def test_multi_cycle_blocks_without_confirmation(capsys, tmp_path):
 
     assert code == 0
     assert calls == []
+    assert "Health safe to run: true" in output
     assert "SAFE MULTI-CYCLE DECISION: BLOCKED_CONFIRMATION_NOT_ACCEPTED" in output
     assert "Underlying orchestrator attempted: false" in output
     assert "Broker order call performed: false" in output
+    assert "LIVE TRADING: DISABLED" in output
+
+
+def test_multi_cycle_blocks_health_check_stop_file(capsys, tmp_path):
+    orchestrator_dir = tmp_path / "orchestrator"
+    orchestrator_dir.mkdir()
+    (orchestrator_dir / STOP_FILE_NAME).write_text("stop")
+
+    calls = []
+
+    def fake_runner(**kwargs):
+        calls.append(kwargs)
+        return 0
+
+    code = script.run_safe_multi_cycle_orchestrator(
+        env_file=None,
+        approvals_dir=tmp_path / "approvals",
+        orchestrator_dir=orchestrator_dir,
+        max_cycles=2,
+        confirmation=script.SAFE_MULTI_CYCLE_CONFIRMATION,
+        injected_orchestrator_runner=fake_runner,
+    )
+    output = capsys.readouterr().out
+
+    assert code == 2
+    assert calls == []
+    assert "Health safe to run: false" in output
+    assert "JARVIS_STOP is present" in output
+    assert "SAFE MULTI-CYCLE DECISION: BLOCKED_BY_HEALTH_CHECK" in output
+    assert "Underlying orchestrator attempted: false" in output
+    assert "LIVE TRADING: DISABLED" in output
+
+
+def test_multi_cycle_blocks_health_check_pause_file(capsys, tmp_path):
+    orchestrator_dir = tmp_path / "orchestrator"
+    orchestrator_dir.mkdir()
+    (orchestrator_dir / PAUSE_FILE_NAME).write_text("pause")
+
+    calls = []
+
+    def fake_runner(**kwargs):
+        calls.append(kwargs)
+        return 0
+
+    code = script.run_safe_multi_cycle_orchestrator(
+        env_file=None,
+        approvals_dir=tmp_path / "approvals",
+        orchestrator_dir=orchestrator_dir,
+        max_cycles=2,
+        confirmation=script.SAFE_MULTI_CYCLE_CONFIRMATION,
+        injected_orchestrator_runner=fake_runner,
+    )
+    output = capsys.readouterr().out
+
+    assert code == 2
+    assert calls == []
+    assert "Health safe to run: false" in output
+    assert "JARVIS_PAUSE is present" in output
+    assert "SAFE MULTI-CYCLE DECISION: BLOCKED_BY_HEALTH_CHECK" in output
     assert "LIVE TRADING: DISABLED" in output
 
 
@@ -45,6 +106,7 @@ def test_multi_cycle_blocks_too_few_cycles(capsys, tmp_path):
 
     assert code == 2
     assert calls == []
+    assert "Health safe to run: true" in output
     assert "SAFE MULTI-CYCLE DECISION: BLOCKED_TOO_FEW_CYCLES" in output
     assert "LIVE TRADING: DISABLED" in output
 
@@ -128,6 +190,7 @@ def test_multi_cycle_allows_safe_orchestrator_and_forces_disabled_modes(capsys, 
     assert calls[0]["max_cycles"] == 3
     assert calls[0]["enable_real_email_send"] is False
     assert calls[0]["email_confirmation"] is None
+    assert "Health safe to run: true" in output
     assert "SAFE MULTI-CYCLE DECISION: ORCHESTRATOR_ALLOWED" in output
     assert "Underlying orchestrator attempted: true" in output
     assert "Real email send enabled: false" in output
@@ -155,6 +218,7 @@ def test_multi_cycle_propagates_orchestrator_failure(capsys, tmp_path):
     output = capsys.readouterr().out
 
     assert code == 7
+    assert "Health safe to run: true" in output
     assert "Underlying orchestrator return code: 7" in output
     assert "Broker order call performed: false" in output
     assert "LIVE TRADING: DISABLED" in output

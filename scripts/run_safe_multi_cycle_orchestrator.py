@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 from typing import Callable
 
+from automation.orchestrator_health import evaluate_orchestrator_health
 from scripts.run_local_autonomous_orchestrator import run_local_autonomous_orchestrator
 
 SAFE_MULTI_CYCLE_CONFIRMATION = "I_UNDERSTAND_THIS_RUNS_MULTIPLE_SAFE_CYCLES"
@@ -35,11 +36,21 @@ def run_safe_multi_cycle_orchestrator(
 ) -> int:
     confirmation_accepted = confirmation == SAFE_MULTI_CYCLE_CONFIRMATION
 
+    health_env_file = env_file or Path(".env")
+    require_env_file = env_file is not None
+    health = evaluate_orchestrator_health(
+        env_file=health_env_file,
+        orchestrator_dir=orchestrator_dir,
+        require_env_file=require_env_file,
+    )
+
     print("SAFE MULTI-CYCLE ORCHESTRATOR REPORT")
     print(f"Symbol: {symbol}")
     print(f"Engine: {engine}")
     print(f"Requested max cycles: {max_cycles}")
     print(f"Requested sleep seconds: {sleep_seconds}")
+    print(f"Health safe to run: {str(health.safe_to_run).lower()}")
+    print(f"Health blocked reasons: {health.blocked_reasons}")
     print(f"Confirmation accepted: {str(confirmation_accepted).lower()}")
     print(f"Minimum safe cycles: {MIN_SAFE_MULTI_CYCLES}")
     print(f"Maximum safe cycles: {MAX_SAFE_MULTI_CYCLES}")
@@ -49,6 +60,13 @@ def run_safe_multi_cycle_orchestrator(
     print("Paper arm enabled: false")
     print("Broker order call performed: false")
     print("LIVE TRADING: DISABLED")
+
+    if not health.safe_to_run:
+        print("SAFE MULTI-CYCLE DECISION: BLOCKED_BY_HEALTH_CHECK")
+        print("Underlying orchestrator attempted: false")
+        print("Broker order call performed: false")
+        print("LIVE TRADING: DISABLED")
+        return 2
 
     if not confirmation_accepted:
         print("SAFE MULTI-CYCLE DECISION: BLOCKED_CONFIRMATION_NOT_ACCEPTED")
