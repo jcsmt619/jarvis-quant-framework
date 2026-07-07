@@ -38,6 +38,8 @@ def main() -> int:
     print("JARVIS 15B OPERATOR RUNBOOK: COMPLETE")
     print("RESEARCH_ONLY / MONITOR_ONLY / PAPER_ONLY / HUMAN_REVIEW_REQUIRED")
     print("LIVE TRADING: DISABLED")
+    print("BLOCKED_BY_SAFETY_GATE workflows remain blocked")
+    print("No secrets, credential files, broker routing, broker calls, or order execution are used")
     print(f"JSON: {json_path}")
     print(f"Markdown: {markdown_path}")
     return 0

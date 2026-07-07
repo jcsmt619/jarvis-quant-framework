@@ -136,6 +136,7 @@ def build_operator_runbook_payload(runbook_input: OperatorRunbookInput) -> dict[
         "runbook_date": runbook_input.runbook_date,
         "generated_at_utc": runbook_input.generated_at_utc,
         "safety_boundary": _safety_boundary(),
+        "required_labels": list(SAFE_OPERATOR_RUNBOOK_LABELS),
         "summary": {
             "checklist_section_count": len(sections),
             "checklist_item_count": sum(len(section["items"]) for section in sections),
@@ -395,8 +396,13 @@ def _safety_boundary() -> dict[str, Any]:
         "real_paper_order_submitted": False,
         "broker_order_call_performed": False,
         "broker_order_routing_enabled": False,
+        "broker_routing_used": False,
+        "broker_call_used": False,
+        "order_execution_used": False,
         "live_trading_enabled": False,
         "secrets_required": False,
+        "credential_file_used": False,
+        "prohibited_trade_labels_present": False,
         "status": "LIVE TRADING: DISABLED",
     }
 
