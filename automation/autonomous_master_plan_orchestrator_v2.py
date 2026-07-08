@@ -1,7 +1,8 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -87,6 +88,15 @@ def ps_array(values: Iterable[str]) -> str:
     return "@(" + ", ".join(ps_quote(item) for item in items) + ")"
 
 
+
+def _safe_text(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return str(value)
+
+
 def run_command(
     command: Sequence[str],
     *,
@@ -98,9 +108,16 @@ def run_command(
             list(command),
             cwd=str(cwd),
             text=True,
+            encoding="utf-8",
+            errors="replace",
             capture_output=True,
             timeout=timeout_seconds,
             check=False,
+            env={
+                **os.environ,
+                "PYTHONUTF8": "1",
+                "PYTHONIOENCODING": "utf-8",
+            },
         )
         return CommandResult(
             command=tuple(command),
@@ -112,8 +129,8 @@ def run_command(
         return CommandResult(
             command=tuple(command),
             returncode=124,
-            stdout=exc.stdout or "",
-            stderr=(exc.stderr or "") + f"\nTIMEOUT after {timeout_seconds} seconds",
+            stdout=_safe_text(exc.stdout),
+            stderr=_safe_text(exc.stderr) + f"\nTIMEOUT after {timeout_seconds} seconds",
         )
 
 
