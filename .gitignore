@@ -71,3 +71,6 @@ reports/supervisor_runs/
 reports/supervised_repair/
 reports/master_plan_autopilot/
 reports/safety_scanner_tests/
+
+# Jarvis persistent autopilot runtime logs
+reports/autonomous_orchestrator_v2/
