@@ -397,5 +397,19 @@
     "branch": "agent/33b-next-cycle-records-evidence-packet-33",
     "commit_message": "feat: add next Cycle Records Evidence Packet 33",
     "spec": "Build 33B Next Cycle Records Evidence Packet 33 from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown records from the latest prior next-cycle operator packets, evidence packets, gates, report index, safe workflow catalog, queue status, and safety scanner status. It should summarize source artifact status, blocked prerequisites, unresolved review items, required refreshed artifacts, safety findings, inert command hints, queue next phase, operator checklist items, evidence references, and required human-review actions. It must be read-only and records-only. It must not execute commands, run the next cycle, mutate artifacts, delete artifacts, create broker actions, create trade instructions, enable live trading, grant execution permissions, route broker orders, call broker endpoints, or submit any order path. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "BR-01",
+    "title": "Options LEAPS Data Model",
+    "branch": "agent/br-01-options-leaps-data-model",
+    "commit_message": "feat: add options LEAPS data model",
+    "spec": "Build BR-01 Options LEAPS Data Model from the Brendan/Jarvis architecture review. It should define deterministic Python data models and JSON fixtures for equities, option contracts, option chains, Greeks, implied volatility, volume, open interest, spreads, DTE, catalyst metadata, paper portfolio positions, and analyst thesis records. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, order execution, or real broker positions. Include tests."
+  },
+  {
+    "phase": "BR-02",
+    "title": "Candidate Universe Builder",
+    "branch": "agent/br-02-candidate-universe-builder",
+    "commit_message": "feat: add candidate universe builder",
+    "spec": "Build BR-02 Candidate Universe Builder from the Brendan/Jarvis architecture review. It should create deterministic watchlists and candidate universes from local fixtures and configurable filters such as sector, liquidity, price trend, volatility, catalyst tags, market cap bucket, and options availability. It must produce JSON and Markdown candidate universe reports for human review. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, order execution, or real broker positions. Include tests."
   }
 ]
