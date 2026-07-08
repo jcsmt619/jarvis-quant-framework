@@ -369,5 +369,19 @@
     "branch": "agent/31b-next-cycle-records-evidence-packet-31",
     "commit_message": "feat: add next Cycle Records Evidence Packet 31",
     "spec": "Build 31B Next Cycle Records Evidence Packet 31 from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown records from the latest prior next-cycle operator packets, evidence packets, gates, report index, safe workflow catalog, queue status, and safety scanner status. It should summarize source artifact status, blocked prerequisites, unresolved review items, required refreshed artifacts, safety findings, inert command hints, queue next phase, operator checklist items, evidence references, and required human-review actions. It must be read-only and records-only. It must not execute commands, run the next cycle, mutate artifacts, delete artifacts, create broker actions, create trade instructions, enable live trading, grant execution permissions, route broker orders, call broker endpoints, or submit any order path. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "32A",
+    "title": "Next Cycle Records Review Gate 32",
+    "branch": "agent/32a-next-cycle-records-review-gate-32",
+    "commit_message": "feat: add next Cycle Records Review Gate 32",
+    "spec": "Build 32A Next Cycle Records Review Gate 32 from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown records from the latest prior next-cycle operator packets, evidence packets, gates, report index, safe workflow catalog, queue status, and safety scanner status. It should summarize source artifact status, blocked prerequisites, unresolved review items, required refreshed artifacts, safety findings, inert command hints, queue next phase, operator checklist items, evidence references, and required human-review actions. It must be read-only and records-only. It must not execute commands, run the next cycle, mutate artifacts, delete artifacts, create broker actions, create trade instructions, enable live trading, grant execution permissions, route broker orders, call broker endpoints, or submit any order path. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
+  },
+  {
+    "phase": "32B",
+    "title": "Next Cycle Records Evidence Packet 32",
+    "branch": "agent/32b-next-cycle-records-evidence-packet-32",
+    "commit_message": "feat: add next Cycle Records Evidence Packet 32",
+    "spec": "Build 32B Next Cycle Records Evidence Packet 32 from the Jarvis Quant master roadmap. It should generate deterministic JSON and Markdown records from the latest prior next-cycle operator packets, evidence packets, gates, report index, safe workflow catalog, queue status, and safety scanner status. It should summarize source artifact status, blocked prerequisites, unresolved review items, required refreshed artifacts, safety findings, inert command hints, queue next phase, operator checklist items, evidence references, and required human-review actions. It must be read-only and records-only. It must not execute commands, run the next cycle, mutate artifacts, delete artifacts, create broker actions, create trade instructions, enable live trading, grant execution permissions, route broker orders, call broker endpoints, or submit any order path. Required labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE, LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, or order execution. Include tests."
   }
 ]
