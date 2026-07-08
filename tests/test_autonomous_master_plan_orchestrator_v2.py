@@ -59,3 +59,20 @@ def test_find_phase_index_finds_requested_phase() -> None:
 def test_ps_array_quotes_values_for_powershell() -> None:
     assert ps_array(["core/a.py", "tests/test_a.py"]) == "@('core/a.py', 'tests/test_a.py')"
     assert ps_array([]) == "@()"
+
+
+def test_run_command_uses_utf8_decode_with_replacement() -> None:
+    source = Path("automation/autonomous_master_plan_orchestrator_v2.py").read_text(encoding="utf-8")
+
+    assert 'encoding="utf-8"' in source
+    assert 'errors="replace"' in source
+    assert '"PYTHONUTF8": "1"' in source
+    assert '"PYTHONIOENCODING": "utf-8"' in source
+
+
+def test_safe_text_decodes_bad_bytes_without_crashing() -> None:
+    from automation.autonomous_master_plan_orchestrator_v2 import _safe_text
+
+    assert _safe_text(None) == ""
+    assert _safe_text("ok") == "ok"
+    assert "\ufffd" in _safe_text(b"bad-byte-\x9d")
