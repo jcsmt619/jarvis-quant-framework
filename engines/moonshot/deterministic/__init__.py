@@ -64,6 +64,12 @@ from engines.moonshot.deterministic.daily_position_monitor_alert_engine import (
     daily_position_monitor_payload,
     write_daily_position_monitor_report,
 )
+from engines.moonshot.deterministic.local_operator_dashboard import (
+    LocalOperatorDashboardReport,
+    build_local_operator_dashboard_report,
+    local_operator_dashboard_payload,
+    write_local_operator_dashboard_report,
+)
 from engines.moonshot.deterministic.options_research import (
     GreeksSnapshot,
     OptionThesis,
@@ -102,6 +108,7 @@ __all__ = [
     "LeapsResearchConfig",
     "LeapsResearchInput",
     "LeapsResearchMemo",
+    "LocalOperatorDashboardReport",
     "MoonshotScenario",
     "MoonshotSimulationResult",
     "MoonshotSimulatorConfig",
@@ -126,6 +133,7 @@ __all__ = [
     "TradeScoreRiskGateDecision",
     "TradeScoreRiskGateReport",
     "build_leaps_research_memo",
+    "build_local_operator_dashboard_report",
     "build_candidate_universe_report",
     "build_options_chain_quality_report",
     "build_options_monitor_dashboard",
@@ -143,7 +151,9 @@ __all__ = [
     "simulate_moonshot_scenarios",
     "trade_score_risk_gate_payload",
     "daily_position_monitor_payload",
+    "local_operator_dashboard_payload",
     "write_daily_position_monitor_report",
+    "write_local_operator_dashboard_report",
     "write_options_monitor_report",
     "write_candidate_universe_report",
     "write_options_chain_quality_report",
