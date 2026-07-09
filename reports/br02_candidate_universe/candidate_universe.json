@@ -1,0 +1,205 @@
+{
+  "phase": "BR-02",
+  "module": "Candidate Universe Builder",
+  "as_of": "2026-07-08T16:00:00",
+  "label": "BLOCKED_BY_SAFETY_GATE",
+  "safety": {
+    "phase": "BR-02",
+    "module": "Candidate Universe Builder",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  },
+  "config": {
+    "allowed_sectors": [],
+    "min_average_volume_30d": 1000000,
+    "min_dollar_volume_30d": 50000000.0,
+    "min_price_trend_60d_pct": -0.05,
+    "max_realized_volatility_30d": 0.75,
+    "required_catalyst_tags": [],
+    "allowed_market_cap_buckets": [],
+    "require_options_available": true,
+    "max_candidates": 25
+  },
+  "metrics": {
+    "candidate_count": 5,
+    "included_count": 3,
+    "blocked_count": 2,
+    "human_review_required_count": 5
+  },
+  "watchlists": {
+    "primary": [
+      "NVDA",
+      "MSFT",
+      "TSLA"
+    ],
+    "by_sector": {
+      "Consumer Discretionary": [
+        "TSLA"
+      ],
+      "Technology": [
+        "MSFT",
+        "NVDA"
+      ]
+    },
+    "catalyst_review": {
+      "ai_datacenter": [
+        "MSFT",
+        "NVDA"
+      ],
+      "cloud_margin": [
+        "MSFT"
+      ],
+      "earnings_revision": [
+        "NVDA"
+      ],
+      "margin_review": [
+        "TSLA"
+      ],
+      "product_cycle": [
+        "TSLA"
+      ]
+    }
+  },
+  "included_candidates": [
+    {
+      "symbol": "NVDA",
+      "name": "NVIDIA Corporation",
+      "sector": "Technology",
+      "last_price": 150.0,
+      "average_volume_30d": 42000000,
+      "dollar_volume_30d": 6300000000.0,
+      "price_trend_60d_pct": 0.18,
+      "realized_volatility_30d": 0.42,
+      "catalyst_tags": [
+        "earnings_revision",
+        "ai_datacenter"
+      ],
+      "market_cap_bucket": "mega",
+      "options_available": true,
+      "as_of": "2026-07-08T16:00:00",
+      "market_cap": 3700000000000,
+      "included": true,
+      "label": "MONITOR_ONLY",
+      "score": 89,
+      "reasons": [],
+      "human_review_required": true
+    },
+    {
+      "symbol": "MSFT",
+      "name": "Microsoft Corporation",
+      "sector": "Technology",
+      "last_price": 510.0,
+      "average_volume_30d": 18000000,
+      "dollar_volume_30d": 9180000000.0,
+      "price_trend_60d_pct": 0.09,
+      "realized_volatility_30d": 0.26,
+      "catalyst_tags": [
+        "cloud_margin",
+        "ai_datacenter"
+      ],
+      "market_cap_bucket": "mega",
+      "options_available": true,
+      "as_of": "2026-07-08T16:00:00",
+      "market_cap": 3800000000000,
+      "included": true,
+      "label": "MONITOR_ONLY",
+      "score": 83,
+      "reasons": [],
+      "human_review_required": true
+    },
+    {
+      "symbol": "TSLA",
+      "name": "Tesla Inc.",
+      "sector": "Consumer Discretionary",
+      "last_price": 250.0,
+      "average_volume_30d": 76000000,
+      "dollar_volume_30d": 19000000000.0,
+      "price_trend_60d_pct": 0.04,
+      "realized_volatility_30d": 0.68,
+      "catalyst_tags": [
+        "product_cycle",
+        "margin_review"
+      ],
+      "market_cap_bucket": "mega",
+      "options_available": true,
+      "as_of": "2026-07-08T16:00:00",
+      "market_cap": 800000000000,
+      "included": true,
+      "label": "MONITOR_ONLY",
+      "score": 70,
+      "reasons": [],
+      "human_review_required": true
+    }
+  ],
+  "blocked_candidates": [
+    {
+      "symbol": "ABCD",
+      "name": "Example Breakdown Software",
+      "sector": "Technology",
+      "last_price": 42.0,
+      "average_volume_30d": 3200000,
+      "dollar_volume_30d": 134400000.0,
+      "price_trend_60d_pct": -0.18,
+      "realized_volatility_30d": 0.82,
+      "catalyst_tags": [
+        "turnaround_review"
+      ],
+      "market_cap_bucket": "mid",
+      "options_available": true,
+      "as_of": "2026-07-08T16:00:00",
+      "market_cap": 9800000000,
+      "included": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "score": 60,
+      "reasons": [
+        "price_trend_below_minimum",
+        "volatility_above_maximum"
+      ],
+      "human_review_required": true
+    },
+    {
+      "symbol": "XYZL",
+      "name": "Example Low Liquidity Labs",
+      "sector": "Healthcare",
+      "last_price": 18.0,
+      "average_volume_30d": 90000,
+      "dollar_volume_30d": 1620000.0,
+      "price_trend_60d_pct": 0.22,
+      "realized_volatility_30d": 0.55,
+      "catalyst_tags": [
+        "trial_readout"
+      ],
+      "market_cap_bucket": "small",
+      "options_available": false,
+      "as_of": "2026-07-08T16:00:00",
+      "market_cap": 1200000000,
+      "included": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "score": 38,
+      "reasons": [
+        "average_volume_below_minimum",
+        "dollar_volume_below_minimum",
+        "options_not_available"
+      ],
+      "human_review_required": true
+    }
+  ]
+}

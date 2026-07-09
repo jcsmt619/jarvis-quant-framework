@@ -6,6 +6,9 @@ Use this lane for repeatable LEAPS research components:
 - BR-01 options LEAPS data model fixtures for equities, contracts, chains,
   Greeks, implied volatility, volume, open interest, spreads, DTE, catalysts,
   paper positions, and analyst thesis records
+- BR-02 candidate universe builder fixtures and deterministic watchlists for
+  sector, liquidity, trend, volatility, catalyst, market-cap, and options
+  availability filters
 - Greek calculations
 - theta decay monitors
 - IV and DTE monitors

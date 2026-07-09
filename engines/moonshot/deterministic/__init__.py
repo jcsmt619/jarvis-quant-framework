@@ -25,6 +25,15 @@ from engines.moonshot.deterministic.leaps_data_model import (
     leaps_dataset_payload,
     load_leaps_dataset,
 )
+from engines.moonshot.deterministic.candidate_universe_builder import (
+    CandidateRecord,
+    CandidateUniverseConfig,
+    CandidateUniverseReport,
+    build_candidate_universe_report,
+    candidate_universe_payload,
+    load_candidate_universe_report,
+    write_candidate_universe_report,
+)
 from engines.moonshot.deterministic.options_research import (
     GreeksSnapshot,
     OptionThesis,
@@ -51,6 +60,9 @@ __all__ = [
     "CryptoRiskSnapshot",
     "AnalystThesisRecord",
     "CatalystMetadata",
+    "CandidateRecord",
+    "CandidateUniverseConfig",
+    "CandidateUniverseReport",
     "EquitySnapshot",
     "LeapsDataSet",
     "LeapsResearchConfig",
@@ -71,11 +83,15 @@ __all__ = [
     "OptionsResearchMemo",
     "PaperPortfolioPosition",
     "build_leaps_research_memo",
+    "build_candidate_universe_report",
     "build_options_monitor_dashboard",
     "build_options_research_memo",
     "evaluate_crypto_risk_guard",
     "leaps_dataset_payload",
+    "candidate_universe_payload",
+    "load_candidate_universe_report",
     "load_leaps_dataset",
     "simulate_moonshot_scenarios",
     "write_options_monitor_report",
+    "write_candidate_universe_report",
 ]
