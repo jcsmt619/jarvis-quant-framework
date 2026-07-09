@@ -411,5 +411,19 @@
     "branch": "agent/br-02-candidate-universe-builder",
     "commit_message": "feat: add candidate universe builder",
     "spec": "Build BR-02 Candidate Universe Builder from the Brendan/Jarvis architecture review. It should create deterministic watchlists and candidate universes from local fixtures and configurable filters such as sector, liquidity, price trend, volatility, catalyst tags, market cap bucket, and options availability. It must produce JSON and Markdown candidate universe reports for human review. It must remain research-only, monitor-only, paper-only, human-review-required, blocked-by-safety-gate, and LIVE TRADING: DISABLED. It must not use secrets, credential files, broker routing, broker calls, live trading, order execution, or real broker positions. Include tests."
+  },
+  {
+    "phase": "BR-03",
+    "title": "Options Chain Quality Scanner",
+    "branch": "agent/br-03-options-chain-quality-scanner",
+    "commit_message": "feat: add options chain quality scanner",
+    "spec": "Build BR-03 Options Chain Quality Scanner. It should score option chains for spread quality, volume, open interest, DTE, strike availability, stale data, missing Greeks, and implied volatility sanity. It must produce deterministic JSON and Markdown outputs. It must remain paper-only and LIVE TRADING: DISABLED. Include tests."
+  },
+  {
+    "phase": "BR-04",
+    "title": "Greeks IV Spread DTE Scoring",
+    "branch": "agent/br-04-greeks-iv-spread-dte-scoring",
+    "commit_message": "feat: add Greeks IV spread DTE scoring",
+    "spec": "Build BR-04 deterministic options scoring for delta, theta, vega, implied volatility, spread, DTE, liquidity, and contract suitability. It must generate explainable component scores and total scores. It must remain research-only and paper-only. Include tests."
   }
 ]
