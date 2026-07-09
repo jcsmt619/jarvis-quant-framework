@@ -501,7 +501,7 @@
     "title": "HMM Regime Validation and Tuning Experiment Registry",
     "branch": "agent/br-10e-hmm-regime-validation-tuning-experiment-registry",
     "commit_message": "feat: add HMM regime validation and tuning experiment registry",
-    "spec": "Implement an HMM tuning experiment registry and out-of-sample regime validation harness. Compare tuned HMM configurations against naive baselines. Store experiment metadata, validation metrics, drift checks, and paper-only review reports. No live execution. HUMAN_REVIEW_REQUIRED."
+    "spec": "Implement an HMM tuning experiment registry and out-of-sample regime validation harness. Compare tuned HMM configurations against naive baselines. Store experiment metadata, validation metrics, drift checks, and paper-only review reports. No live execution. Research-only; no live trading; HUMAN_REVIEW_REQUIRED."
   },
   {
     "phase": "BR-11",
