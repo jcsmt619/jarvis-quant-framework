@@ -1,0 +1,64 @@
+{
+  "candidate_risk_contexts": [
+    {
+      "contract_id": "NVDA-20271217-C-140",
+      "symbol": "NVDA",
+      "proposed_position_pct": 0.015,
+      "existing_symbol_exposure_pct": 0.015,
+      "portfolio_drawdown_pct": 0.015,
+      "candidate_drawdown_pct": 0.040,
+      "days_to_next_catalyst": 120,
+      "label": "MONITOR_ONLY"
+    },
+    {
+      "contract_id": "NVDA-20271217-C-180",
+      "symbol": "NVDA",
+      "proposed_position_pct": 0.025,
+      "existing_symbol_exposure_pct": 0.030,
+      "portfolio_drawdown_pct": 0.030,
+      "candidate_drawdown_pct": 0.080,
+      "days_to_next_catalyst": 45,
+      "label": "MONITOR_ONLY"
+    },
+    {
+      "contract_id": "NVDA-20271217-C-220",
+      "symbol": "NVDA",
+      "proposed_position_pct": 0.020,
+      "existing_symbol_exposure_pct": 0.020,
+      "portfolio_drawdown_pct": 0.020,
+      "candidate_drawdown_pct": 0.060,
+      "days_to_next_catalyst": 7,
+      "label": "MONITOR_ONLY"
+    },
+    {
+      "contract_id": "NVDA-20271217-C-260",
+      "symbol": "NVDA",
+      "proposed_position_pct": 0.035,
+      "existing_symbol_exposure_pct": 0.040,
+      "portfolio_drawdown_pct": 0.040,
+      "candidate_drawdown_pct": 0.090,
+      "days_to_next_catalyst": 90,
+      "label": "MONITOR_ONLY"
+    },
+    {
+      "contract_id": "ABCD-20260821-C-45",
+      "symbol": "ABCD",
+      "proposed_position_pct": 0.010,
+      "existing_symbol_exposure_pct": 0.000,
+      "portfolio_drawdown_pct": 0.090,
+      "candidate_drawdown_pct": 0.250,
+      "days_to_next_catalyst": 30,
+      "label": "MONITOR_ONLY"
+    },
+    {
+      "contract_id": "ABCD-20260821-C-55",
+      "symbol": "ABCD",
+      "proposed_position_pct": 0.010,
+      "existing_symbol_exposure_pct": 0.000,
+      "portfolio_drawdown_pct": 0.020,
+      "candidate_drawdown_pct": 0.040,
+      "days_to_next_catalyst": 700,
+      "label": "MONITOR_ONLY"
+    }
+  ]
+}
