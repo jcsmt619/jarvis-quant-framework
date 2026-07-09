@@ -469,6 +469,41 @@
     "spec": "Build BR-10 Paper Autopilot Loop that runs candidate scanning, scoring, paper portfolio updates, monitor alerts, analyst context packaging, and dashboard refresh as a local paper-only workflow. It must not call brokers or execute real orders. LIVE TRADING: DISABLED. Include tests."
   },
   {
+    "phase": "BR-10A",
+    "title": "New Brendan Screeners and HMM Import Review",
+    "branch": "agent/br-10a-new-brendan-screeners-hmm-import-review",
+    "commit_message": "docs: add new Brendan screeners and HMM import review",
+    "spec": "Create a docs-only review of the sanitized Brendan screeners and advanced HMM module analysis. Do not copy raw paid source content. Summarize what should change before BR-11 and BR-12. Keep all outputs RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED. LIVE TRADING: DISABLED."
+  },
+  {
+    "phase": "BR-10B",
+    "title": "Track A Manual Screener Operator Workflow",
+    "branch": "agent/br-10b-track-a-manual-screener-operator-workflow",
+    "commit_message": "docs: add Track A manual screener operator workflow",
+    "spec": "Create a docs-only Track A operator workflow for manual Claude Web style screening. Cover universe definition, filter families, screen-not-signal discipline, regime-matched screens, review checklist, and paper-only handoff. Do not implement code. Do not copy raw course content. LIVE TRADING: DISABLED."
+  },
+  {
+    "phase": "BR-10C",
+    "title": "Track B Config Driven Screener Pipeline",
+    "branch": "agent/br-10c-track-b-config-driven-screener-pipeline",
+    "commit_message": "feat: add Track B config driven screener pipeline",
+    "spec": "Implement a deterministic config-driven research screener pipeline that produces a ranked research queue, not trade signals. Include stock and crypto compatible schemas, filter groups, ranking, candidate profiles, dashboard/report output, and tests. No broker calls. No order placement. PAPER_ONLY and HUMAN_REVIEW_REQUIRED."
+  },
+  {
+    "phase": "BR-10D",
+    "title": "Advanced HMM Tuning Gating Stack and Per Asset Profiles",
+    "branch": "agent/br-10d-advanced-hmm-tuning-gating-stack-per-asset-profiles",
+    "commit_message": "feat: add advanced HMM tuning gates and per asset profiles",
+    "spec": "Implement advanced HMM tuning support with per-asset profiles, state-count configuration, feature set configuration, confidence thresholds, persistence gates, optional volatility feature support, circuit-breaker style safety gates, and tests. This must remain research-only and paper-only."
+  },
+  {
+    "phase": "BR-10E",
+    "title": "HMM Regime Validation and Tuning Experiment Registry",
+    "branch": "agent/br-10e-hmm-regime-validation-tuning-experiment-registry",
+    "commit_message": "feat: add HMM regime validation and tuning experiment registry",
+    "spec": "Implement an HMM tuning experiment registry and out-of-sample regime validation harness. Compare tuned HMM configurations against naive baselines. Store experiment metadata, validation metrics, drift checks, and paper-only review reports. No live execution. HUMAN_REVIEW_REQUIRED."
+  },
+  {
     "phase": "BR-11",
     "title": "Read Only Broker Account Sync Design",
     "branch": "agent/br-11-read-only-broker-account-sync-design",
