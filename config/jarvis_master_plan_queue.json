@@ -439,5 +439,19 @@
     "branch": "agent/br-06-deterministic-trade-score-risk-gate",
     "commit_message": "feat: add deterministic trade score risk gate",
     "spec": "Build BR-06 deterministic risk gate for candidate options and LEAPS. It should combine chain quality, Greeks, liquidity, thesis quality, concentration, drawdown, and catalyst timing into a gate decision. Outputs must be RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, or BLOCKED_BY_SAFETY_GATE. LIVE TRADING: DISABLED. Include tests."
+  },
+  {
+    "phase": "BR-07",
+    "title": "Paper Options Portfolio Manager",
+    "branch": "agent/br-07-paper-options-portfolio-manager",
+    "commit_message": "feat: add paper options portfolio manager",
+    "spec": "Build BR-07 Paper Options Portfolio Manager. It should simulate entries, exits, marks, PnL, exposure, Greeks, and position history using local data. It must never touch a real broker. LIVE TRADING: DISABLED. Include tests."
+  },
+  {
+    "phase": "BR-08",
+    "title": "Daily Position Monitor Alert Engine",
+    "branch": "agent/br-08-daily-position-monitor-alert-engine",
+    "commit_message": "feat: add daily position monitor alert engine",
+    "spec": "Build BR-08 Daily Position Monitor and Alert Engine for paper positions. It should flag theta decay, DTE thresholds, spread degradation, thesis invalidation, volatility changes, price moves, and risk gate changes. It must produce human-review alerts only. LIVE TRADING: DISABLED. Include tests."
   }
 ]
