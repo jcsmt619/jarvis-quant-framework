@@ -70,6 +70,13 @@ from engines.moonshot.deterministic.local_operator_dashboard import (
     local_operator_dashboard_payload,
     write_local_operator_dashboard_report,
 )
+from engines.moonshot.deterministic.paper_autopilot_loop import (
+    PaperAutopilotLoopConfig,
+    PaperAutopilotLoopReport,
+    paper_autopilot_loop_payload,
+    run_paper_autopilot_loop,
+    write_paper_autopilot_loop_report,
+)
 from engines.moonshot.deterministic.options_research import (
     GreeksSnapshot,
     OptionThesis,
@@ -127,6 +134,8 @@ __all__ = [
     "OptionsChainQualityConfig",
     "OptionsChainQualityReport",
     "OptionsResearchMemo",
+    "PaperAutopilotLoopConfig",
+    "PaperAutopilotLoopReport",
     "PaperPortfolioPosition",
     "PositionMonitorSnapshot",
     "TradeScoreRiskGateConfig",
@@ -152,8 +161,11 @@ __all__ = [
     "trade_score_risk_gate_payload",
     "daily_position_monitor_payload",
     "local_operator_dashboard_payload",
+    "paper_autopilot_loop_payload",
+    "run_paper_autopilot_loop",
     "write_daily_position_monitor_report",
     "write_local_operator_dashboard_report",
+    "write_paper_autopilot_loop_report",
     "write_options_monitor_report",
     "write_candidate_universe_report",
     "write_options_chain_quality_report",
