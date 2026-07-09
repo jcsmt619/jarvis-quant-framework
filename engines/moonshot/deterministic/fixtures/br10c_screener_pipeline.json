@@ -1,0 +1,140 @@
+{
+  "config": {
+    "max_queue_size": 3,
+    "include_blocked_profiles": true,
+    "filter_groups": [
+      {
+        "name": "stock_growth_quality",
+        "asset_classes": ["stock"],
+        "allowed_sectors": ["Technology", "Consumer Discretionary"],
+        "required_tags": ["liquid"],
+        "metric_ranges": [
+          {"metric": "liquidity_score", "minimum": 0.65},
+          {"metric": "trend_score", "minimum": 0.45},
+          {"metric": "volatility_score", "minimum": 0.35}
+        ]
+      },
+      {
+        "name": "crypto_liquid_momentum",
+        "asset_classes": ["crypto"],
+        "allowed_networks": ["Bitcoin", "Ethereum", "Solana"],
+        "required_tags": ["liquid"],
+        "metric_ranges": [
+          {"metric": "liquidity_score", "minimum": 0.70},
+          {"metric": "trend_score", "minimum": 0.40},
+          {"metric": "drawdown_risk", "maximum": 0.55}
+        ]
+      }
+    ],
+    "ranking_rules": [
+      {"metric": "trend_score", "weight": 45.0, "direction": "higher"},
+      {"metric": "liquidity_score", "weight": 30.0, "direction": "higher"},
+      {"metric": "volatility_score", "weight": 15.0, "direction": "higher"},
+      {"metric": "drawdown_risk", "weight": 10.0, "direction": "lower"}
+    ]
+  },
+  "candidates": [
+    {
+      "symbol": "NVDA",
+      "name": "NVIDIA Corporation",
+      "asset_class": "stock",
+      "sector": "Technology",
+      "quote_currency": "USD",
+      "as_of": "2026-07-09T16:00:00",
+      "tags": ["liquid", "ai_datacenter", "earnings_revision"],
+      "metrics": {
+        "liquidity_score": 0.98,
+        "trend_score": 0.92,
+        "volatility_score": 0.62,
+        "drawdown_risk": 0.28
+      },
+      "profile_notes": ["large liquid equity", "requires human review before any paper workflow"],
+      "label": "RESEARCH_ONLY"
+    },
+    {
+      "symbol": "MSFT",
+      "name": "Microsoft Corporation",
+      "asset_class": "stock",
+      "sector": "Technology",
+      "quote_currency": "USD",
+      "as_of": "2026-07-09T16:00:00",
+      "tags": ["liquid", "cloud_margin"],
+      "metrics": {
+        "liquidity_score": 0.94,
+        "trend_score": 0.68,
+        "volatility_score": 0.76,
+        "drawdown_risk": 0.18
+      },
+      "profile_notes": ["mega-cap quality screen candidate", "research queue entry only"],
+      "label": "RESEARCH_ONLY"
+    },
+    {
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "asset_class": "crypto",
+      "network": "Bitcoin",
+      "quote_currency": "USD",
+      "as_of": "2026-07-09T16:00:00",
+      "tags": ["liquid", "macro_beta"],
+      "metrics": {
+        "liquidity_score": 0.99,
+        "trend_score": 0.84,
+        "volatility_score": 0.46,
+        "drawdown_risk": 0.34
+      },
+      "profile_notes": ["crypto-compatible schema candidate", "monitor-only research queue candidate"],
+      "label": "RESEARCH_ONLY"
+    },
+    {
+      "symbol": "SOL",
+      "name": "Solana",
+      "asset_class": "crypto",
+      "network": "Solana",
+      "quote_currency": "USD",
+      "as_of": "2026-07-09T16:00:00",
+      "tags": ["liquid", "ecosystem_growth"],
+      "metrics": {
+        "liquidity_score": 0.82,
+        "trend_score": 0.66,
+        "volatility_score": 0.31,
+        "drawdown_risk": 0.51
+      },
+      "profile_notes": ["passes crypto filter but may be limited by queue size", "high review burden"],
+      "label": "RESEARCH_ONLY"
+    },
+    {
+      "symbol": "XYZL",
+      "name": "Example Thin Stock",
+      "asset_class": "stock",
+      "sector": "Healthcare",
+      "quote_currency": "USD",
+      "as_of": "2026-07-09T16:00:00",
+      "tags": ["trial_readout"],
+      "metrics": {
+        "liquidity_score": 0.22,
+        "trend_score": 0.81,
+        "volatility_score": 0.39,
+        "drawdown_risk": 0.44
+      },
+      "profile_notes": ["blocked by filter configuration"],
+      "label": "RESEARCH_ONLY"
+    },
+    {
+      "symbol": "DOGE",
+      "name": "Dogecoin",
+      "asset_class": "crypto",
+      "network": "Dogecoin",
+      "quote_currency": "USD",
+      "as_of": "2026-07-09T16:00:00",
+      "tags": ["liquid", "meme_beta"],
+      "metrics": {
+        "liquidity_score": 0.76,
+        "trend_score": 0.55,
+        "volatility_score": 0.22,
+        "drawdown_risk": 0.72
+      },
+      "profile_notes": ["blocked by network and risk filters"],
+      "label": "RESEARCH_ONLY"
+    }
+  ]
+}
