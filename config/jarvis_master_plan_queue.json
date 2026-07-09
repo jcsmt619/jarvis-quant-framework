@@ -467,5 +467,19 @@
     "branch": "agent/br-10-paper-autopilot-loop",
     "commit_message": "feat: add paper autopilot loop",
     "spec": "Build BR-10 Paper Autopilot Loop that runs candidate scanning, scoring, paper portfolio updates, monitor alerts, analyst context packaging, and dashboard refresh as a local paper-only workflow. It must not call brokers or execute real orders. LIVE TRADING: DISABLED. Include tests."
+  },
+  {
+    "phase": "BR-11",
+    "title": "Read Only Broker Account Sync Design",
+    "branch": "agent/br-11-read-only-broker-account-sync-design",
+    "commit_message": "feat: add read only broker account sync design",
+    "spec": "Build BR-11 read-only broker/account sync design documents and interfaces. It must not connect to a broker by default and must not require credentials. The goal is future account-state import design only. LIVE TRADING: DISABLED. Include tests."
+  },
+  {
+    "phase": "BR-12",
+    "title": "Human Approved Execution Safety Design",
+    "branch": "agent/br-12-human-approved-execution-safety-design",
+    "commit_message": "feat: add human approved execution safety design",
+    "spec": "Build BR-12 human-approved execution safety design. It should document future approval gates, broker adapter boundaries, kill switches, position limits, audit trails, and required manual confirmations. It must not enable live trading. LIVE TRADING: DISABLED. Include tests."
   }
 ]
