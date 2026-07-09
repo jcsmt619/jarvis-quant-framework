@@ -425,5 +425,19 @@
     "branch": "agent/br-04-greeks-iv-spread-dte-scoring",
     "commit_message": "feat: add Greeks IV spread DTE scoring",
     "spec": "Build BR-04 deterministic options scoring for delta, theta, vega, implied volatility, spread, DTE, liquidity, and contract suitability. It must generate explainable component scores and total scores. It must remain research-only and paper-only. Include tests."
+  },
+  {
+    "phase": "BR-05",
+    "title": "LLM Analyst Thesis Generator",
+    "branch": "agent/br-05-llm-analyst-thesis-generator",
+    "commit_message": "feat: add LLM analyst thesis generator",
+    "spec": "Build BR-05 LLM Analyst Thesis Generator interface and deterministic prompt/context packaging. It should prepare safe, local, source-grounded analyst prompts for thesis review and parse analyst responses into records. It must not require live API calls in tests and must include fixture-based tests. It must not create execution permission. LIVE TRADING: DISABLED."
+  },
+  {
+    "phase": "BR-06",
+    "title": "Deterministic Trade Score Risk Gate",
+    "branch": "agent/br-06-deterministic-trade-score-risk-gate",
+    "commit_message": "feat: add deterministic trade score risk gate",
+    "spec": "Build BR-06 deterministic risk gate for candidate options and LEAPS. It should combine chain quality, Greeks, liquidity, thesis quality, concentration, drawdown, and catalyst timing into a gate decision. Outputs must be RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, or BLOCKED_BY_SAFETY_GATE. LIVE TRADING: DISABLED. Include tests."
   }
 ]
