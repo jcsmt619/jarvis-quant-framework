@@ -9,6 +9,8 @@ Use this lane for repeatable LEAPS research components:
 - BR-02 candidate universe builder fixtures and deterministic watchlists for
   sector, liquidity, trend, volatility, catalyst, market-cap, and options
   availability filters
+- BR-04 Greeks, implied-volatility, spread, DTE, liquidity, and contract
+  suitability scoring with explainable component scores
 - Greek calculations
 - theta decay monitors
 - IV and DTE monitors
