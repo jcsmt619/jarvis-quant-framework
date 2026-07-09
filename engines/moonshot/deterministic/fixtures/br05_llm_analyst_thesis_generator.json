@@ -1,0 +1,41 @@
+{
+  "analyst_responses": {
+    "BR-05-NVDA-20260708160000": {
+      "thesis_id": "THESIS-BR05-NVDA-001",
+      "prompt_id": "BR-05-NVDA-20260708160000",
+      "symbol": "NVDA",
+      "generated_at": "2026-07-08T16:05:00",
+      "thesis_summary": "NVDA LEAPS contracts remain a research-only monitor candidate because the supplied scored contracts show strong liquidity, acceptable spreads, and long DTE, but all conclusions require human review.",
+      "bull_case": [
+        "NVDA-20271217-C-140 has a total score of 100 with high liquidity and target-band delta.",
+        "NVDA-20271217-C-180 keeps long-dated exposure with a total score above the review threshold."
+      ],
+      "bear_case": [
+        "The thesis depends on source scores from BR-04 and does not include fresh fundamental or news verification.",
+        "LEAPS premium remains exposed to volatility compression and theta decay even when the scored contracts pass deterministic gates."
+      ],
+      "catalysts": [
+        "BR-04 contract scoring identifies multiple monitor-only NVDA LEAPS candidates for analyst review."
+      ],
+      "invalidation_triggers": [
+        "A future deterministic scan blocks the selected contract IDs.",
+        "Human reviewer rejects the thesis due to stale context or missing source evidence."
+      ],
+      "risk_notes": [
+        "Research output cannot override deterministic gates.",
+        "No broker order call or live-trading permission is present."
+      ],
+      "source_citations": [
+        "NVDA-20271217-C-140",
+        "NVDA-20271217-C-180",
+        "Greeks IV Spread DTE Scoring"
+      ],
+      "confidence": "medium",
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "research_only": true,
+      "human_review_required": true,
+      "live_trading_enabled": false,
+      "broker_order_call_performed": false
+    }
+  }
+}
