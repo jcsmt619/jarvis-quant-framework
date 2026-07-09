@@ -88,6 +88,13 @@ def test_br06_safety_manifest_is_disabled_and_research_only() -> None:
 def test_br06_loads_fixture_and_combines_required_risk_dimensions() -> None:
     report = load_trade_score_risk_gate_report(config=_config())
     payload = trade_score_risk_gate_payload(report)
+    allowed_labels = {
+        RESEARCH_ONLY,
+        MONITOR_ONLY,
+        PAPER_ONLY,
+        HUMAN_REVIEW_REQUIRED,
+        BLOCKED_BY_SAFETY_GATE,
+    }
 
     assert payload["phase"] == "BR-06"
     assert payload["label"] == BLOCKED_BY_SAFETY_GATE
@@ -99,6 +106,7 @@ def test_br06_loads_fixture_and_combines_required_risk_dimensions() -> None:
         "research_only_count": 0,
         "blocked_count": 3,
     }
+    assert {decision["label"] for decision in payload["decisions"]} <= allowed_labels
     top = payload["decisions"][0]
     assert top["contract_id"] == "NVDA-20271217-C-140"
     assert top["score"] == 97

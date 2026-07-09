@@ -11,6 +11,8 @@ Use this lane for repeatable LEAPS research components:
   availability filters
 - BR-04 Greeks, implied-volatility, spread, DTE, liquidity, and contract
   suitability scoring with explainable component scores
+- BR-06 deterministic trade score risk gate combining chain quality, Greeks,
+  liquidity, thesis quality, concentration, drawdown, and catalyst timing
 - Greek calculations
 - theta decay monitors
 - IV and DTE monitors
@@ -22,5 +24,7 @@ Use this lane for repeatable LEAPS research components:
 - research-only crypto risk guards for drawdown, liquidity, volatility, and
   stale market data warnings
 
-Outputs must use `RESEARCH_ONLY`, `MONITOR_ONLY`, `PAPER_ONLY`, or
-`BLOCKED_BY_SAFETY_GATE` as appropriate.
+Outputs must use `RESEARCH_ONLY`, `MONITOR_ONLY`, `PAPER_ONLY`,
+`HUMAN_REVIEW_REQUIRED`, or `BLOCKED_BY_SAFETY_GATE` as appropriate.
+
+LIVE TRADING: DISABLED.
