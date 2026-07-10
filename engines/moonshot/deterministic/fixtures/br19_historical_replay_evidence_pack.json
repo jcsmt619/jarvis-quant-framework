@@ -1,0 +1,297 @@
+{
+  "replay_windows": [
+    {
+      "window_id": "BR19-WINDOW-2026-06-03-AM",
+      "replay_date": "2026-06-03",
+      "start": "09:30:00",
+      "end": "11:00:00",
+      "market_regime": "bullish_momentum",
+      "source_fixture": "engines/moonshot/deterministic/fixtures/br18_fixture_scenario_expansion_matrix.json"
+    },
+    {
+      "window_id": "BR19-WINDOW-2026-06-10-PM",
+      "replay_date": "2026-06-10",
+      "start": "13:00:00",
+      "end": "15:30:00",
+      "market_regime": "liquidity_stress",
+      "source_fixture": "engines/moonshot/deterministic/fixtures/br18_fixture_scenario_expansion_matrix.json"
+    },
+    {
+      "window_id": "BR19-WINDOW-2026-06-17-CLOSE",
+      "replay_date": "2026-06-17",
+      "start": "15:00:00",
+      "end": "16:00:00",
+      "market_regime": "review_only_chop",
+      "source_fixture": "reports/br14_local_paper_research_session_runner/manual_20260709T194500/local_paper_research_session.json"
+    }
+  ],
+  "records": [
+    {
+      "replay_id": "BR19-REPLAY-001",
+      "window_id": "BR19-WINDOW-2026-06-03-AM",
+      "scenario_id": "BR18-BULLISH",
+      "scenario_type": "bullish",
+      "symbol": "NVDA",
+      "candidate_decision": {
+        "status": "selected",
+        "score": 96,
+        "label": "RESEARCH_ONLY",
+        "reason": "historical_style_fixture_kept_nvda_in_research_queue"
+      },
+      "option_chain_state": {
+        "status": "passed",
+        "chain_quality_score": 100,
+        "contract_count": 3,
+        "label": "MONITOR_ONLY",
+        "reason": "spread_dte_volume_open_interest_and_greeks_available"
+      },
+      "contract_scoring": {
+        "status": "high_score",
+        "contract_id": "NVDA-20271217-C-140",
+        "score": 97,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "reason": "contract_score_above_paper_threshold_but_trade_relevant"
+      },
+      "thesis_context": {
+        "status": "packaged",
+        "thesis_id": "BR19-NVDA-REPLAY-THESIS",
+        "confidence": 0.84,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "reason": "source_grounded_fixture_thesis_requires_manual_review"
+      },
+      "risk_gate_outcome": {
+        "status": "paper_hold",
+        "score": 97,
+        "label": "PAPER_ONLY",
+        "reason": "deterministic_replay_gates_passed_for_paper_record_only"
+      },
+      "paper_portfolio_change": {
+        "change": "simulated_entry",
+        "contract_id": "NVDA-20271217-C-140",
+        "quantity_delta": 1,
+        "premium_delta": 2440.0,
+        "label": "PAPER_ONLY",
+        "reason": "offline_replay_paper_fill_record"
+      },
+      "monitor_observation": {
+        "status": "clear",
+        "alert_count": 0,
+        "label": "MONITOR_ONLY",
+        "reason": "no_replay_threshold_breach"
+      },
+      "dashboard_reference": {
+        "reference": "BR19-DASH-NVDA-PAPER-HOLD",
+        "status": "visible",
+        "label": "MONITOR_ONLY",
+        "reason": "paper_hold_visible_in_replay_dashboard_summary"
+      },
+      "unresolved_review_items": [
+        "Confirm replay thesis evidence remains sufficient for historical-style paper hold classification."
+      ],
+      "human_review_actions": [
+        "Review NVDA replay record against source fixture before allowing any future workflow change.",
+        "Confirm simulated paper entry remains PAPER_ONLY and never broker-routed."
+      ]
+    },
+    {
+      "replay_id": "BR19-REPLAY-002",
+      "window_id": "BR19-WINDOW-2026-06-10-PM",
+      "scenario_id": "BR18-POOR-LIQUIDITY",
+      "scenario_type": "poor-liquidity",
+      "symbol": "XYZL",
+      "candidate_decision": {
+        "status": "blocked",
+        "score": 21,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "reason": "historical_style_liquidity_fixture_failed"
+      },
+      "option_chain_state": {
+        "status": "blocked",
+        "chain_quality_score": 18,
+        "contract_count": 1,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "reason": "wide_spread_and_low_open_interest"
+      },
+      "contract_scoring": {
+        "status": "skipped",
+        "contract_id": "XYZL-20261218-C-25",
+        "score": 0,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "reason": "chain_quality_block"
+      },
+      "thesis_context": {
+        "status": "skipped",
+        "thesis_id": "BR19-XYZL-REPLAY-THESIS-GAP",
+        "confidence": 0.0,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "reason": "blocked_liquidity_case_still_requires_review_note"
+      },
+      "risk_gate_outcome": {
+        "status": "rejected",
+        "score": 0,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "reason": "poor_liquidity"
+      },
+      "paper_portfolio_change": {
+        "change": "none",
+        "contract_id": "XYZL-20261218-C-25",
+        "quantity_delta": 0,
+        "premium_delta": 0.0,
+        "label": "PAPER_ONLY",
+        "reason": "blocked_records_do_not_create_paper_fills"
+      },
+      "monitor_observation": {
+        "status": "liquidity_alert",
+        "alert_count": 1,
+        "label": "MONITOR_ONLY",
+        "reason": "spread_or_volume_breach"
+      },
+      "dashboard_reference": {
+        "reference": "BR19-DASH-XYZL-BLOCKED",
+        "status": "blocked_visible",
+        "label": "MONITOR_ONLY",
+        "reason": "dashboard_lists_liquidity_block"
+      },
+      "unresolved_review_items": [
+        "Verify poor-liquidity rejection remains correct under historical replay window.",
+        "Confirm no downstream paper entry was generated."
+      ],
+      "human_review_actions": [
+        "Reject any attempt to promote XYZL replay evidence without fresh approved data boundary work."
+      ]
+    },
+    {
+      "replay_id": "BR19-REPLAY-003",
+      "window_id": "BR19-WINDOW-2026-06-17-CLOSE",
+      "scenario_id": "BR18-NEUTRAL",
+      "scenario_type": "neutral",
+      "symbol": "AAPL",
+      "candidate_decision": {
+        "status": "selected_for_watch",
+        "score": 72,
+        "label": "RESEARCH_ONLY",
+        "reason": "neutral_replay_candidate_remains_watch_only"
+      },
+      "option_chain_state": {
+        "status": "passed",
+        "chain_quality_score": 82,
+        "contract_count": 2,
+        "label": "MONITOR_ONLY",
+        "reason": "chain_usable_but_not_decisive"
+      },
+      "contract_scoring": {
+        "status": "medium_score",
+        "contract_id": "AAPL-20270115-C-240",
+        "score": 76,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "reason": "score_between_hold_and_reject"
+      },
+      "thesis_context": {
+        "status": "packaged",
+        "thesis_id": "BR19-AAPL-REPLAY-THESIS",
+        "confidence": 0.61,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "reason": "neutral_thesis_needs_operator_review"
+      },
+      "risk_gate_outcome": {
+        "status": "review_required",
+        "score": 81,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "reason": "insufficient_edge_for_paper_hold"
+      },
+      "paper_portfolio_change": {
+        "change": "none",
+        "contract_id": "AAPL-20270115-C-240",
+        "quantity_delta": 0,
+        "premium_delta": 0.0,
+        "label": "PAPER_ONLY",
+        "reason": "human_review_required_blocks_paper_change"
+      },
+      "monitor_observation": {
+        "status": "watch",
+        "alert_count": 0,
+        "label": "MONITOR_ONLY",
+        "reason": "neutral_watchlist_item"
+      },
+      "dashboard_reference": {
+        "reference": "BR19-DASH-AAPL-REVIEW",
+        "status": "watch_visible",
+        "label": "MONITOR_ONLY",
+        "reason": "dashboard_lists_human_review_item"
+      },
+      "unresolved_review_items": [
+        "Determine whether neutral replay evidence should stay on watchlist only."
+      ],
+      "human_review_actions": [
+        "Keep AAPL replay item HUMAN_REVIEW_REQUIRED until a reviewer closes the neutral thesis question."
+      ]
+    },
+    {
+      "replay_id": "BR19-REPLAY-004",
+      "window_id": "BR19-WINDOW-2026-06-17-CLOSE",
+      "scenario_id": "BR18-PAPER-HOLD",
+      "scenario_type": "paper-hold",
+      "symbol": "NVDA",
+      "candidate_decision": {
+        "status": "existing_paper_candidate",
+        "score": 91,
+        "label": "RESEARCH_ONLY",
+        "reason": "existing_paper_position_in_committed_session_evidence"
+      },
+      "option_chain_state": {
+        "status": "passed",
+        "chain_quality_score": 100,
+        "contract_count": 2,
+        "label": "MONITOR_ONLY",
+        "reason": "mark_data_usable_for_existing_paper_position"
+      },
+      "contract_scoring": {
+        "status": "hold_score",
+        "contract_id": "NVDA-20271217-C-180",
+        "score": 94,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "reason": "existing_contract_score_still_requires_review"
+      },
+      "thesis_context": {
+        "status": "packaged",
+        "thesis_id": "BR19-NVDA-HOLD-REPLAY-THESIS",
+        "confidence": 0.82,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "reason": "existing_paper_thesis_requires_review"
+      },
+      "risk_gate_outcome": {
+        "status": "paper_hold",
+        "score": 94,
+        "label": "PAPER_ONLY",
+        "reason": "hold_existing_paper_position"
+      },
+      "paper_portfolio_change": {
+        "change": "hold_existing",
+        "contract_id": "NVDA-20271217-C-180",
+        "quantity_delta": 0,
+        "premium_delta": 0.0,
+        "label": "PAPER_ONLY",
+        "reason": "no_new_fill_for_existing_paper_record"
+      },
+      "monitor_observation": {
+        "status": "hold_monitor",
+        "alert_count": 0,
+        "label": "MONITOR_ONLY",
+        "reason": "continue_monitoring_existing_position"
+      },
+      "dashboard_reference": {
+        "reference": "BR19-DASH-NVDA-HOLD",
+        "status": "paper_hold_visible",
+        "label": "MONITOR_ONLY",
+        "reason": "dashboard_lists_existing_paper_hold"
+      },
+      "unresolved_review_items": [
+        "Confirm existing paper hold remains aligned with BR-14 committed evidence."
+      ],
+      "human_review_actions": [
+        "Review existing NVDA paper hold before changing monitor status.",
+        "Confirm no live state mutation occurred during replay evidence generation."
+      ]
+    }
+  ]
+}
