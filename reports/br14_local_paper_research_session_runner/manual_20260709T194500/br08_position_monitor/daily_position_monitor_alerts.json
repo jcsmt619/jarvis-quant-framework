@@ -1,0 +1,81 @@
+{
+  "phase": "BR-08",
+  "module": "Daily Position Monitor Alert Engine",
+  "as_of": "2026-07-08T16:00:00",
+  "label": "MONITOR_ONLY",
+  "metrics": {
+    "position_count": 2,
+    "snapshot_count": 2,
+    "alert_count": 0,
+    "warning_count": 0,
+    "human_review_required_alert_count": 0
+  },
+  "alerts": [],
+  "warnings": [],
+  "snapshots": [
+    {
+      "contract_id": "NVDA-20271217-C-140",
+      "observed_at": "2026-07-08T16:00:00",
+      "previous_underlying_price": 150.0,
+      "current_underlying_price": 153.0,
+      "underlying_price_move_pct": 0.02,
+      "previous_bid_ask_spread_pct": 0.018692,
+      "current_bid_ask_spread_pct": 0.023692,
+      "spread_change_pct": 0.005,
+      "previous_implied_volatility": 0.44,
+      "current_implied_volatility": 0.4576,
+      "implied_volatility_change_pct": 0.04,
+      "thesis_valid": true,
+      "thesis_status_note": "local_fixture_thesis_still_valid",
+      "previous_risk_gate_label": "PAPER_ONLY",
+      "current_risk_gate_label": "PAPER_ONLY",
+      "risk_gate_reasons": [],
+      "label": "MONITOR_ONLY"
+    },
+    {
+      "contract_id": "NVDA-20271217-C-180",
+      "observed_at": "2026-07-08T16:00:00",
+      "previous_underlying_price": 150.0,
+      "current_underlying_price": 153.0,
+      "underlying_price_move_pct": 0.02,
+      "previous_bid_ask_spread_pct": 0.027778,
+      "current_bid_ask_spread_pct": 0.032778,
+      "spread_change_pct": 0.005,
+      "previous_implied_volatility": 0.46,
+      "current_implied_volatility": 0.4784,
+      "implied_volatility_change_pct": 0.04,
+      "thesis_valid": true,
+      "thesis_status_note": "local_fixture_thesis_still_valid",
+      "previous_risk_gate_label": "PAPER_ONLY",
+      "current_risk_gate_label": "PAPER_ONLY",
+      "risk_gate_reasons": [],
+      "label": "MONITOR_ONLY"
+    }
+  ],
+  "safety": {
+    "phase": "BR-08",
+    "module": "Daily Position Monitor Alert Engine",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "paper_positions_only": true,
+    "human_review_alerts_only": true,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  }
+}

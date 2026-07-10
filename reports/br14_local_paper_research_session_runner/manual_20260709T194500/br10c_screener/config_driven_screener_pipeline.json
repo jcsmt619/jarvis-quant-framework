@@ -1,0 +1,403 @@
+{
+  "phase": "BR-10C",
+  "module": "Track B Config Driven Screener Pipeline",
+  "as_of": "2026-07-09T16:00:00",
+  "label": "HUMAN_REVIEW_REQUIRED",
+  "safety": {
+    "phase": "BR-10C",
+    "module": "Track B Config Driven Screener Pipeline",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "ranked_research_queue_only": true,
+    "trade_signals_generated": false,
+    "stock_schema_supported": true,
+    "crypto_schema_supported": true,
+    "config_driven_filters": true,
+    "local_reports_only": true,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  },
+  "config": {
+    "filter_groups": [
+      {
+        "name": "stock_growth_quality",
+        "asset_classes": [
+          "stock"
+        ],
+        "metric_ranges": [
+          {
+            "metric": "liquidity_score",
+            "minimum": 0.65,
+            "maximum": null
+          },
+          {
+            "metric": "trend_score",
+            "minimum": 0.45,
+            "maximum": null
+          },
+          {
+            "metric": "volatility_score",
+            "minimum": 0.35,
+            "maximum": null
+          }
+        ],
+        "required_tags": [
+          "liquid"
+        ],
+        "allowed_sectors": [
+          "Technology",
+          "Consumer Discretionary"
+        ],
+        "allowed_networks": []
+      },
+      {
+        "name": "crypto_liquid_momentum",
+        "asset_classes": [
+          "crypto"
+        ],
+        "metric_ranges": [
+          {
+            "metric": "liquidity_score",
+            "minimum": 0.7,
+            "maximum": null
+          },
+          {
+            "metric": "trend_score",
+            "minimum": 0.4,
+            "maximum": null
+          },
+          {
+            "metric": "drawdown_risk",
+            "minimum": null,
+            "maximum": 0.55
+          }
+        ],
+        "required_tags": [
+          "liquid"
+        ],
+        "allowed_sectors": [],
+        "allowed_networks": [
+          "Bitcoin",
+          "Ethereum",
+          "Solana"
+        ]
+      }
+    ],
+    "ranking_rules": [
+      {
+        "metric": "trend_score",
+        "weight": 45.0,
+        "direction": "higher"
+      },
+      {
+        "metric": "liquidity_score",
+        "weight": 30.0,
+        "direction": "higher"
+      },
+      {
+        "metric": "volatility_score",
+        "weight": 15.0,
+        "direction": "higher"
+      },
+      {
+        "metric": "drawdown_risk",
+        "weight": 10.0,
+        "direction": "lower"
+      }
+    ],
+    "max_queue_size": 3,
+    "include_blocked_profiles": true
+  },
+  "metrics": {
+    "candidate_count": 6,
+    "research_queue_count": 3,
+    "blocked_count": 3,
+    "stock_profile_count": 3,
+    "crypto_profile_count": 3,
+    "human_review_required_count": 6
+  },
+  "research_queue": [
+    {
+      "symbol": "NVDA",
+      "name": "NVIDIA Corporation",
+      "asset_class": "stock",
+      "sector": "Technology",
+      "network": null,
+      "quote_currency": "USD",
+      "as_of": "2026-07-09T16:00:00",
+      "metrics": {
+        "liquidity_score": 0.98,
+        "trend_score": 0.92,
+        "volatility_score": 0.62,
+        "drawdown_risk": 0.28
+      },
+      "tags": [
+        "liquid",
+        "ai_datacenter",
+        "earnings_revision"
+      ],
+      "profile_notes": [
+        "large liquid equity",
+        "requires human review before any paper workflow"
+      ],
+      "matched_filter_groups": [
+        "stock_growth_quality"
+      ],
+      "blocked_reasons": [],
+      "ranking_score": 87.3,
+      "rank": 1,
+      "included": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "human_review_required": true,
+      "paper_only": true,
+      "trade_signal": false
+    },
+    {
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "asset_class": "crypto",
+      "sector": null,
+      "network": "Bitcoin",
+      "quote_currency": "USD",
+      "as_of": "2026-07-09T16:00:00",
+      "metrics": {
+        "liquidity_score": 0.99,
+        "trend_score": 0.84,
+        "volatility_score": 0.46,
+        "drawdown_risk": 0.34
+      },
+      "tags": [
+        "liquid",
+        "macro_beta"
+      ],
+      "profile_notes": [
+        "crypto-compatible schema candidate",
+        "monitor-only research queue candidate"
+      ],
+      "matched_filter_groups": [
+        "crypto_liquid_momentum"
+      ],
+      "blocked_reasons": [],
+      "ranking_score": 81.0,
+      "rank": 2,
+      "included": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "human_review_required": true,
+      "paper_only": true,
+      "trade_signal": false
+    },
+    {
+      "symbol": "MSFT",
+      "name": "Microsoft Corporation",
+      "asset_class": "stock",
+      "sector": "Technology",
+      "network": null,
+      "quote_currency": "USD",
+      "as_of": "2026-07-09T16:00:00",
+      "metrics": {
+        "liquidity_score": 0.94,
+        "trend_score": 0.68,
+        "volatility_score": 0.76,
+        "drawdown_risk": 0.18
+      },
+      "tags": [
+        "liquid",
+        "cloud_margin"
+      ],
+      "profile_notes": [
+        "mega-cap quality screen candidate",
+        "research queue entry only"
+      ],
+      "matched_filter_groups": [
+        "stock_growth_quality"
+      ],
+      "blocked_reasons": [],
+      "ranking_score": 78.4,
+      "rank": 3,
+      "included": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "human_review_required": true,
+      "paper_only": true,
+      "trade_signal": false
+    }
+  ],
+  "blocked_profiles": [
+    {
+      "symbol": "DOGE",
+      "name": "Dogecoin",
+      "asset_class": "crypto",
+      "sector": null,
+      "network": "Dogecoin",
+      "quote_currency": "USD",
+      "as_of": "2026-07-09T16:00:00",
+      "metrics": {
+        "liquidity_score": 0.76,
+        "trend_score": 0.55,
+        "volatility_score": 0.22,
+        "drawdown_risk": 0.72
+      },
+      "tags": [
+        "liquid",
+        "meme_beta"
+      ],
+      "profile_notes": [
+        "blocked by network and risk filters"
+      ],
+      "matched_filter_groups": [],
+      "blocked_reasons": [
+        "stock_growth_quality:asset_class_filter_mismatch",
+        "stock_growth_quality:sector_filter_mismatch",
+        "stock_growth_quality:volatility_score_below_minimum",
+        "crypto_liquid_momentum:network_filter_mismatch",
+        "crypto_liquid_momentum:drawdown_risk_above_maximum"
+      ],
+      "ranking_score": 53.65,
+      "rank": null,
+      "included": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "human_review_required": true,
+      "paper_only": true,
+      "trade_signal": false
+    },
+    {
+      "symbol": "SOL",
+      "name": "Solana",
+      "asset_class": "crypto",
+      "sector": null,
+      "network": "Solana",
+      "quote_currency": "USD",
+      "as_of": "2026-07-09T16:00:00",
+      "metrics": {
+        "liquidity_score": 0.82,
+        "trend_score": 0.66,
+        "volatility_score": 0.31,
+        "drawdown_risk": 0.51
+      },
+      "tags": [
+        "liquid",
+        "ecosystem_growth"
+      ],
+      "profile_notes": [
+        "passes crypto filter but may be limited by queue size",
+        "high review burden"
+      ],
+      "matched_filter_groups": [
+        "crypto_liquid_momentum"
+      ],
+      "blocked_reasons": [
+        "queue_limit_exceeded"
+      ],
+      "ranking_score": 63.85,
+      "rank": null,
+      "included": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "human_review_required": true,
+      "paper_only": true,
+      "trade_signal": false
+    },
+    {
+      "symbol": "XYZL",
+      "name": "Example Thin Stock",
+      "asset_class": "stock",
+      "sector": "Healthcare",
+      "network": null,
+      "quote_currency": "USD",
+      "as_of": "2026-07-09T16:00:00",
+      "metrics": {
+        "liquidity_score": 0.22,
+        "trend_score": 0.81,
+        "volatility_score": 0.39,
+        "drawdown_risk": 0.44
+      },
+      "tags": [
+        "trial_readout"
+      ],
+      "profile_notes": [
+        "blocked by filter configuration"
+      ],
+      "matched_filter_groups": [],
+      "blocked_reasons": [
+        "stock_growth_quality:required_tags_missing",
+        "stock_growth_quality:sector_filter_mismatch",
+        "stock_growth_quality:liquidity_score_below_minimum",
+        "crypto_liquid_momentum:asset_class_filter_mismatch",
+        "crypto_liquid_momentum:required_tags_missing",
+        "crypto_liquid_momentum:network_filter_mismatch",
+        "crypto_liquid_momentum:liquidity_score_below_minimum"
+      ],
+      "ranking_score": 54.5,
+      "rank": null,
+      "included": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "human_review_required": true,
+      "paper_only": true,
+      "trade_signal": false
+    }
+  ],
+  "dashboard": {
+    "queue_symbols": [
+      "NVDA",
+      "BTC",
+      "MSFT"
+    ],
+    "by_asset_class": {
+      "crypto": [
+        "BTC"
+      ],
+      "stock": [
+        "MSFT",
+        "NVDA"
+      ]
+    },
+    "top_profile": {
+      "symbol": "NVDA",
+      "name": "NVIDIA Corporation",
+      "asset_class": "stock",
+      "sector": "Technology",
+      "network": null,
+      "quote_currency": "USD",
+      "as_of": "2026-07-09T16:00:00",
+      "metrics": {
+        "liquidity_score": 0.98,
+        "trend_score": 0.92,
+        "volatility_score": 0.62,
+        "drawdown_risk": 0.28
+      },
+      "tags": [
+        "liquid",
+        "ai_datacenter",
+        "earnings_revision"
+      ],
+      "profile_notes": [
+        "large liquid equity",
+        "requires human review before any paper workflow"
+      ],
+      "matched_filter_groups": [
+        "stock_growth_quality"
+      ],
+      "blocked_reasons": [],
+      "ranking_score": 87.3,
+      "rank": 1,
+      "included": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "human_review_required": true,
+      "paper_only": true,
+      "trade_signal": false
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "phase": "BR-14",
+  "module": "Local Paper Research Session Runner",
+  "as_of": "2026-07-08T16:00:00",
+  "label": "HUMAN_REVIEW_REQUIRED",
+  "metrics": {
+    "screener_queue_count": 3,
+    "candidate_count": 5,
+    "chain_count": 2,
+    "contract_count": 6,
+    "analyst_prompt_package_count": 1,
+    "risk_gate_decision_count": 6,
+    "simulated_paper_fill_count": 2,
+    "paper_position_count": 2,
+    "monitor_alert_count": 0,
+    "dashboard_candidate_count": 5
+  },
+  "session_flow": [
+    "BR-10C",
+    "BR-02",
+    "BR-03",
+    "BR-04",
+    "BR-05",
+    "BR-06",
+    "BR-07",
+    "BR-08",
+    "BR-09"
+  ],
+  "paper_contract_ids": [
+    "NVDA-20271217-C-140",
+    "NVDA-20271217-C-180"
+  ],
+  "monitor_alert_ids": [],
+  "written_artifacts": {},
+  "safety": {
+    "phase": "BR-14",
+    "module": "Local Paper Research Session Runner",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "local_fixture_data_default": true,
+    "end_to_end_dry_run_only": true,
+    "static_artifacts_only": true,
+    "paper_portfolio_updates_simulated": true,
+    "credential_loading_attempted": false,
+    "broker_connection_attempted": false,
+    "broker_read_call_performed": false,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  }
+}

@@ -1,0 +1,241 @@
+{
+  "phase": "BR-07",
+  "module": "Paper Options Portfolio Manager",
+  "as_of": "2026-07-08T16:00:00",
+  "label": "PAPER_ONLY",
+  "cash": 92840.0,
+  "realized_pnl": 0.0,
+  "unrealized_pnl": 143.2,
+  "total_pnl": 143.2,
+  "metrics": {
+    "position_count": 2,
+    "fill_count": 2,
+    "mark_count": 2,
+    "history_event_count": 4,
+    "warning_count": 0,
+    "human_review_required_count": 2
+  },
+  "exposure": {
+    "gross_market_value": 7303.2,
+    "net_liquidation_value": 100143.2,
+    "premium_at_risk": 7160.0,
+    "premium_at_risk_pct": 0.0716,
+    "delta_exposure": 115.0,
+    "delta_exposure_pct": 0.00115,
+    "gamma_exposure": 2.3,
+    "theta_exposure": -4.5,
+    "vega_exposure": 80.0,
+    "by_underlying": {
+      "NVDA": {
+        "market_value": 7303.2,
+        "premium_at_risk": 7160.0,
+        "delta_exposure": 115.0,
+        "gamma_exposure": 2.3,
+        "theta_exposure": -4.5,
+        "vega_exposure": 80.0
+      }
+    }
+  },
+  "warnings": [],
+  "positions": [
+    {
+      "contract_id": "NVDA-20271217-C-140",
+      "symbol": "NVDA271217C00140000",
+      "underlying_symbol": "NVDA",
+      "contract_type": "call",
+      "strike": 140.0,
+      "expiration": "2027-12-17",
+      "contracts": 1,
+      "average_price": 42.8,
+      "cost_basis": 4280.0,
+      "mark_price": 43.656,
+      "market_value": 4365.6,
+      "unrealized_pnl": 85.6,
+      "unrealized_pnl_pct": 0.02,
+      "greeks": {
+        "delta": 0.63,
+        "gamma": 0.012,
+        "theta": -0.024,
+        "vega": 0.41,
+        "rho": 0.21
+      },
+      "delta_exposure": 63.0,
+      "gamma_exposure": 1.2,
+      "theta_exposure": -2.4,
+      "vega_exposure": 41.0,
+      "label": "PAPER_ONLY",
+      "human_review_required": true
+    },
+    {
+      "contract_id": "NVDA-20271217-C-180",
+      "symbol": "NVDA271217C00180000",
+      "underlying_symbol": "NVDA",
+      "contract_type": "call",
+      "strike": 180.0,
+      "expiration": "2027-12-17",
+      "contracts": 1,
+      "average_price": 28.8,
+      "cost_basis": 2880.0,
+      "mark_price": 29.376,
+      "market_value": 2937.6,
+      "unrealized_pnl": 57.6,
+      "unrealized_pnl_pct": 0.02,
+      "greeks": {
+        "delta": 0.52,
+        "gamma": 0.011,
+        "theta": -0.021,
+        "vega": 0.39,
+        "rho": 0.18
+      },
+      "delta_exposure": 52.0,
+      "gamma_exposure": 1.1,
+      "theta_exposure": -2.1,
+      "vega_exposure": 39.0,
+      "label": "PAPER_ONLY",
+      "human_review_required": true
+    }
+  ],
+  "fills": [
+    {
+      "fill_id": "BR-14-PAPER-FILL-001",
+      "contract_id": "NVDA-20271217-C-140",
+      "symbol": "NVDA271217C00140000",
+      "underlying_symbol": "NVDA",
+      "contract_type": "call",
+      "strike": 140.0,
+      "expiration": "2027-12-17",
+      "filled_at": "2026-07-08T16:00:00",
+      "side": "entry",
+      "contracts": 1,
+      "fill_price": 42.8,
+      "premium": 4280.0,
+      "thesis_id": "THESIS-BR05-NVDA-001",
+      "label": "PAPER_ONLY",
+      "simulated_fill": true
+    },
+    {
+      "fill_id": "BR-14-PAPER-FILL-002",
+      "contract_id": "NVDA-20271217-C-180",
+      "symbol": "NVDA271217C00180000",
+      "underlying_symbol": "NVDA",
+      "contract_type": "call",
+      "strike": 180.0,
+      "expiration": "2027-12-17",
+      "filled_at": "2026-07-08T16:00:00",
+      "side": "entry",
+      "contracts": 1,
+      "fill_price": 28.8,
+      "premium": 2880.0,
+      "thesis_id": "THESIS-BR05-NVDA-001",
+      "label": "PAPER_ONLY",
+      "simulated_fill": true
+    }
+  ],
+  "marks": [
+    {
+      "contract_id": "NVDA-20271217-C-140",
+      "marked_at": "2026-07-08T16:00:00",
+      "mark_price": 43.656,
+      "greeks": {
+        "delta": 0.63,
+        "gamma": 0.012,
+        "theta": -0.024,
+        "vega": 0.41,
+        "rho": 0.21
+      },
+      "label": "MONITOR_ONLY",
+      "local_mark": true
+    },
+    {
+      "contract_id": "NVDA-20271217-C-180",
+      "marked_at": "2026-07-08T16:00:00",
+      "mark_price": 29.376,
+      "greeks": {
+        "delta": 0.52,
+        "gamma": 0.011,
+        "theta": -0.021,
+        "vega": 0.39,
+        "rho": 0.18
+      },
+      "label": "MONITOR_ONLY",
+      "local_mark": true
+    }
+  ],
+  "history": [
+    {
+      "event_id": "BR-14-PAPER-FILL-001",
+      "event_type": "ENTRY",
+      "contract_id": "NVDA-20271217-C-140",
+      "occurred_at": "2026-07-08T16:00:00",
+      "contracts": 1,
+      "price": 42.8,
+      "cash_change": -4280.0,
+      "realized_pnl": 0.0,
+      "open_contracts_after": 1,
+      "label": "PAPER_ONLY"
+    },
+    {
+      "event_id": "BR-14-PAPER-FILL-002",
+      "event_type": "ENTRY",
+      "contract_id": "NVDA-20271217-C-180",
+      "occurred_at": "2026-07-08T16:00:00",
+      "contracts": 1,
+      "price": 28.8,
+      "cash_change": -2880.0,
+      "realized_pnl": 0.0,
+      "open_contracts_after": 1,
+      "label": "PAPER_ONLY"
+    },
+    {
+      "event_id": "mark-NVDA-20271217-C-140-2026-07-08T16:00:00",
+      "event_type": "MARK",
+      "contract_id": "NVDA-20271217-C-140",
+      "occurred_at": "2026-07-08T16:00:00",
+      "contracts": 0,
+      "price": 43.656,
+      "cash_change": 0.0,
+      "realized_pnl": 0.0,
+      "open_contracts_after": 1,
+      "label": "MONITOR_ONLY"
+    },
+    {
+      "event_id": "mark-NVDA-20271217-C-180-2026-07-08T16:00:00",
+      "event_type": "MARK",
+      "contract_id": "NVDA-20271217-C-180",
+      "occurred_at": "2026-07-08T16:00:00",
+      "contracts": 0,
+      "price": 29.376,
+      "cash_change": 0.0,
+      "realized_pnl": 0.0,
+      "open_contracts_after": 1,
+      "label": "MONITOR_ONLY"
+    }
+  ],
+  "safety": {
+    "phase": "BR-07",
+    "module": "Paper Options Portfolio Manager",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "simulated_entries_only": true,
+    "simulated_exits_only": true,
+    "local_marks_only": true,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  }
+}

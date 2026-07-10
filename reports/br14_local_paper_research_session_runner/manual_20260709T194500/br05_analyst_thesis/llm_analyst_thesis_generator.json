@@ -1,0 +1,328 @@
+{
+  "phase": "BR-05",
+  "module": "LLM Analyst Thesis Generator",
+  "as_of": "2026-07-08T16:00:00",
+  "label": "BLOCKED_BY_SAFETY_GATE",
+  "safety": {
+    "phase": "BR-05",
+    "module": "LLM Analyst Thesis Generator",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "live_api_calls_required": false,
+    "local_prompt_packaging_only": true,
+    "source_grounded_context_required": true,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  },
+  "metrics": {
+    "prompt_package_count": 1,
+    "parsed_thesis_record_count": 1,
+    "human_review_required_count": 2
+  },
+  "prompt_packages": [
+    {
+      "prompt_id": "BR-05-NVDA-20260708160000",
+      "symbol": "NVDA",
+      "contract_ids": [
+        "NVDA-20271217-C-140",
+        "NVDA-20271217-C-180",
+        "NVDA-20271217-C-220"
+      ],
+      "created_at": "2026-07-08T16:00:00",
+      "system_prompt": "You are a research-only options thesis reviewer for Jarvis Quant. Use only the supplied JSON context. Do not request secrets, do not place trades, do not route orders, and keep all trade-relevant output labeled HUMAN_REVIEW_REQUIRED. Return one JSON object matching the requested schema.",
+      "user_prompt": "Prepare a source-grounded LEAPS thesis review for NVDA. Context JSON:\n{\n  \"contracts\": [\n    {\n      \"component_scores\": [\n        {\n          \"name\": \"delta\",\n          \"passed\": true,\n          \"reason\": \"delta_inside_target_band\",\n          \"score\": 100,\n          \"weight\": 15\n        },\n        {\n          \"name\": \"theta\",\n          \"passed\": true,\n          \"reason\": \"theta_decay_inside_ideal_limit\",\n          \"score\": 100,\n          \"weight\": 12\n        },\n        {\n          \"name\": \"vega\",\n          \"passed\": true,\n          \"reason\": \"vega_inside_ideal_floor\",\n          \"score\": 100,\n          \"weight\": 10\n        },\n        {\n          \"name\": \"implied_volatility\",\n          \"passed\": true,\n          \"reason\": \"implied_volatility_inside_ideal_band\",\n          \"score\": 100,\n          \"weight\": 14\n        },\n        {\n          \"name\": \"spread\",\n          \"passed\": true,\n          \"reason\": \"spread_inside_ideal_limit\",\n          \"score\": 100,\n          \"weight\": 12\n        },\n        {\n          \"name\": \"dte\",\n          \"passed\": true,\n          \"reason\": \"dte_inside_ideal_band\",\n          \"score\": 100,\n          \"weight\": 14\n        },\n        {\n          \"name\": \"liquidity\",\n          \"passed\": true,\n          \"reason\": \"volume_and_open_interest_inside_ideal_floor\",\n          \"score\": 100,\n          \"weight\": 13\n        },\n        {\n          \"name\": \"contract_suitability\",\n          \"passed\": true,\n          \"reason\": \"strike_to_underlying_inside_ideal_band\",\n          \"score\": 100,\n          \"weight\": 10\n        }\n      ],\n      \"contract_id\": \"NVDA-20271217-C-140\",\n      \"dte\": 527,\n      \"expiration\": \"2027-12-17\",\n      \"human_review_required\": true,\n      \"label\": \"MONITOR_ONLY\",\n      \"strike\": 140.0,\n      \"total_score\": 100,\n      \"underlying_symbol\": \"NVDA\"\n    },\n    {\n      \"component_scores\": [\n        {\n          \"name\": \"delta\",\n          \"passed\": true,\n          \"reason\": \"delta_inside_target_band\",\n          \"score\": 100,\n          \"weight\": 15\n        },\n        {\n          \"name\": \"theta\",\n          \"passed\": true,\n          \"reason\": \"theta_decay_inside_ideal_limit\",\n          \"score\": 100,\n          \"weight\": 12\n        },\n        {\n          \"name\": \"vega\",\n          \"passed\": true,\n          \"reason\": \"vega_inside_ideal_floor\",\n          \"score\": 100,\n          \"weight\": 10\n        },\n        {\n          \"name\": \"implied_volatility\",\n          \"passed\": true,\n          \"reason\": \"implied_volatility_inside_ideal_band\",\n          \"score\": 100,\n          \"weight\": 14\n        },\n        {\n          \"name\": \"spread\",\n          \"passed\": true,\n          \"reason\": \"spread_inside_ideal_limit\",\n          \"score\": 100,\n          \"weight\": 12\n        },\n        {\n          \"name\": \"dte\",\n          \"passed\": true,\n          \"reason\": \"dte_inside_ideal_band\",\n          \"score\": 100,\n          \"weight\": 14\n        },\n        {\n          \"name\": \"liquidity\",\n          \"passed\": true,\n          \"reason\": \"volume_and_open_interest_inside_ideal_floor\",\n          \"score\": 100,\n          \"weight\": 13\n        },\n        {\n          \"name\": \"contract_suitability\",\n          \"passed\": true,\n          \"reason\": \"strike_to_underlying_inside_ideal_band\",\n          \"score\": 100,\n          \"weight\": 10\n        }\n      ],\n      \"contract_id\": \"NVDA-20271217-C-180\",\n      \"dte\": 527,\n      \"expiration\": \"2027-12-17\",\n      \"human_review_required\": true,\n      \"label\": \"MONITOR_ONLY\",\n      \"strike\": 180.0,\n      \"total_score\": 100,\n      \"underlying_symbol\": \"NVDA\"\n    },\n    {\n      \"component_scores\": [\n        {\n          \"name\": \"delta\",\n          \"passed\": true,\n          \"reason\": \"delta_inside_target_band\",\n          \"score\": 100,\n          \"weight\": 15\n        },\n        {\n          \"name\": \"theta\",\n          \"passed\": true,\n          \"reason\": \"theta_decay_inside_ideal_limit\",\n          \"score\": 100,\n          \"weight\": 12\n        },\n        {\n          \"name\": \"vega\",\n          \"passed\": true,\n          \"reason\": \"vega_inside_ideal_floor\",\n          \"score\": 100,\n          \"weight\": 10\n        },\n        {\n          \"name\": \"implied_volatility\",\n          \"passed\": true,\n          \"reason\": \"implied_volatility_inside_ideal_band\",\n          \"score\": 100,\n          \"weight\": 14\n        },\n        {\n          \"name\": \"spread\",\n          \"passed\": true,\n          \"reason\": \"spread_inside_acceptable_limit\",\n          \"score\": 70,\n          \"weight\": 12\n        },\n        {\n          \"name\": \"dte\",\n          \"passed\": true,\n          \"reason\": \"dte_inside_ideal_band\",\n          \"score\": 100,\n          \"weight\": 14\n        },\n        {\n          \"name\": \"liquidity\",\n          \"passed\": true,\n          \"reason\": \"volume_and_open_interest_inside_minimum_floor\",\n          \"score\": 70,\n          \"weight\": 13\n        },\n        {\n          \"name\": \"contract_suitability\",\n          \"passed\": true,\n          \"reason\": \"strike_to_underlying_inside_ideal_band\",\n          \"score\": 100,\n          \"weight\": 10\n        }\n      ],\n      \"contract_id\": \"NVDA-20271217-C-220\",\n      \"dte\": 527,\n      \"expiration\": \"2027-12-17\",\n      \"human_review_required\": true,\n      \"label\": \"MONITOR_ONLY\",\n      \"strike\": 220.0,\n      \"total_score\": 92,\n      \"underlying_symbol\": \"NVDA\"\n    }\n  ],\n  \"phase\": \"BR-04\",\n  \"safety\": {\n    \"LIVE TRADING\": \"DISABLED\",\n    \"blocked_by_safety_gate\": true,\n    \"broker_order_call_performed\": false,\n    \"broker_order_routing_enabled\": false,\n    \"broker_order_submitted\": false,\n    \"human_review_required\": true,\n    \"labels\": [\n      \"RESEARCH_ONLY\",\n      \"MONITOR_ONLY\",\n      \"PAPER_ONLY\",\n      \"HUMAN_REVIEW_REQUIRED\",\n      \"BLOCKED_BY_SAFETY_GATE\"\n    ],\n    \"live_trading_enabled\": false,\n    \"module\": \"Greeks IV Spread DTE Scoring\",\n    \"monitor_only\": true,\n    \"paper_only\": true,\n    \"phase\": \"BR-04\",\n    \"real_paper_order_submitted\": false,\n    \"real_paper_wrapper_attempted\": false,\n    \"real_paper_wrapper_connected\": false,\n    \"research_only\": true\n  },\n  \"source_as_of\": \"2026-07-08T16:00:00\",\n  \"source_module\": \"Greeks IV Spread DTE Scoring\",\n  \"symbol\": \"NVDA\"\n}\nRequired response schema:\n{\n  \"thesis_id\": \"string\",\n  \"prompt_id\": \"string\",\n  \"symbol\": \"NVDA\",\n  \"generated_at\": \"ISO-8601 datetime\",\n  \"thesis_summary\": \"string\",\n  \"bull_case\": [\n    \"source-grounded point\"\n  ],\n  \"bear_case\": [\n    \"source-grounded point\"\n  ],\n  \"catalysts\": [\n    \"source-grounded point\"\n  ],\n  \"invalidation_triggers\": [\n    \"source-grounded point\"\n  ],\n  \"risk_notes\": [\n    \"source-grounded point\"\n  ],\n  \"source_citations\": [\n    \"contract_id or source_module\"\n  ],\n  \"confidence\": \"low|medium|high\",\n  \"label\": \"HUMAN_REVIEW_REQUIRED\",\n  \"research_only\": true,\n  \"human_review_required\": true,\n  \"live_trading_enabled\": false,\n  \"broker_order_call_performed\": false\n}",
+      "source_context": {
+        "phase": "BR-04",
+        "source_module": "Greeks IV Spread DTE Scoring",
+        "source_as_of": "2026-07-08T16:00:00",
+        "symbol": "NVDA",
+        "contracts": [
+          {
+            "contract_id": "NVDA-20271217-C-140",
+            "underlying_symbol": "NVDA",
+            "strike": 140.0,
+            "expiration": "2027-12-17",
+            "dte": 527,
+            "total_score": 100,
+            "component_scores": [
+              {
+                "name": "delta",
+                "score": 100,
+                "weight": 15,
+                "passed": true,
+                "reason": "delta_inside_target_band"
+              },
+              {
+                "name": "theta",
+                "score": 100,
+                "weight": 12,
+                "passed": true,
+                "reason": "theta_decay_inside_ideal_limit"
+              },
+              {
+                "name": "vega",
+                "score": 100,
+                "weight": 10,
+                "passed": true,
+                "reason": "vega_inside_ideal_floor"
+              },
+              {
+                "name": "implied_volatility",
+                "score": 100,
+                "weight": 14,
+                "passed": true,
+                "reason": "implied_volatility_inside_ideal_band"
+              },
+              {
+                "name": "spread",
+                "score": 100,
+                "weight": 12,
+                "passed": true,
+                "reason": "spread_inside_ideal_limit"
+              },
+              {
+                "name": "dte",
+                "score": 100,
+                "weight": 14,
+                "passed": true,
+                "reason": "dte_inside_ideal_band"
+              },
+              {
+                "name": "liquidity",
+                "score": 100,
+                "weight": 13,
+                "passed": true,
+                "reason": "volume_and_open_interest_inside_ideal_floor"
+              },
+              {
+                "name": "contract_suitability",
+                "score": 100,
+                "weight": 10,
+                "passed": true,
+                "reason": "strike_to_underlying_inside_ideal_band"
+              }
+            ],
+            "label": "MONITOR_ONLY",
+            "human_review_required": true
+          },
+          {
+            "contract_id": "NVDA-20271217-C-180",
+            "underlying_symbol": "NVDA",
+            "strike": 180.0,
+            "expiration": "2027-12-17",
+            "dte": 527,
+            "total_score": 100,
+            "component_scores": [
+              {
+                "name": "delta",
+                "score": 100,
+                "weight": 15,
+                "passed": true,
+                "reason": "delta_inside_target_band"
+              },
+              {
+                "name": "theta",
+                "score": 100,
+                "weight": 12,
+                "passed": true,
+                "reason": "theta_decay_inside_ideal_limit"
+              },
+              {
+                "name": "vega",
+                "score": 100,
+                "weight": 10,
+                "passed": true,
+                "reason": "vega_inside_ideal_floor"
+              },
+              {
+                "name": "implied_volatility",
+                "score": 100,
+                "weight": 14,
+                "passed": true,
+                "reason": "implied_volatility_inside_ideal_band"
+              },
+              {
+                "name": "spread",
+                "score": 100,
+                "weight": 12,
+                "passed": true,
+                "reason": "spread_inside_ideal_limit"
+              },
+              {
+                "name": "dte",
+                "score": 100,
+                "weight": 14,
+                "passed": true,
+                "reason": "dte_inside_ideal_band"
+              },
+              {
+                "name": "liquidity",
+                "score": 100,
+                "weight": 13,
+                "passed": true,
+                "reason": "volume_and_open_interest_inside_ideal_floor"
+              },
+              {
+                "name": "contract_suitability",
+                "score": 100,
+                "weight": 10,
+                "passed": true,
+                "reason": "strike_to_underlying_inside_ideal_band"
+              }
+            ],
+            "label": "MONITOR_ONLY",
+            "human_review_required": true
+          },
+          {
+            "contract_id": "NVDA-20271217-C-220",
+            "underlying_symbol": "NVDA",
+            "strike": 220.0,
+            "expiration": "2027-12-17",
+            "dte": 527,
+            "total_score": 92,
+            "component_scores": [
+              {
+                "name": "delta",
+                "score": 100,
+                "weight": 15,
+                "passed": true,
+                "reason": "delta_inside_target_band"
+              },
+              {
+                "name": "theta",
+                "score": 100,
+                "weight": 12,
+                "passed": true,
+                "reason": "theta_decay_inside_ideal_limit"
+              },
+              {
+                "name": "vega",
+                "score": 100,
+                "weight": 10,
+                "passed": true,
+                "reason": "vega_inside_ideal_floor"
+              },
+              {
+                "name": "implied_volatility",
+                "score": 100,
+                "weight": 14,
+                "passed": true,
+                "reason": "implied_volatility_inside_ideal_band"
+              },
+              {
+                "name": "spread",
+                "score": 70,
+                "weight": 12,
+                "passed": true,
+                "reason": "spread_inside_acceptable_limit"
+              },
+              {
+                "name": "dte",
+                "score": 100,
+                "weight": 14,
+                "passed": true,
+                "reason": "dte_inside_ideal_band"
+              },
+              {
+                "name": "liquidity",
+                "score": 70,
+                "weight": 13,
+                "passed": true,
+                "reason": "volume_and_open_interest_inside_minimum_floor"
+              },
+              {
+                "name": "contract_suitability",
+                "score": 100,
+                "weight": 10,
+                "passed": true,
+                "reason": "strike_to_underlying_inside_ideal_band"
+              }
+            ],
+            "label": "MONITOR_ONLY",
+            "human_review_required": true
+          }
+        ],
+        "safety": {
+          "phase": "BR-04",
+          "module": "Greeks IV Spread DTE Scoring",
+          "labels": [
+            "RESEARCH_ONLY",
+            "MONITOR_ONLY",
+            "PAPER_ONLY",
+            "HUMAN_REVIEW_REQUIRED",
+            "BLOCKED_BY_SAFETY_GATE"
+          ],
+          "research_only": true,
+          "monitor_only": true,
+          "paper_only": true,
+          "human_review_required": true,
+          "blocked_by_safety_gate": true,
+          "real_paper_wrapper_connected": false,
+          "real_paper_wrapper_attempted": false,
+          "real_paper_order_submitted": false,
+          "broker_order_call_performed": false,
+          "broker_order_submitted": false,
+          "broker_order_routing_enabled": false,
+          "live_trading_enabled": false,
+          "LIVE TRADING": "DISABLED"
+        }
+      },
+      "label": "HUMAN_REVIEW_REQUIRED"
+    }
+  ],
+  "thesis_records": [
+    {
+      "thesis_id": "THESIS-BR05-NVDA-001",
+      "prompt_id": "BR-05-NVDA-20260708160000",
+      "symbol": "NVDA",
+      "generated_at": "2026-07-08T16:05:00",
+      "thesis_summary": "NVDA LEAPS contracts remain a research-only monitor candidate because the supplied scored contracts show strong liquidity, acceptable spreads, and long DTE, but all conclusions require human review.",
+      "bull_case": [
+        "NVDA-20271217-C-140 has a total score of 100 with high liquidity and target-band delta.",
+        "NVDA-20271217-C-180 keeps long-dated exposure with a total score above the review threshold."
+      ],
+      "bear_case": [
+        "The thesis depends on source scores from BR-04 and does not include fresh fundamental or news verification.",
+        "LEAPS premium remains exposed to volatility compression and theta decay even when the scored contracts pass deterministic gates."
+      ],
+      "catalysts": [
+        "BR-04 contract scoring identifies multiple monitor-only NVDA LEAPS candidates for analyst review."
+      ],
+      "invalidation_triggers": [
+        "A future deterministic scan blocks the selected contract IDs.",
+        "Human reviewer rejects the thesis due to stale context or missing source evidence."
+      ],
+      "risk_notes": [
+        "Research output cannot override deterministic gates.",
+        "No broker order call or live-trading permission is present."
+      ],
+      "source_citations": [
+        "NVDA-20271217-C-140",
+        "NVDA-20271217-C-180",
+        "Greeks IV Spread DTE Scoring"
+      ],
+      "confidence": "medium",
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "research_only": true,
+      "human_review_required": true,
+      "live_trading_enabled": false,
+      "broker_order_call_performed": false
+    }
+  ]
+}

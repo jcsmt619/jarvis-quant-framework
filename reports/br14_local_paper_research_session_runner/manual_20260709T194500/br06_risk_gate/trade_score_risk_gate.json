@@ -1,0 +1,547 @@
+{
+  "phase": "BR-06",
+  "module": "Deterministic Trade Score Risk Gate",
+  "as_of": "2026-07-08T16:00:00",
+  "label": "BLOCKED_BY_SAFETY_GATE",
+  "safety": {
+    "phase": "BR-06",
+    "module": "Deterministic Trade Score Risk Gate",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "deterministic_gate_only": true,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  },
+  "config": {
+    "min_chain_quality_score": 75,
+    "min_contract_score": 75,
+    "min_thesis_quality_score": 70,
+    "min_monitor_score": 65,
+    "min_human_review_score": 80,
+    "min_paper_score": 90,
+    "max_proposed_position_pct": 0.03,
+    "max_symbol_concentration_pct": 0.06,
+    "max_portfolio_drawdown_pct": 0.08,
+    "max_candidate_drawdown_pct": 0.2,
+    "min_days_to_catalyst": 14,
+    "max_days_to_catalyst": 540
+  },
+  "metrics": {
+    "candidate_count": 6,
+    "paper_only_count": 2,
+    "human_review_required_count": 1,
+    "monitor_only_count": 0,
+    "research_only_count": 0,
+    "blocked_count": 3
+  },
+  "decisions": [
+    {
+      "contract_id": "NVDA-20271217-C-140",
+      "symbol": "NVDA",
+      "score": 97,
+      "label": "PAPER_ONLY",
+      "component_scores": [
+        {
+          "name": "chain_quality",
+          "score": 100,
+          "weight": 15,
+          "passed": true,
+          "reason": "chain_quality_score"
+        },
+        {
+          "name": "contract_score",
+          "score": 100,
+          "weight": 20,
+          "passed": true,
+          "reason": "contract_total_score"
+        },
+        {
+          "name": "greeks",
+          "score": 100,
+          "weight": 15,
+          "passed": true,
+          "reason": "delta_theta_vega_iv_score"
+        },
+        {
+          "name": "liquidity",
+          "score": 100,
+          "weight": 15,
+          "passed": true,
+          "reason": "spread_volume_open_interest_score"
+        },
+        {
+          "name": "thesis_quality",
+          "score": 96,
+          "weight": 15,
+          "passed": true,
+          "reason": "source_grounded_analyst_thesis_score"
+        },
+        {
+          "name": "concentration",
+          "score": 80,
+          "weight": 8,
+          "passed": true,
+          "reason": "position_and_symbol_exposure_score"
+        },
+        {
+          "name": "drawdown",
+          "score": 92,
+          "weight": 7,
+          "passed": true,
+          "reason": "portfolio_and_candidate_drawdown_score"
+        },
+        {
+          "name": "catalyst_timing",
+          "score": 86,
+          "weight": 5,
+          "passed": true,
+          "reason": "days_to_next_catalyst_score"
+        }
+      ],
+      "hard_block_reasons": [],
+      "review_reasons": [],
+      "chain_quality_score": 100,
+      "contract_total_score": 100,
+      "proposed_position_pct": 0.015,
+      "existing_symbol_exposure_pct": 0.015,
+      "total_symbol_exposure_pct": 0.03,
+      "portfolio_drawdown_pct": 0.015,
+      "candidate_drawdown_pct": 0.04,
+      "days_to_next_catalyst": 120,
+      "human_review_required": true,
+      "research_only": true,
+      "live_trading_enabled": false,
+      "broker_order_call_performed": false
+    },
+    {
+      "contract_id": "NVDA-20271217-C-180",
+      "symbol": "NVDA",
+      "score": 94,
+      "label": "PAPER_ONLY",
+      "component_scores": [
+        {
+          "name": "chain_quality",
+          "score": 100,
+          "weight": 15,
+          "passed": true,
+          "reason": "chain_quality_score"
+        },
+        {
+          "name": "contract_score",
+          "score": 100,
+          "weight": 20,
+          "passed": true,
+          "reason": "contract_total_score"
+        },
+        {
+          "name": "greeks",
+          "score": 100,
+          "weight": 15,
+          "passed": true,
+          "reason": "delta_theta_vega_iv_score"
+        },
+        {
+          "name": "liquidity",
+          "score": 100,
+          "weight": 15,
+          "passed": true,
+          "reason": "spread_volume_open_interest_score"
+        },
+        {
+          "name": "thesis_quality",
+          "score": 96,
+          "weight": 15,
+          "passed": true,
+          "reason": "source_grounded_analyst_thesis_score"
+        },
+        {
+          "name": "concentration",
+          "score": 63,
+          "weight": 8,
+          "passed": true,
+          "reason": "position_and_symbol_exposure_score"
+        },
+        {
+          "name": "drawdown",
+          "score": 84,
+          "weight": 7,
+          "passed": true,
+          "reason": "portfolio_and_candidate_drawdown_score"
+        },
+        {
+          "name": "catalyst_timing",
+          "score": 79,
+          "weight": 5,
+          "passed": true,
+          "reason": "days_to_next_catalyst_score"
+        }
+      ],
+      "hard_block_reasons": [],
+      "review_reasons": [],
+      "chain_quality_score": 100,
+      "contract_total_score": 100,
+      "proposed_position_pct": 0.025,
+      "existing_symbol_exposure_pct": 0.03,
+      "total_symbol_exposure_pct": 0.055,
+      "portfolio_drawdown_pct": 0.03,
+      "candidate_drawdown_pct": 0.08,
+      "days_to_next_catalyst": 45,
+      "human_review_required": true,
+      "research_only": true,
+      "live_trading_enabled": false,
+      "broker_order_call_performed": false
+    },
+    {
+      "contract_id": "NVDA-20271217-C-220",
+      "symbol": "NVDA",
+      "score": 87,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "component_scores": [
+        {
+          "name": "chain_quality",
+          "score": 100,
+          "weight": 15,
+          "passed": true,
+          "reason": "chain_quality_score"
+        },
+        {
+          "name": "contract_score",
+          "score": 92,
+          "weight": 20,
+          "passed": true,
+          "reason": "contract_total_score"
+        },
+        {
+          "name": "greeks",
+          "score": 100,
+          "weight": 15,
+          "passed": true,
+          "reason": "delta_theta_vega_iv_score"
+        },
+        {
+          "name": "liquidity",
+          "score": 70,
+          "weight": 15,
+          "passed": true,
+          "reason": "spread_volume_open_interest_score"
+        },
+        {
+          "name": "thesis_quality",
+          "score": 96,
+          "weight": 15,
+          "passed": true,
+          "reason": "source_grounded_analyst_thesis_score"
+        },
+        {
+          "name": "concentration",
+          "score": 73,
+          "weight": 8,
+          "passed": true,
+          "reason": "position_and_symbol_exposure_score"
+        },
+        {
+          "name": "drawdown",
+          "score": 88,
+          "weight": 7,
+          "passed": true,
+          "reason": "portfolio_and_candidate_drawdown_score"
+        },
+        {
+          "name": "catalyst_timing",
+          "score": 40,
+          "weight": 5,
+          "passed": false,
+          "reason": "days_to_next_catalyst_score"
+        }
+      ],
+      "hard_block_reasons": [],
+      "review_reasons": [
+        "catalyst_too_near_for_new_risk"
+      ],
+      "chain_quality_score": 100,
+      "contract_total_score": 92,
+      "proposed_position_pct": 0.02,
+      "existing_symbol_exposure_pct": 0.02,
+      "total_symbol_exposure_pct": 0.04,
+      "portfolio_drawdown_pct": 0.02,
+      "candidate_drawdown_pct": 0.06,
+      "days_to_next_catalyst": 7,
+      "human_review_required": true,
+      "research_only": true,
+      "live_trading_enabled": false,
+      "broker_order_call_performed": false
+    },
+    {
+      "contract_id": "NVDA-20271217-C-260",
+      "symbol": "NVDA",
+      "score": 79,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "component_scores": [
+        {
+          "name": "chain_quality",
+          "score": 100,
+          "weight": 15,
+          "passed": true,
+          "reason": "chain_quality_score"
+        },
+        {
+          "name": "contract_score",
+          "score": 82,
+          "weight": 20,
+          "passed": true,
+          "reason": "contract_total_score"
+        },
+        {
+          "name": "greeks",
+          "score": 85,
+          "weight": 15,
+          "passed": true,
+          "reason": "delta_theta_vega_iv_score"
+        },
+        {
+          "name": "liquidity",
+          "score": 70,
+          "weight": 15,
+          "passed": true,
+          "reason": "spread_volume_open_interest_score"
+        },
+        {
+          "name": "thesis_quality",
+          "score": 96,
+          "weight": 15,
+          "passed": true,
+          "reason": "source_grounded_analyst_thesis_score"
+        },
+        {
+          "name": "concentration",
+          "score": 0,
+          "weight": 8,
+          "passed": false,
+          "reason": "position_and_symbol_exposure_score"
+        },
+        {
+          "name": "drawdown",
+          "score": 80,
+          "weight": 7,
+          "passed": true,
+          "reason": "portfolio_and_candidate_drawdown_score"
+        },
+        {
+          "name": "catalyst_timing",
+          "score": 83,
+          "weight": 5,
+          "passed": true,
+          "reason": "days_to_next_catalyst_score"
+        }
+      ],
+      "hard_block_reasons": [
+        "proposed_position_pct_above_maximum",
+        "symbol_concentration_above_maximum"
+      ],
+      "review_reasons": [
+        "contract_score_near_minimum"
+      ],
+      "chain_quality_score": 100,
+      "contract_total_score": 82,
+      "proposed_position_pct": 0.035,
+      "existing_symbol_exposure_pct": 0.04,
+      "total_symbol_exposure_pct": 0.075,
+      "portfolio_drawdown_pct": 0.04,
+      "candidate_drawdown_pct": 0.09,
+      "days_to_next_catalyst": 90,
+      "human_review_required": true,
+      "research_only": true,
+      "live_trading_enabled": false,
+      "broker_order_call_performed": false
+    },
+    {
+      "contract_id": "ABCD-20260821-C-45",
+      "symbol": "ABCD",
+      "score": 33,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "component_scores": [
+        {
+          "name": "chain_quality",
+          "score": 0,
+          "weight": 15,
+          "passed": false,
+          "reason": "chain_quality_score"
+        },
+        {
+          "name": "contract_score",
+          "score": 50,
+          "weight": 20,
+          "passed": true,
+          "reason": "contract_total_score"
+        },
+        {
+          "name": "greeks",
+          "score": 56,
+          "weight": 15,
+          "passed": true,
+          "reason": "delta_theta_vega_iv_score"
+        },
+        {
+          "name": "liquidity",
+          "score": 22,
+          "weight": 15,
+          "passed": false,
+          "reason": "spread_volume_open_interest_score"
+        },
+        {
+          "name": "thesis_quality",
+          "score": 0,
+          "weight": 15,
+          "passed": false,
+          "reason": "source_grounded_analyst_thesis_score"
+        },
+        {
+          "name": "concentration",
+          "score": 93,
+          "weight": 8,
+          "passed": true,
+          "reason": "position_and_symbol_exposure_score"
+        },
+        {
+          "name": "drawdown",
+          "score": 0,
+          "weight": 7,
+          "passed": false,
+          "reason": "portfolio_and_candidate_drawdown_score"
+        },
+        {
+          "name": "catalyst_timing",
+          "score": 78,
+          "weight": 5,
+          "passed": true,
+          "reason": "days_to_next_catalyst_score"
+        }
+      ],
+      "hard_block_reasons": [
+        "chain_quality_failed",
+        "contract_score_failed",
+        "portfolio_drawdown_above_maximum",
+        "candidate_drawdown_above_maximum"
+      ],
+      "review_reasons": [
+        "chain_quality_near_minimum",
+        "contract_score_near_minimum",
+        "thesis_quality_below_minimum"
+      ],
+      "chain_quality_score": 0,
+      "contract_total_score": 50,
+      "proposed_position_pct": 0.01,
+      "existing_symbol_exposure_pct": 0.0,
+      "total_symbol_exposure_pct": 0.01,
+      "portfolio_drawdown_pct": 0.09,
+      "candidate_drawdown_pct": 0.25,
+      "days_to_next_catalyst": 30,
+      "human_review_required": true,
+      "research_only": true,
+      "live_trading_enabled": false,
+      "broker_order_call_performed": false
+    },
+    {
+      "contract_id": "ABCD-20260821-C-55",
+      "symbol": "ABCD",
+      "score": 23,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "component_scores": [
+        {
+          "name": "chain_quality",
+          "score": 0,
+          "weight": 15,
+          "passed": false,
+          "reason": "chain_quality_score"
+        },
+        {
+          "name": "contract_score",
+          "score": 19,
+          "weight": 20,
+          "passed": false,
+          "reason": "contract_total_score"
+        },
+        {
+          "name": "greeks",
+          "score": 0,
+          "weight": 15,
+          "passed": false,
+          "reason": "delta_theta_vega_iv_score"
+        },
+        {
+          "name": "liquidity",
+          "score": 22,
+          "weight": 15,
+          "passed": false,
+          "reason": "spread_volume_open_interest_score"
+        },
+        {
+          "name": "thesis_quality",
+          "score": 0,
+          "weight": 15,
+          "passed": false,
+          "reason": "source_grounded_analyst_thesis_score"
+        },
+        {
+          "name": "concentration",
+          "score": 93,
+          "weight": 8,
+          "passed": true,
+          "reason": "position_and_symbol_exposure_score"
+        },
+        {
+          "name": "drawdown",
+          "score": 90,
+          "weight": 7,
+          "passed": true,
+          "reason": "portfolio_and_candidate_drawdown_score"
+        },
+        {
+          "name": "catalyst_timing",
+          "score": 45,
+          "weight": 5,
+          "passed": false,
+          "reason": "days_to_next_catalyst_score"
+        }
+      ],
+      "hard_block_reasons": [
+        "chain_quality_failed",
+        "contract_score_failed"
+      ],
+      "review_reasons": [
+        "chain_quality_near_minimum",
+        "contract_score_near_minimum",
+        "thesis_quality_below_minimum",
+        "catalyst_too_distant_for_thesis"
+      ],
+      "chain_quality_score": 0,
+      "contract_total_score": 19,
+      "proposed_position_pct": 0.01,
+      "existing_symbol_exposure_pct": 0.0,
+      "total_symbol_exposure_pct": 0.01,
+      "portfolio_drawdown_pct": 0.02,
+      "candidate_drawdown_pct": 0.04,
+      "days_to_next_catalyst": 700,
+      "human_review_required": true,
+      "research_only": true,
+      "live_trading_enabled": false,
+      "broker_order_call_performed": false
+    }
+  ]
+}

@@ -1,0 +1,190 @@
+{
+  "phase": "BR-09",
+  "module": "Local Operator Dashboard",
+  "as_of": "2026-07-08T16:00:00",
+  "label": "MONITOR_ONLY",
+  "metrics": {
+    "candidate_count": 5,
+    "included_candidate_count": 3,
+    "paper_position_count": 2,
+    "alert_count": 0,
+    "thesis_note_count": 1,
+    "total_pnl": 143.2,
+    "unrealized_pnl": 143.2,
+    "realized_pnl": 0.0
+  },
+  "candidates": [
+    {
+      "symbol": "NVDA",
+      "name": "NVIDIA Corporation",
+      "included": true,
+      "candidate_score": 89,
+      "risk_score": 97,
+      "risk_label": "PAPER_ONLY",
+      "paper_position_count": 2,
+      "paper_market_value": 7303.2,
+      "paper_unrealized_pnl": 143.2,
+      "alert_count": 0,
+      "thesis_id": "THESIS-BR05-NVDA-001",
+      "thesis_confidence": "medium",
+      "label": "PAPER_ONLY",
+      "human_review_required": true
+    },
+    {
+      "symbol": "MSFT",
+      "name": "Microsoft Corporation",
+      "included": true,
+      "candidate_score": 83,
+      "risk_score": null,
+      "risk_label": null,
+      "paper_position_count": 0,
+      "paper_market_value": 0,
+      "paper_unrealized_pnl": 0,
+      "alert_count": 0,
+      "thesis_id": null,
+      "thesis_confidence": null,
+      "label": "MONITOR_ONLY",
+      "human_review_required": true
+    },
+    {
+      "symbol": "TSLA",
+      "name": "Tesla Inc.",
+      "included": true,
+      "candidate_score": 70,
+      "risk_score": null,
+      "risk_label": null,
+      "paper_position_count": 0,
+      "paper_market_value": 0,
+      "paper_unrealized_pnl": 0,
+      "alert_count": 0,
+      "thesis_id": null,
+      "thesis_confidence": null,
+      "label": "MONITOR_ONLY",
+      "human_review_required": true
+    },
+    {
+      "symbol": "ABCD",
+      "name": "Example Breakdown Software",
+      "included": false,
+      "candidate_score": 60,
+      "risk_score": 33,
+      "risk_label": "BLOCKED_BY_SAFETY_GATE",
+      "paper_position_count": 0,
+      "paper_market_value": 0,
+      "paper_unrealized_pnl": 0,
+      "alert_count": 0,
+      "thesis_id": null,
+      "thesis_confidence": null,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "human_review_required": true
+    },
+    {
+      "symbol": "XYZL",
+      "name": "Example Low Liquidity Labs",
+      "included": false,
+      "candidate_score": 38,
+      "risk_score": null,
+      "risk_label": null,
+      "paper_position_count": 0,
+      "paper_market_value": 0,
+      "paper_unrealized_pnl": 0,
+      "alert_count": 0,
+      "thesis_id": null,
+      "thesis_confidence": null,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "human_review_required": true
+    }
+  ],
+  "paper_positions": [
+    {
+      "contract_id": "NVDA-20271217-C-140",
+      "symbol": "NVDA271217C00140000",
+      "underlying_symbol": "NVDA",
+      "contracts": 1,
+      "average_price": 42.8,
+      "mark_price": 43.656,
+      "market_value": 4365.6,
+      "unrealized_pnl": 85.6,
+      "unrealized_pnl_pct": 0.02,
+      "theta_exposure": -2.4,
+      "vega_exposure": 41.0,
+      "label": "PAPER_ONLY",
+      "human_review_required": true
+    },
+    {
+      "contract_id": "NVDA-20271217-C-180",
+      "symbol": "NVDA271217C00180000",
+      "underlying_symbol": "NVDA",
+      "contracts": 1,
+      "average_price": 28.8,
+      "mark_price": 29.376,
+      "market_value": 2937.6,
+      "unrealized_pnl": 57.6,
+      "unrealized_pnl_pct": 0.02,
+      "theta_exposure": -2.1,
+      "vega_exposure": 39.0,
+      "label": "PAPER_ONLY",
+      "human_review_required": true
+    }
+  ],
+  "alerts": [],
+  "thesis_notes": [
+    {
+      "thesis_id": "THESIS-BR05-NVDA-001",
+      "symbol": "NVDA",
+      "summary": "NVDA LEAPS contracts remain a research-only monitor candidate because the supplied scored contracts show strong liquidity, acceptable spreads, and long DTE, but all conclusions require human review.",
+      "confidence": "medium",
+      "catalysts": [
+        "BR-04 contract scoring identifies multiple monitor-only NVDA LEAPS candidates for analyst review."
+      ],
+      "invalidation_triggers": [
+        "A future deterministic scan blocks the selected contract IDs.",
+        "Human reviewer rejects the thesis due to stale context or missing source evidence."
+      ],
+      "risk_notes": [
+        "Research output cannot override deterministic gates.",
+        "No broker order call or live-trading permission is present."
+      ],
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "research_only": true,
+      "human_review_required": true,
+      "live_trading_enabled": false,
+      "broker_order_call_performed": false
+    }
+  ],
+  "portfolio_pnl": {
+    "cash": 92840.0,
+    "realized_pnl": 0.0,
+    "unrealized_pnl": 143.2,
+    "total_pnl": 143.2,
+    "net_liquidation_value": 100143.2
+  },
+  "safety_status": {
+    "phase": "BR-09",
+    "module": "Local Operator Dashboard",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "read_only": true,
+    "static_output_only": true,
+    "local_reports_only": true,
+    "operator_dashboard_only": true,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  }
+}
