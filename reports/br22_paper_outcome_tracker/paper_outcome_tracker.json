@@ -1,0 +1,955 @@
+{
+  "phase": "BR-22",
+  "module": "Paper Outcome Tracker",
+  "as_of": "2026-07-10T08:08:15+00:00",
+  "label": "HUMAN_REVIEW_REQUIRED",
+  "source_paths": {
+    "BR-20": "reports\\br20_paper_research_decision_journal\\paper_research_decision_journal.json",
+    "BR-21": "reports\\br21_human_review_resolution_ledger\\human_review_resolution_ledger.json"
+  },
+  "outcome_classifications": [
+    "paper_held",
+    "rejected",
+    "sent_for_review"
+  ],
+  "required_outcome_fields": [
+    "source_evidence",
+    "paper_only_entry_state",
+    "hypothetical_mark_change",
+    "monitoring_observations",
+    "thesis_status",
+    "risk_gate_status",
+    "dashboard_state",
+    "outcome_classification",
+    "unresolved_review_items",
+    "required_human_review_actions"
+  ],
+  "safety": {
+    "phase": "BR-22",
+    "module": "Paper Outcome Tracker",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "read_only": true,
+    "offline_only": true,
+    "source_evidence_read_only": true,
+    "committed_report_inputs_only": true,
+    "deterministic_outcome_records_only": true,
+    "paper_state_mutation_allowed": false,
+    "trading_state_mutation_allowed": false,
+    "credential_loading_attempted": false,
+    "env_file_read_attempted": false,
+    "secret_request_attempted": false,
+    "data_provider_call_attempted": false,
+    "external_network_call_attempted": false,
+    "real_data_fetch_attempted": false,
+    "broker_connection_attempted": false,
+    "broker_read_call_performed": false,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "trade_instruction_created": false,
+    "broker_action_created": false,
+    "order_path_created": false,
+    "live_state_mutation_attempted": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  },
+  "metrics": {
+    "outcome_record_count": 4,
+    "paper_held_count": 2,
+    "rejected_count": 1,
+    "sent_for_review_count": 1,
+    "paper_entry_state_count": 4,
+    "hypothetical_mark_change_count": 4,
+    "monitoring_observation_count": 4,
+    "unresolved_review_item_count": 12,
+    "required_human_review_action_count": 6
+  },
+  "source_evidence": [
+    {
+      "outcome_id": "BR22-OUTCOME-001",
+      "source_journal_id": "BR20-JOURNAL-001",
+      "source_path": "reports\\br20_paper_research_decision_journal\\paper_research_decision_journal.json",
+      "source_replay_id": "BR19-REPLAY-001",
+      "resolution_source_path": "reports\\br21_human_review_resolution_ledger\\human_review_resolution_ledger.json",
+      "label": "RESEARCH_ONLY"
+    },
+    {
+      "outcome_id": "BR22-OUTCOME-002",
+      "source_journal_id": "BR20-JOURNAL-002",
+      "source_path": "reports\\br20_paper_research_decision_journal\\paper_research_decision_journal.json",
+      "source_replay_id": "BR19-REPLAY-002",
+      "resolution_source_path": "reports\\br21_human_review_resolution_ledger\\human_review_resolution_ledger.json",
+      "label": "RESEARCH_ONLY"
+    },
+    {
+      "outcome_id": "BR22-OUTCOME-003",
+      "source_journal_id": "BR20-JOURNAL-003",
+      "source_path": "reports\\br20_paper_research_decision_journal\\paper_research_decision_journal.json",
+      "source_replay_id": "BR19-REPLAY-003",
+      "resolution_source_path": "reports\\br21_human_review_resolution_ledger\\human_review_resolution_ledger.json",
+      "label": "RESEARCH_ONLY"
+    },
+    {
+      "outcome_id": "BR22-OUTCOME-004",
+      "source_journal_id": "BR20-JOURNAL-004",
+      "source_path": "reports\\br20_paper_research_decision_journal\\paper_research_decision_journal.json",
+      "source_replay_id": "BR19-REPLAY-004",
+      "resolution_source_path": "reports\\br21_human_review_resolution_ledger\\human_review_resolution_ledger.json",
+      "label": "RESEARCH_ONLY"
+    }
+  ],
+  "records_by_outcome_classification": {
+    "paper_held": [
+      {
+        "outcome_id": "BR22-OUTCOME-001",
+        "source_journal_id": "BR20-JOURNAL-001",
+        "symbol": "NVDA",
+        "label": "PAPER_ONLY",
+        "source_evidence": {
+          "source_phase": "BR-20",
+          "source_path": "reports\\br20_paper_research_decision_journal\\paper_research_decision_journal.json",
+          "source_journal_id": "BR20-JOURNAL-001",
+          "source_replay_id": "BR19-REPLAY-001",
+          "source_sections": [
+            "source_evidence",
+            "paper_only_entry_state",
+            "hypothetical_mark_change",
+            "monitoring_observations",
+            "thesis_status",
+            "risk_gate_status",
+            "dashboard_state",
+            "outcome_classification",
+            "unresolved_review_items",
+            "required_human_review_actions"
+          ],
+          "resolution_source_phase": "BR-21",
+          "resolution_source_path": "reports\\br21_human_review_resolution_ledger\\human_review_resolution_ledger.json",
+          "read_only": true,
+          "label": "RESEARCH_ONLY"
+        },
+        "paper_only_entry_state": {
+          "entry_status": "simulated_entry",
+          "contract_id": "NVDA-20271217-C-140",
+          "quantity_delta": 1,
+          "premium_delta": 2440.0,
+          "paper_position_open": true,
+          "state_source": "offline_replay_paper_fill_record",
+          "label": "PAPER_ONLY"
+        },
+        "hypothetical_mark_change": {
+          "method": "deterministic_fixture_proxy",
+          "entry_premium": 2440.0,
+          "quantity_delta": 1,
+          "score_adjustment": 0.22,
+          "alert_adjustment": -0.0,
+          "change_amount": 536.8,
+          "change_percent": 22.0,
+          "source": "committed_report_fields_only",
+          "label": "MONITOR_ONLY"
+        },
+        "monitoring_observations": {
+          "status": "clear",
+          "alert_count": 0,
+          "observation": "no_replay_threshold_breach",
+          "dashboard_reference": "BR19-DASH-NVDA-PAPER-HOLD",
+          "label": "MONITOR_ONLY"
+        },
+        "thesis_status": {
+          "status": "packaged",
+          "thesis_id": "BR19-NVDA-REPLAY-THESIS",
+          "confidence": 0.84,
+          "reason": "source_grounded_fixture_thesis_requires_manual_review",
+          "label": "HUMAN_REVIEW_REQUIRED"
+        },
+        "risk_gate_status": {
+          "status": "paper_hold",
+          "score": 97,
+          "reason": "deterministic_replay_gates_passed_for_paper_record_only",
+          "label": "PAPER_ONLY"
+        },
+        "dashboard_state": {
+          "status": "paper_hold_visible",
+          "reference": "BR19-DASH-NVDA-PAPER-HOLD",
+          "monitor_label": "MONITOR_ONLY",
+          "live_trading_enabled": false,
+          "LIVE TRADING": "DISABLED"
+        },
+        "outcome_classification": "paper_held",
+        "unresolved_review_items": [
+          "BR20_ACTION:Review NVDA replay record against source fixture before allowing any future workflow change.",
+          "BR20_ACTION:Confirm simulated paper entry remains PAPER_ONLY and never broker-routed.",
+          "BR21-RESOLUTION-023:needs_more_evidence:source evidence is incomplete for final closure",
+          "BR21-RESOLUTION-024:keep_paper_only:paper-only status cannot become broker-routed"
+        ],
+        "required_human_review_actions": [
+          "Review NVDA replay record against source fixture before allowing any future workflow change.",
+          "Confirm simulated paper entry remains PAPER_ONLY and never broker-routed."
+        ],
+        "acceptance_criteria": {
+          "source_evidence_recorded": true,
+          "paper_only_entry_state_recorded": true,
+          "hypothetical_mark_change_is_monitor_only": true,
+          "monitoring_observations_are_monitor_only": true,
+          "thesis_status_requires_human_review": true,
+          "risk_gate_status_recorded": true,
+          "dashboard_state_records_disabled_live_trading": true,
+          "outcome_classification_allowed": true,
+          "unresolved_review_items_recorded": true,
+          "required_human_review_actions_recorded": true
+        }
+      },
+      {
+        "outcome_id": "BR22-OUTCOME-004",
+        "source_journal_id": "BR20-JOURNAL-004",
+        "symbol": "NVDA",
+        "label": "PAPER_ONLY",
+        "source_evidence": {
+          "source_phase": "BR-20",
+          "source_path": "reports\\br20_paper_research_decision_journal\\paper_research_decision_journal.json",
+          "source_journal_id": "BR20-JOURNAL-004",
+          "source_replay_id": "BR19-REPLAY-004",
+          "source_sections": [
+            "source_evidence",
+            "paper_only_entry_state",
+            "hypothetical_mark_change",
+            "monitoring_observations",
+            "thesis_status",
+            "risk_gate_status",
+            "dashboard_state",
+            "outcome_classification",
+            "unresolved_review_items",
+            "required_human_review_actions"
+          ],
+          "resolution_source_phase": "BR-21",
+          "resolution_source_path": "reports\\br21_human_review_resolution_ledger\\human_review_resolution_ledger.json",
+          "read_only": true,
+          "label": "RESEARCH_ONLY"
+        },
+        "paper_only_entry_state": {
+          "entry_status": "hold_existing",
+          "contract_id": "NVDA-20271217-C-180",
+          "quantity_delta": 0,
+          "premium_delta": 0.0,
+          "paper_position_open": true,
+          "state_source": "no_new_fill_for_existing_paper_record",
+          "label": "PAPER_ONLY"
+        },
+        "hypothetical_mark_change": {
+          "method": "deterministic_fixture_proxy",
+          "entry_premium": 0.0,
+          "quantity_delta": 0,
+          "score_adjustment": 0.19,
+          "alert_adjustment": -0.0,
+          "change_amount": 0.0,
+          "change_percent": 0.0,
+          "source": "committed_report_fields_only",
+          "label": "MONITOR_ONLY"
+        },
+        "monitoring_observations": {
+          "status": "hold_monitor",
+          "alert_count": 0,
+          "observation": "continue_monitoring_existing_position",
+          "dashboard_reference": "BR19-DASH-NVDA-HOLD",
+          "label": "MONITOR_ONLY"
+        },
+        "thesis_status": {
+          "status": "packaged",
+          "thesis_id": "BR19-NVDA-HOLD-REPLAY-THESIS",
+          "confidence": 0.82,
+          "reason": "existing_paper_thesis_requires_review",
+          "label": "HUMAN_REVIEW_REQUIRED"
+        },
+        "risk_gate_status": {
+          "status": "paper_hold",
+          "score": 94,
+          "reason": "hold_existing_paper_position",
+          "label": "PAPER_ONLY"
+        },
+        "dashboard_state": {
+          "status": "paper_hold_visible",
+          "reference": "BR19-DASH-NVDA-HOLD",
+          "monitor_label": "MONITOR_ONLY",
+          "live_trading_enabled": false,
+          "LIVE TRADING": "DISABLED"
+        },
+        "outcome_classification": "paper_held",
+        "unresolved_review_items": [
+          "BR20_ACTION:Review existing NVDA paper hold before changing monitor status.",
+          "BR20_ACTION:Confirm no live state mutation occurred during replay evidence generation.",
+          "BR21-RESOLUTION-027:keep_paper_only:paper-only status cannot become broker-routed",
+          "BR21-RESOLUTION-028:keep_blocked:deterministic safety gate remains unresolved; no reviewer resolution may promote the item"
+        ],
+        "required_human_review_actions": [
+          "Review existing NVDA paper hold before changing monitor status.",
+          "Confirm no live state mutation occurred during replay evidence generation."
+        ],
+        "acceptance_criteria": {
+          "source_evidence_recorded": true,
+          "paper_only_entry_state_recorded": true,
+          "hypothetical_mark_change_is_monitor_only": true,
+          "monitoring_observations_are_monitor_only": true,
+          "thesis_status_requires_human_review": true,
+          "risk_gate_status_recorded": true,
+          "dashboard_state_records_disabled_live_trading": true,
+          "outcome_classification_allowed": true,
+          "unresolved_review_items_recorded": true,
+          "required_human_review_actions_recorded": true
+        }
+      }
+    ],
+    "rejected": [
+      {
+        "outcome_id": "BR22-OUTCOME-002",
+        "source_journal_id": "BR20-JOURNAL-002",
+        "symbol": "XYZL",
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "source_evidence": {
+          "source_phase": "BR-20",
+          "source_path": "reports\\br20_paper_research_decision_journal\\paper_research_decision_journal.json",
+          "source_journal_id": "BR20-JOURNAL-002",
+          "source_replay_id": "BR19-REPLAY-002",
+          "source_sections": [
+            "source_evidence",
+            "paper_only_entry_state",
+            "hypothetical_mark_change",
+            "monitoring_observations",
+            "thesis_status",
+            "risk_gate_status",
+            "dashboard_state",
+            "outcome_classification",
+            "unresolved_review_items",
+            "required_human_review_actions"
+          ],
+          "resolution_source_phase": "BR-21",
+          "resolution_source_path": "reports\\br21_human_review_resolution_ledger\\human_review_resolution_ledger.json",
+          "read_only": true,
+          "label": "RESEARCH_ONLY"
+        },
+        "paper_only_entry_state": {
+          "entry_status": "none",
+          "contract_id": "XYZL-20261218-C-25",
+          "quantity_delta": 0,
+          "premium_delta": 0.0,
+          "paper_position_open": false,
+          "state_source": "blocked_records_do_not_create_paper_fills",
+          "label": "PAPER_ONLY"
+        },
+        "hypothetical_mark_change": {
+          "method": "deterministic_fixture_proxy",
+          "entry_premium": 0.0,
+          "quantity_delta": 0,
+          "score_adjustment": -0.75,
+          "alert_adjustment": -0.05,
+          "change_amount": 0.0,
+          "change_percent": 0.0,
+          "source": "committed_report_fields_only",
+          "label": "MONITOR_ONLY"
+        },
+        "monitoring_observations": {
+          "status": "liquidity_alert",
+          "alert_count": 1,
+          "observation": "spread_or_volume_breach",
+          "dashboard_reference": "BR19-DASH-XYZL-BLOCKED",
+          "label": "MONITOR_ONLY"
+        },
+        "thesis_status": {
+          "status": "skipped",
+          "thesis_id": "BR19-XYZL-REPLAY-THESIS-GAP",
+          "confidence": 0.0,
+          "reason": "blocked_liquidity_case_still_requires_review_note",
+          "label": "HUMAN_REVIEW_REQUIRED"
+        },
+        "risk_gate_status": {
+          "status": "rejected",
+          "score": 0,
+          "reason": "poor_liquidity",
+          "label": "BLOCKED_BY_SAFETY_GATE"
+        },
+        "dashboard_state": {
+          "status": "blocked_alert_visible",
+          "reference": "BR19-DASH-XYZL-BLOCKED",
+          "monitor_label": "MONITOR_ONLY",
+          "live_trading_enabled": false,
+          "LIVE TRADING": "DISABLED"
+        },
+        "outcome_classification": "rejected",
+        "unresolved_review_items": [
+          "BR20_ACTION:Reject any attempt to promote XYZL replay evidence without fresh approved data boundary work.",
+          "BR21-RESOLUTION-025:needs_more_evidence:source evidence is incomplete for final closure"
+        ],
+        "required_human_review_actions": [
+          "Reject any attempt to promote XYZL replay evidence without fresh approved data boundary work."
+        ],
+        "acceptance_criteria": {
+          "source_evidence_recorded": true,
+          "paper_only_entry_state_recorded": true,
+          "hypothetical_mark_change_is_monitor_only": true,
+          "monitoring_observations_are_monitor_only": true,
+          "thesis_status_requires_human_review": true,
+          "risk_gate_status_recorded": true,
+          "dashboard_state_records_disabled_live_trading": true,
+          "outcome_classification_allowed": true,
+          "unresolved_review_items_recorded": true,
+          "required_human_review_actions_recorded": true
+        }
+      }
+    ],
+    "sent_for_review": [
+      {
+        "outcome_id": "BR22-OUTCOME-003",
+        "source_journal_id": "BR20-JOURNAL-003",
+        "symbol": "AAPL",
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "source_evidence": {
+          "source_phase": "BR-20",
+          "source_path": "reports\\br20_paper_research_decision_journal\\paper_research_decision_journal.json",
+          "source_journal_id": "BR20-JOURNAL-003",
+          "source_replay_id": "BR19-REPLAY-003",
+          "source_sections": [
+            "source_evidence",
+            "paper_only_entry_state",
+            "hypothetical_mark_change",
+            "monitoring_observations",
+            "thesis_status",
+            "risk_gate_status",
+            "dashboard_state",
+            "outcome_classification",
+            "unresolved_review_items",
+            "required_human_review_actions"
+          ],
+          "resolution_source_phase": "BR-21",
+          "resolution_source_path": "reports\\br21_human_review_resolution_ledger\\human_review_resolution_ledger.json",
+          "read_only": true,
+          "label": "RESEARCH_ONLY"
+        },
+        "paper_only_entry_state": {
+          "entry_status": "none",
+          "contract_id": "AAPL-20270115-C-240",
+          "quantity_delta": 0,
+          "premium_delta": 0.0,
+          "paper_position_open": false,
+          "state_source": "human_review_required_blocks_paper_change",
+          "label": "PAPER_ONLY"
+        },
+        "hypothetical_mark_change": {
+          "method": "deterministic_fixture_proxy",
+          "entry_premium": 0.0,
+          "quantity_delta": 0,
+          "score_adjustment": 0.01,
+          "alert_adjustment": -0.0,
+          "change_amount": 0.0,
+          "change_percent": 0.0,
+          "source": "committed_report_fields_only",
+          "label": "MONITOR_ONLY"
+        },
+        "monitoring_observations": {
+          "status": "watch",
+          "alert_count": 0,
+          "observation": "neutral_watchlist_item",
+          "dashboard_reference": "BR19-DASH-AAPL-REVIEW",
+          "label": "MONITOR_ONLY"
+        },
+        "thesis_status": {
+          "status": "packaged",
+          "thesis_id": "BR19-AAPL-REPLAY-THESIS",
+          "confidence": 0.61,
+          "reason": "neutral_thesis_needs_operator_review",
+          "label": "HUMAN_REVIEW_REQUIRED"
+        },
+        "risk_gate_status": {
+          "status": "review_required",
+          "score": 81,
+          "reason": "insufficient_edge_for_paper_hold",
+          "label": "HUMAN_REVIEW_REQUIRED"
+        },
+        "dashboard_state": {
+          "status": "review_required_visible",
+          "reference": "BR19-DASH-AAPL-REVIEW",
+          "monitor_label": "MONITOR_ONLY",
+          "live_trading_enabled": false,
+          "LIVE TRADING": "DISABLED"
+        },
+        "outcome_classification": "sent_for_review",
+        "unresolved_review_items": [
+          "BR20_ACTION:Keep AAPL replay item HUMAN_REVIEW_REQUIRED until a reviewer closes the neutral thesis question.",
+          "BR21-RESOLUTION-026:keep_review_required:trade-relevant evidence still requires human review"
+        ],
+        "required_human_review_actions": [
+          "Keep AAPL replay item HUMAN_REVIEW_REQUIRED until a reviewer closes the neutral thesis question."
+        ],
+        "acceptance_criteria": {
+          "source_evidence_recorded": true,
+          "paper_only_entry_state_recorded": true,
+          "hypothetical_mark_change_is_monitor_only": true,
+          "monitoring_observations_are_monitor_only": true,
+          "thesis_status_requires_human_review": true,
+          "risk_gate_status_recorded": true,
+          "dashboard_state_records_disabled_live_trading": true,
+          "outcome_classification_allowed": true,
+          "unresolved_review_items_recorded": true,
+          "required_human_review_actions_recorded": true
+        }
+      }
+    ]
+  },
+  "records": [
+    {
+      "outcome_id": "BR22-OUTCOME-001",
+      "source_journal_id": "BR20-JOURNAL-001",
+      "symbol": "NVDA",
+      "label": "PAPER_ONLY",
+      "source_evidence": {
+        "source_phase": "BR-20",
+        "source_path": "reports\\br20_paper_research_decision_journal\\paper_research_decision_journal.json",
+        "source_journal_id": "BR20-JOURNAL-001",
+        "source_replay_id": "BR19-REPLAY-001",
+        "source_sections": [
+          "source_evidence",
+          "paper_only_entry_state",
+          "hypothetical_mark_change",
+          "monitoring_observations",
+          "thesis_status",
+          "risk_gate_status",
+          "dashboard_state",
+          "outcome_classification",
+          "unresolved_review_items",
+          "required_human_review_actions"
+        ],
+        "resolution_source_phase": "BR-21",
+        "resolution_source_path": "reports\\br21_human_review_resolution_ledger\\human_review_resolution_ledger.json",
+        "read_only": true,
+        "label": "RESEARCH_ONLY"
+      },
+      "paper_only_entry_state": {
+        "entry_status": "simulated_entry",
+        "contract_id": "NVDA-20271217-C-140",
+        "quantity_delta": 1,
+        "premium_delta": 2440.0,
+        "paper_position_open": true,
+        "state_source": "offline_replay_paper_fill_record",
+        "label": "PAPER_ONLY"
+      },
+      "hypothetical_mark_change": {
+        "method": "deterministic_fixture_proxy",
+        "entry_premium": 2440.0,
+        "quantity_delta": 1,
+        "score_adjustment": 0.22,
+        "alert_adjustment": -0.0,
+        "change_amount": 536.8,
+        "change_percent": 22.0,
+        "source": "committed_report_fields_only",
+        "label": "MONITOR_ONLY"
+      },
+      "monitoring_observations": {
+        "status": "clear",
+        "alert_count": 0,
+        "observation": "no_replay_threshold_breach",
+        "dashboard_reference": "BR19-DASH-NVDA-PAPER-HOLD",
+        "label": "MONITOR_ONLY"
+      },
+      "thesis_status": {
+        "status": "packaged",
+        "thesis_id": "BR19-NVDA-REPLAY-THESIS",
+        "confidence": 0.84,
+        "reason": "source_grounded_fixture_thesis_requires_manual_review",
+        "label": "HUMAN_REVIEW_REQUIRED"
+      },
+      "risk_gate_status": {
+        "status": "paper_hold",
+        "score": 97,
+        "reason": "deterministic_replay_gates_passed_for_paper_record_only",
+        "label": "PAPER_ONLY"
+      },
+      "dashboard_state": {
+        "status": "paper_hold_visible",
+        "reference": "BR19-DASH-NVDA-PAPER-HOLD",
+        "monitor_label": "MONITOR_ONLY",
+        "live_trading_enabled": false,
+        "LIVE TRADING": "DISABLED"
+      },
+      "outcome_classification": "paper_held",
+      "unresolved_review_items": [
+        "BR20_ACTION:Review NVDA replay record against source fixture before allowing any future workflow change.",
+        "BR20_ACTION:Confirm simulated paper entry remains PAPER_ONLY and never broker-routed.",
+        "BR21-RESOLUTION-023:needs_more_evidence:source evidence is incomplete for final closure",
+        "BR21-RESOLUTION-024:keep_paper_only:paper-only status cannot become broker-routed"
+      ],
+      "required_human_review_actions": [
+        "Review NVDA replay record against source fixture before allowing any future workflow change.",
+        "Confirm simulated paper entry remains PAPER_ONLY and never broker-routed."
+      ],
+      "acceptance_criteria": {
+        "source_evidence_recorded": true,
+        "paper_only_entry_state_recorded": true,
+        "hypothetical_mark_change_is_monitor_only": true,
+        "monitoring_observations_are_monitor_only": true,
+        "thesis_status_requires_human_review": true,
+        "risk_gate_status_recorded": true,
+        "dashboard_state_records_disabled_live_trading": true,
+        "outcome_classification_allowed": true,
+        "unresolved_review_items_recorded": true,
+        "required_human_review_actions_recorded": true
+      }
+    },
+    {
+      "outcome_id": "BR22-OUTCOME-002",
+      "source_journal_id": "BR20-JOURNAL-002",
+      "symbol": "XYZL",
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "source_evidence": {
+        "source_phase": "BR-20",
+        "source_path": "reports\\br20_paper_research_decision_journal\\paper_research_decision_journal.json",
+        "source_journal_id": "BR20-JOURNAL-002",
+        "source_replay_id": "BR19-REPLAY-002",
+        "source_sections": [
+          "source_evidence",
+          "paper_only_entry_state",
+          "hypothetical_mark_change",
+          "monitoring_observations",
+          "thesis_status",
+          "risk_gate_status",
+          "dashboard_state",
+          "outcome_classification",
+          "unresolved_review_items",
+          "required_human_review_actions"
+        ],
+        "resolution_source_phase": "BR-21",
+        "resolution_source_path": "reports\\br21_human_review_resolution_ledger\\human_review_resolution_ledger.json",
+        "read_only": true,
+        "label": "RESEARCH_ONLY"
+      },
+      "paper_only_entry_state": {
+        "entry_status": "none",
+        "contract_id": "XYZL-20261218-C-25",
+        "quantity_delta": 0,
+        "premium_delta": 0.0,
+        "paper_position_open": false,
+        "state_source": "blocked_records_do_not_create_paper_fills",
+        "label": "PAPER_ONLY"
+      },
+      "hypothetical_mark_change": {
+        "method": "deterministic_fixture_proxy",
+        "entry_premium": 0.0,
+        "quantity_delta": 0,
+        "score_adjustment": -0.75,
+        "alert_adjustment": -0.05,
+        "change_amount": 0.0,
+        "change_percent": 0.0,
+        "source": "committed_report_fields_only",
+        "label": "MONITOR_ONLY"
+      },
+      "monitoring_observations": {
+        "status": "liquidity_alert",
+        "alert_count": 1,
+        "observation": "spread_or_volume_breach",
+        "dashboard_reference": "BR19-DASH-XYZL-BLOCKED",
+        "label": "MONITOR_ONLY"
+      },
+      "thesis_status": {
+        "status": "skipped",
+        "thesis_id": "BR19-XYZL-REPLAY-THESIS-GAP",
+        "confidence": 0.0,
+        "reason": "blocked_liquidity_case_still_requires_review_note",
+        "label": "HUMAN_REVIEW_REQUIRED"
+      },
+      "risk_gate_status": {
+        "status": "rejected",
+        "score": 0,
+        "reason": "poor_liquidity",
+        "label": "BLOCKED_BY_SAFETY_GATE"
+      },
+      "dashboard_state": {
+        "status": "blocked_alert_visible",
+        "reference": "BR19-DASH-XYZL-BLOCKED",
+        "monitor_label": "MONITOR_ONLY",
+        "live_trading_enabled": false,
+        "LIVE TRADING": "DISABLED"
+      },
+      "outcome_classification": "rejected",
+      "unresolved_review_items": [
+        "BR20_ACTION:Reject any attempt to promote XYZL replay evidence without fresh approved data boundary work.",
+        "BR21-RESOLUTION-025:needs_more_evidence:source evidence is incomplete for final closure"
+      ],
+      "required_human_review_actions": [
+        "Reject any attempt to promote XYZL replay evidence without fresh approved data boundary work."
+      ],
+      "acceptance_criteria": {
+        "source_evidence_recorded": true,
+        "paper_only_entry_state_recorded": true,
+        "hypothetical_mark_change_is_monitor_only": true,
+        "monitoring_observations_are_monitor_only": true,
+        "thesis_status_requires_human_review": true,
+        "risk_gate_status_recorded": true,
+        "dashboard_state_records_disabled_live_trading": true,
+        "outcome_classification_allowed": true,
+        "unresolved_review_items_recorded": true,
+        "required_human_review_actions_recorded": true
+      }
+    },
+    {
+      "outcome_id": "BR22-OUTCOME-003",
+      "source_journal_id": "BR20-JOURNAL-003",
+      "symbol": "AAPL",
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "source_evidence": {
+        "source_phase": "BR-20",
+        "source_path": "reports\\br20_paper_research_decision_journal\\paper_research_decision_journal.json",
+        "source_journal_id": "BR20-JOURNAL-003",
+        "source_replay_id": "BR19-REPLAY-003",
+        "source_sections": [
+          "source_evidence",
+          "paper_only_entry_state",
+          "hypothetical_mark_change",
+          "monitoring_observations",
+          "thesis_status",
+          "risk_gate_status",
+          "dashboard_state",
+          "outcome_classification",
+          "unresolved_review_items",
+          "required_human_review_actions"
+        ],
+        "resolution_source_phase": "BR-21",
+        "resolution_source_path": "reports\\br21_human_review_resolution_ledger\\human_review_resolution_ledger.json",
+        "read_only": true,
+        "label": "RESEARCH_ONLY"
+      },
+      "paper_only_entry_state": {
+        "entry_status": "none",
+        "contract_id": "AAPL-20270115-C-240",
+        "quantity_delta": 0,
+        "premium_delta": 0.0,
+        "paper_position_open": false,
+        "state_source": "human_review_required_blocks_paper_change",
+        "label": "PAPER_ONLY"
+      },
+      "hypothetical_mark_change": {
+        "method": "deterministic_fixture_proxy",
+        "entry_premium": 0.0,
+        "quantity_delta": 0,
+        "score_adjustment": 0.01,
+        "alert_adjustment": -0.0,
+        "change_amount": 0.0,
+        "change_percent": 0.0,
+        "source": "committed_report_fields_only",
+        "label": "MONITOR_ONLY"
+      },
+      "monitoring_observations": {
+        "status": "watch",
+        "alert_count": 0,
+        "observation": "neutral_watchlist_item",
+        "dashboard_reference": "BR19-DASH-AAPL-REVIEW",
+        "label": "MONITOR_ONLY"
+      },
+      "thesis_status": {
+        "status": "packaged",
+        "thesis_id": "BR19-AAPL-REPLAY-THESIS",
+        "confidence": 0.61,
+        "reason": "neutral_thesis_needs_operator_review",
+        "label": "HUMAN_REVIEW_REQUIRED"
+      },
+      "risk_gate_status": {
+        "status": "review_required",
+        "score": 81,
+        "reason": "insufficient_edge_for_paper_hold",
+        "label": "HUMAN_REVIEW_REQUIRED"
+      },
+      "dashboard_state": {
+        "status": "review_required_visible",
+        "reference": "BR19-DASH-AAPL-REVIEW",
+        "monitor_label": "MONITOR_ONLY",
+        "live_trading_enabled": false,
+        "LIVE TRADING": "DISABLED"
+      },
+      "outcome_classification": "sent_for_review",
+      "unresolved_review_items": [
+        "BR20_ACTION:Keep AAPL replay item HUMAN_REVIEW_REQUIRED until a reviewer closes the neutral thesis question.",
+        "BR21-RESOLUTION-026:keep_review_required:trade-relevant evidence still requires human review"
+      ],
+      "required_human_review_actions": [
+        "Keep AAPL replay item HUMAN_REVIEW_REQUIRED until a reviewer closes the neutral thesis question."
+      ],
+      "acceptance_criteria": {
+        "source_evidence_recorded": true,
+        "paper_only_entry_state_recorded": true,
+        "hypothetical_mark_change_is_monitor_only": true,
+        "monitoring_observations_are_monitor_only": true,
+        "thesis_status_requires_human_review": true,
+        "risk_gate_status_recorded": true,
+        "dashboard_state_records_disabled_live_trading": true,
+        "outcome_classification_allowed": true,
+        "unresolved_review_items_recorded": true,
+        "required_human_review_actions_recorded": true
+      }
+    },
+    {
+      "outcome_id": "BR22-OUTCOME-004",
+      "source_journal_id": "BR20-JOURNAL-004",
+      "symbol": "NVDA",
+      "label": "PAPER_ONLY",
+      "source_evidence": {
+        "source_phase": "BR-20",
+        "source_path": "reports\\br20_paper_research_decision_journal\\paper_research_decision_journal.json",
+        "source_journal_id": "BR20-JOURNAL-004",
+        "source_replay_id": "BR19-REPLAY-004",
+        "source_sections": [
+          "source_evidence",
+          "paper_only_entry_state",
+          "hypothetical_mark_change",
+          "monitoring_observations",
+          "thesis_status",
+          "risk_gate_status",
+          "dashboard_state",
+          "outcome_classification",
+          "unresolved_review_items",
+          "required_human_review_actions"
+        ],
+        "resolution_source_phase": "BR-21",
+        "resolution_source_path": "reports\\br21_human_review_resolution_ledger\\human_review_resolution_ledger.json",
+        "read_only": true,
+        "label": "RESEARCH_ONLY"
+      },
+      "paper_only_entry_state": {
+        "entry_status": "hold_existing",
+        "contract_id": "NVDA-20271217-C-180",
+        "quantity_delta": 0,
+        "premium_delta": 0.0,
+        "paper_position_open": true,
+        "state_source": "no_new_fill_for_existing_paper_record",
+        "label": "PAPER_ONLY"
+      },
+      "hypothetical_mark_change": {
+        "method": "deterministic_fixture_proxy",
+        "entry_premium": 0.0,
+        "quantity_delta": 0,
+        "score_adjustment": 0.19,
+        "alert_adjustment": -0.0,
+        "change_amount": 0.0,
+        "change_percent": 0.0,
+        "source": "committed_report_fields_only",
+        "label": "MONITOR_ONLY"
+      },
+      "monitoring_observations": {
+        "status": "hold_monitor",
+        "alert_count": 0,
+        "observation": "continue_monitoring_existing_position",
+        "dashboard_reference": "BR19-DASH-NVDA-HOLD",
+        "label": "MONITOR_ONLY"
+      },
+      "thesis_status": {
+        "status": "packaged",
+        "thesis_id": "BR19-NVDA-HOLD-REPLAY-THESIS",
+        "confidence": 0.82,
+        "reason": "existing_paper_thesis_requires_review",
+        "label": "HUMAN_REVIEW_REQUIRED"
+      },
+      "risk_gate_status": {
+        "status": "paper_hold",
+        "score": 94,
+        "reason": "hold_existing_paper_position",
+        "label": "PAPER_ONLY"
+      },
+      "dashboard_state": {
+        "status": "paper_hold_visible",
+        "reference": "BR19-DASH-NVDA-HOLD",
+        "monitor_label": "MONITOR_ONLY",
+        "live_trading_enabled": false,
+        "LIVE TRADING": "DISABLED"
+      },
+      "outcome_classification": "paper_held",
+      "unresolved_review_items": [
+        "BR20_ACTION:Review existing NVDA paper hold before changing monitor status.",
+        "BR20_ACTION:Confirm no live state mutation occurred during replay evidence generation.",
+        "BR21-RESOLUTION-027:keep_paper_only:paper-only status cannot become broker-routed",
+        "BR21-RESOLUTION-028:keep_blocked:deterministic safety gate remains unresolved; no reviewer resolution may promote the item"
+      ],
+      "required_human_review_actions": [
+        "Review existing NVDA paper hold before changing monitor status.",
+        "Confirm no live state mutation occurred during replay evidence generation."
+      ],
+      "acceptance_criteria": {
+        "source_evidence_recorded": true,
+        "paper_only_entry_state_recorded": true,
+        "hypothetical_mark_change_is_monitor_only": true,
+        "monitoring_observations_are_monitor_only": true,
+        "thesis_status_requires_human_review": true,
+        "risk_gate_status_recorded": true,
+        "dashboard_state_records_disabled_live_trading": true,
+        "outcome_classification_allowed": true,
+        "unresolved_review_items_recorded": true,
+        "required_human_review_actions_recorded": true
+      }
+    }
+  ],
+  "acceptance_criteria": {
+    "source_paths_recorded": true,
+    "all_outcome_classifications_present": true,
+    "all_records_have_required_fields": true,
+    "paper_entry_states_are_paper_only": true,
+    "mark_changes_are_hypothetical_monitor_only": true,
+    "monitoring_observations_are_monitor_only": true,
+    "human_review_actions_present": true,
+    "unresolved_review_items_present": true,
+    "no_credentials_or_secrets": true,
+    "no_data_provider_or_network_calls": true,
+    "no_broker_actions_order_paths_or_live_mutation": true,
+    "paper_state_not_mutated": true,
+    "trading_state_not_mutated": true,
+    "live_trading_disabled": true,
+    "human_review_required": true
+  },
+  "required_human_review_actions": [
+    {
+      "outcome_id": "BR22-OUTCOME-001",
+      "source_journal_id": "BR20-JOURNAL-001",
+      "action": "Review NVDA replay record against source fixture before allowing any future workflow change."
+    },
+    {
+      "outcome_id": "BR22-OUTCOME-001",
+      "source_journal_id": "BR20-JOURNAL-001",
+      "action": "Confirm simulated paper entry remains PAPER_ONLY and never broker-routed."
+    },
+    {
+      "outcome_id": "BR22-OUTCOME-002",
+      "source_journal_id": "BR20-JOURNAL-002",
+      "action": "Reject any attempt to promote XYZL replay evidence without fresh approved data boundary work."
+    },
+    {
+      "outcome_id": "BR22-OUTCOME-003",
+      "source_journal_id": "BR20-JOURNAL-003",
+      "action": "Keep AAPL replay item HUMAN_REVIEW_REQUIRED until a reviewer closes the neutral thesis question."
+    },
+    {
+      "outcome_id": "BR22-OUTCOME-004",
+      "source_journal_id": "BR20-JOURNAL-004",
+      "action": "Review existing NVDA paper hold before changing monitor status."
+    },
+    {
+      "outcome_id": "BR22-OUTCOME-004",
+      "source_journal_id": "BR20-JOURNAL-004",
+      "action": "Confirm no live state mutation occurred during replay evidence generation."
+    }
+  ],
+  "readiness_state": {
+    "state": "PAPER_OUTCOME_TRACKING_ONLY",
+    "ready_for_live_trading": false,
+    "broker_actions_allowed": false,
+    "order_paths_allowed": false,
+    "paper_state_mutation_allowed": false,
+    "trading_state_mutation_allowed": false,
+    "manual_review_required": true
+  }
+}
