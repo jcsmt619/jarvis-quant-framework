@@ -1,0 +1,280 @@
+{
+  "phase": "BR-15",
+  "module": "Session Evidence Review Gate",
+  "source_phase": "BR-14",
+  "source_module": "Local Paper Research Session Runner",
+  "as_of": "2026-07-10T02:59:26+00:00",
+  "label": "HUMAN_REVIEW_REQUIRED",
+  "evidence_dir": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500",
+  "evidence_integrity": {
+    "evidence_dir_present": true,
+    "expected_artifact_count": 10,
+    "json_artifacts_present": 10,
+    "markdown_artifacts_present": 10,
+    "json_artifacts_valid": 10,
+    "missing_artifacts": [],
+    "invalid_json_artifacts": [],
+    "session_written_artifacts_empty": true,
+    "evidence_review_only": true
+  },
+  "safety_manifest_review": {
+    "source_safety": {
+      "phase": "BR-14",
+      "module": "Local Paper Research Session Runner",
+      "labels": [
+        "RESEARCH_ONLY",
+        "MONITOR_ONLY",
+        "PAPER_ONLY",
+        "HUMAN_REVIEW_REQUIRED",
+        "BLOCKED_BY_SAFETY_GATE"
+      ],
+      "research_only": true,
+      "monitor_only": true,
+      "paper_only": true,
+      "human_review_required": true,
+      "blocked_by_safety_gate": true,
+      "local_fixture_data_default": true,
+      "end_to_end_dry_run_only": true,
+      "static_artifacts_only": true,
+      "paper_portfolio_updates_simulated": true,
+      "credential_loading_attempted": false,
+      "broker_connection_attempted": false,
+      "broker_read_call_performed": false,
+      "real_paper_wrapper_connected": false,
+      "real_paper_wrapper_attempted": false,
+      "real_paper_order_submitted": false,
+      "broker_order_call_performed": false,
+      "broker_order_submitted": false,
+      "broker_order_routing_enabled": false,
+      "live_trading_enabled": false,
+      "LIVE TRADING": "DISABLED"
+    },
+    "review_safety": {
+      "phase": "BR-15",
+      "module": "Session Evidence Review Gate",
+      "source_phase": "BR-14",
+      "labels": [
+        "RESEARCH_ONLY",
+        "MONITOR_ONLY",
+        "PAPER_ONLY",
+        "HUMAN_REVIEW_REQUIRED",
+        "BLOCKED_BY_SAFETY_GATE"
+      ],
+      "research_only": true,
+      "monitor_only": true,
+      "paper_only": true,
+      "human_review_required": true,
+      "blocked_by_safety_gate": true,
+      "evidence_review_only": true,
+      "read_only_evidence_access": true,
+      "session_rerun_attempted": false,
+      "evidence_mutation_attempted": false,
+      "artifact_deletion_attempted": false,
+      "credential_loading_attempted": false,
+      "broker_connection_attempted": false,
+      "broker_read_call_performed": false,
+      "real_paper_wrapper_connected": false,
+      "real_paper_wrapper_attempted": false,
+      "real_paper_order_submitted": false,
+      "broker_order_call_performed": false,
+      "broker_order_submitted": false,
+      "broker_order_routing_enabled": false,
+      "live_trading_enabled": false,
+      "LIVE TRADING": "DISABLED"
+    },
+    "required_labels_present": true,
+    "disabled_flags_verified": true,
+    "live_trading_status": "DISABLED"
+  },
+  "session_metrics": {
+    "screener_queue_count": 3,
+    "candidate_count": 5,
+    "chain_count": 2,
+    "contract_count": 6,
+    "analyst_prompt_package_count": 1,
+    "risk_gate_decision_count": 6,
+    "simulated_paper_fill_count": 2,
+    "paper_position_count": 2,
+    "monitor_alert_count": 0,
+    "dashboard_candidate_count": 5
+  },
+  "session_flow_completeness": {
+    "expected_flow": [
+      "BR-10C",
+      "BR-02",
+      "BR-03",
+      "BR-04",
+      "BR-05",
+      "BR-06",
+      "BR-07",
+      "BR-08",
+      "BR-09"
+    ],
+    "observed_flow": [
+      "BR-10C",
+      "BR-02",
+      "BR-03",
+      "BR-04",
+      "BR-05",
+      "BR-06",
+      "BR-07",
+      "BR-08",
+      "BR-09"
+    ],
+    "complete": true
+  },
+  "generated_artifact_presence": {
+    "session": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\local_paper_research_session.json",
+      "markdown_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\local_paper_research_session.md",
+      "json_present": true,
+      "markdown_present": true,
+      "json_valid": true,
+      "json_error": null
+    },
+    "screener": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br10c_screener\\config_driven_screener_pipeline.json",
+      "markdown_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br10c_screener\\config_driven_screener_pipeline.md",
+      "json_present": true,
+      "markdown_present": true,
+      "json_valid": true,
+      "json_error": null
+    },
+    "candidate_universe": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br02_candidate_universe\\candidate_universe.json",
+      "markdown_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br02_candidate_universe\\candidate_universe.md",
+      "json_present": true,
+      "markdown_present": true,
+      "json_valid": true,
+      "json_error": null
+    },
+    "chain_quality": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br03_options_chain_quality\\options_chain_quality.json",
+      "markdown_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br03_options_chain_quality\\options_chain_quality.md",
+      "json_present": true,
+      "markdown_present": true,
+      "json_valid": true,
+      "json_error": null
+    },
+    "contract_scoring": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br04_contract_scoring\\options_contract_scoring.json",
+      "markdown_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br04_contract_scoring\\options_contract_scoring.md",
+      "json_present": true,
+      "markdown_present": true,
+      "json_valid": true,
+      "json_error": null
+    },
+    "analyst_thesis": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br05_analyst_thesis\\llm_analyst_thesis_generator.json",
+      "markdown_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br05_analyst_thesis\\llm_analyst_thesis_generator.md",
+      "json_present": true,
+      "markdown_present": true,
+      "json_valid": true,
+      "json_error": null
+    },
+    "risk_gate": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br06_risk_gate\\trade_score_risk_gate.json",
+      "markdown_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br06_risk_gate\\trade_score_risk_gate.md",
+      "json_present": true,
+      "markdown_present": true,
+      "json_valid": true,
+      "json_error": null
+    },
+    "paper_portfolio": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br07_paper_portfolio\\paper_options_portfolio.json",
+      "markdown_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br07_paper_portfolio\\paper_options_portfolio.md",
+      "json_present": true,
+      "markdown_present": true,
+      "json_valid": true,
+      "json_error": null
+    },
+    "position_monitor": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br08_position_monitor\\daily_position_monitor_alerts.json",
+      "markdown_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br08_position_monitor\\daily_position_monitor_alerts.md",
+      "json_present": true,
+      "markdown_present": true,
+      "json_valid": true,
+      "json_error": null
+    },
+    "operator_dashboard": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br09_operator_dashboard\\local_operator_dashboard.json",
+      "markdown_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br09_operator_dashboard\\local_operator_dashboard.md",
+      "json_present": true,
+      "markdown_present": true,
+      "json_valid": true,
+      "json_error": null
+    }
+  },
+  "simulated_paper_contracts": [
+    "NVDA-20271217-C-140",
+    "NVDA-20271217-C-180"
+  ],
+  "monitor_alerts": [],
+  "readiness_state": {
+    "state": "BLOCKED_BY_SAFETY_GATE_HUMAN_REVIEW_REQUIRED",
+    "ready_for_live_trading": false,
+    "broker_actions_allowed": false,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true
+  },
+  "unresolved_review_items": [
+    "source_written_artifacts_field_empty_review_file_presence_instead",
+    "human_review_required_before_next_phase",
+    "live_trading_remains_disabled"
+  ],
+  "acceptance_criteria": {
+    "br14_evidence_directory_present": true,
+    "expected_json_and_markdown_artifacts_present": true,
+    "expected_json_artifacts_parse": true,
+    "source_phase_is_br14": true,
+    "source_label_requires_human_review": true,
+    "source_session_flow_complete": true,
+    "source_metrics_present": true,
+    "source_simulated_paper_contracts_recorded": true,
+    "source_monitor_alerts_recorded": true,
+    "source_required_labels_present": true,
+    "source_disabled_runtime_flags_verified": true,
+    "source_live_trading_disabled": true,
+    "review_gate_is_evidence_review_only": true,
+    "review_gate_blocks_live_trading": true
+  },
+  "required_human_review_actions": [
+    "Human reviewer must compare BR-15 report against committed BR-14 evidence before any next phase.",
+    "Human reviewer must confirm all BR-14 safety flags remain disabled.",
+    "Human reviewer must keep any trade-relevant interpretation labeled HUMAN_REVIEW_REQUIRED.",
+    "Human reviewer must leave live trading disabled and broker order paths inactive."
+  ],
+  "safety": {
+    "phase": "BR-15",
+    "module": "Session Evidence Review Gate",
+    "source_phase": "BR-14",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "evidence_review_only": true,
+    "read_only_evidence_access": true,
+    "session_rerun_attempted": false,
+    "evidence_mutation_attempted": false,
+    "artifact_deletion_attempted": false,
+    "credential_loading_attempted": false,
+    "broker_connection_attempted": false,
+    "broker_read_call_performed": false,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  }
+}
