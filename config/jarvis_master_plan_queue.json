@@ -516,5 +516,19 @@
     "branch": "agent/br-12-human-approved-execution-safety-design",
     "commit_message": "feat: add human approved execution safety design",
     "spec": "Build BR-12 human-approved execution safety design. It should document future approval gates, broker adapter boundaries, kill switches, position limits, audit trails, and required manual confirmations. It must not enable live trading. LIVE TRADING: DISABLED. Include tests."
+  },
+  {
+    "phase": "BR-13",
+    "title": "Brendan Full System Integration Audit",
+    "branch": "agent/br-13-brendan-full-system-integration-audit",
+    "commit_message": "docs: add Brendan full system integration audit",
+    "spec": "Build BR-13 Brendan full system integration audit. Verify the research-only pipeline components connect conceptually and through deterministic interfaces from Track B screener outputs through options scoring, LLM thesis generation, risk gates, paper portfolio, monitor, dashboard, read-only broker sync design, and human-approved safety design. Produce docs and tests. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED. No live execution. LIVE TRADING: DISABLED."
+  },
+  {
+    "phase": "BR-14",
+    "title": "Local Paper Research Session Runner",
+    "branch": "agent/br-14-local-paper-research-session-runner",
+    "commit_message": "feat: add local paper research session runner",
+    "spec": "Implement BR-14 local paper-only research session runner. It should orchestrate existing safe modules for an end-to-end dry run using fixture/sample data by default: candidate universe or screener output, options chain quality scoring, Greeks/IV/spread/DTE scoring, LLM thesis packet, deterministic risk gate, paper portfolio update, monitor output, and dashboard/report artifacts. It must not load credentials, connect to brokers, or place broker orders. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED. LIVE TRADING: DISABLED. Include tests and docs."
   }
 ]
