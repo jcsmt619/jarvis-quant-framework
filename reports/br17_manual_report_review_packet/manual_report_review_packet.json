@@ -1,0 +1,746 @@
+{
+  "phase": "BR-17",
+  "module": "BR-14 Manual Report Review Packet",
+  "source_phase": "BR-14",
+  "as_of": "2026-07-10T03:42:04+00:00",
+  "label": "HUMAN_REVIEW_REQUIRED",
+  "evidence_dir": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500",
+  "safety": {
+    "phase": "BR-17",
+    "module": "BR-14 Manual Report Review Packet",
+    "source_phase": "BR-14",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "read_only": true,
+    "manual_review_packet_only": true,
+    "session_rerun_attempted": false,
+    "evidence_mutation_attempted": false,
+    "artifact_deletion_attempted": false,
+    "credential_loading_attempted": false,
+    "data_provider_call_attempted": false,
+    "broker_connection_attempted": false,
+    "broker_read_call_performed": false,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "trade_instruction_created": false,
+    "broker_action_created": false,
+    "order_path_created": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  },
+  "evidence_artifacts": {
+    "session": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\local_paper_research_session.json",
+      "present": true,
+      "read_only_source": true
+    },
+    "candidate_universe": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br02_candidate_universe\\candidate_universe.json",
+      "present": true,
+      "read_only_source": true
+    },
+    "options_chain_quality": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br03_options_chain_quality\\options_chain_quality.json",
+      "present": true,
+      "read_only_source": true
+    },
+    "contract_scoring": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br04_contract_scoring\\options_contract_scoring.json",
+      "present": true,
+      "read_only_source": true
+    },
+    "llm_thesis_package": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br05_analyst_thesis\\llm_analyst_thesis_generator.json",
+      "present": true,
+      "read_only_source": true
+    },
+    "risk_gate_decisions": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br06_risk_gate\\trade_score_risk_gate.json",
+      "present": true,
+      "read_only_source": true
+    },
+    "paper_portfolio_state": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br07_paper_portfolio\\paper_options_portfolio.json",
+      "present": true,
+      "read_only_source": true
+    },
+    "monitor_alerts": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br08_position_monitor\\daily_position_monitor_alerts.json",
+      "present": true,
+      "read_only_source": true
+    },
+    "operator_dashboard": {
+      "json_path": "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\br09_operator_dashboard\\local_operator_dashboard.json",
+      "present": true,
+      "read_only_source": true
+    }
+  },
+  "source_session_summary": {
+    "as_of": "2026-07-08T16:00:00",
+    "label": "HUMAN_REVIEW_REQUIRED",
+    "metrics": {
+      "screener_queue_count": 3,
+      "candidate_count": 5,
+      "chain_count": 2,
+      "contract_count": 6,
+      "analyst_prompt_package_count": 1,
+      "risk_gate_decision_count": 6,
+      "simulated_paper_fill_count": 2,
+      "paper_position_count": 2,
+      "monitor_alert_count": 0,
+      "dashboard_candidate_count": 5
+    },
+    "session_flow": [
+      "BR-10C",
+      "BR-02",
+      "BR-03",
+      "BR-04",
+      "BR-05",
+      "BR-06",
+      "BR-07",
+      "BR-08",
+      "BR-09"
+    ],
+    "paper_contract_ids": [
+      "NVDA-20271217-C-140",
+      "NVDA-20271217-C-180"
+    ],
+    "monitor_alert_ids": []
+  },
+  "candidate_universe_summary": {
+    "metrics": {
+      "candidate_count": 5,
+      "included_count": 3,
+      "blocked_count": 2,
+      "human_review_required_count": 5
+    },
+    "watchlists": {
+      "primary": [
+        "NVDA",
+        "MSFT",
+        "TSLA"
+      ],
+      "by_sector": {
+        "Consumer Discretionary": [
+          "TSLA"
+        ],
+        "Technology": [
+          "MSFT",
+          "NVDA"
+        ]
+      },
+      "catalyst_review": {
+        "ai_datacenter": [
+          "MSFT",
+          "NVDA"
+        ],
+        "cloud_margin": [
+          "MSFT"
+        ],
+        "earnings_revision": [
+          "NVDA"
+        ],
+        "margin_review": [
+          "TSLA"
+        ],
+        "product_cycle": [
+          "TSLA"
+        ]
+      }
+    },
+    "included_candidates": [
+      {
+        "symbol": "NVDA",
+        "name": "NVIDIA Corporation",
+        "sector": "Technology",
+        "score": 89,
+        "label": "MONITOR_ONLY",
+        "human_review_required": true
+      },
+      {
+        "symbol": "MSFT",
+        "name": "Microsoft Corporation",
+        "sector": "Technology",
+        "score": 83,
+        "label": "MONITOR_ONLY",
+        "human_review_required": true
+      },
+      {
+        "symbol": "TSLA",
+        "name": "Tesla Inc.",
+        "sector": "Consumer Discretionary",
+        "score": 70,
+        "label": "MONITOR_ONLY",
+        "human_review_required": true
+      }
+    ],
+    "blocked_candidates": [
+      {
+        "symbol": "ABCD",
+        "name": "Example Breakdown Software",
+        "sector": "Technology",
+        "score": 60,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "reasons": [
+          "price_trend_below_minimum",
+          "volatility_above_maximum"
+        ],
+        "human_review_required": true
+      },
+      {
+        "symbol": "XYZL",
+        "name": "Example Low Liquidity Labs",
+        "sector": "Healthcare",
+        "score": 38,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "reasons": [
+          "average_volume_below_minimum",
+          "dollar_volume_below_minimum",
+          "options_not_available"
+        ],
+        "human_review_required": true
+      }
+    ]
+  },
+  "options_chain_quality_summary": {
+    "metrics": {
+      "chain_count": 2,
+      "passed_chain_count": 1,
+      "blocked_chain_count": 1,
+      "contract_count": 6,
+      "passed_contract_count": 4,
+      "blocked_contract_count": 2,
+      "human_review_required_count": 8
+    },
+    "passed_chains": [
+      {
+        "underlying_symbol": "NVDA",
+        "score": 100,
+        "label": "MONITOR_ONLY",
+        "contract_count": 4,
+        "contract_ids": [
+          "NVDA-20271217-C-140",
+          "NVDA-20271217-C-180",
+          "NVDA-20271217-C-220",
+          "NVDA-20271217-C-260"
+        ]
+      }
+    ],
+    "blocked_chains": [
+      {
+        "underlying_symbol": "ABCD",
+        "score": 0,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "reasons": [
+          "strike_availability_below_minimum",
+          "one_or_more_contracts_failed_quality_gate",
+          "chain_score_below_minimum"
+        ],
+        "contract_ids": [
+          "ABCD-20260821-C-45",
+          "ABCD-20260821-C-55"
+        ]
+      }
+    ]
+  },
+  "contract_scoring_summary": {
+    "metrics": {
+      "contract_count": 6,
+      "suitable_contract_count": 4,
+      "blocked_contract_count": 2,
+      "human_review_required_count": 6
+    },
+    "suitable_contracts": [
+      {
+        "contract_id": "NVDA-20271217-C-140",
+        "underlying_symbol": "NVDA",
+        "strike": 140.0,
+        "expiration": "2027-12-17",
+        "dte": 527,
+        "total_score": 100,
+        "label": "MONITOR_ONLY",
+        "reasons": []
+      },
+      {
+        "contract_id": "NVDA-20271217-C-180",
+        "underlying_symbol": "NVDA",
+        "strike": 180.0,
+        "expiration": "2027-12-17",
+        "dte": 527,
+        "total_score": 100,
+        "label": "MONITOR_ONLY",
+        "reasons": []
+      },
+      {
+        "contract_id": "NVDA-20271217-C-220",
+        "underlying_symbol": "NVDA",
+        "strike": 220.0,
+        "expiration": "2027-12-17",
+        "dte": 527,
+        "total_score": 92,
+        "label": "MONITOR_ONLY",
+        "reasons": []
+      },
+      {
+        "contract_id": "NVDA-20271217-C-260",
+        "underlying_symbol": "NVDA",
+        "strike": 260.0,
+        "expiration": "2027-12-17",
+        "dte": 527,
+        "total_score": 82,
+        "label": "MONITOR_ONLY",
+        "reasons": []
+      }
+    ],
+    "blocked_contracts": [
+      {
+        "contract_id": "ABCD-20260821-C-45",
+        "underlying_symbol": "ABCD",
+        "strike": 45.0,
+        "expiration": "2026-08-21",
+        "dte": 44,
+        "total_score": 50,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "reasons": [
+          "vega_below_minimum",
+          "implied_volatility_below_minimum",
+          "spread_below_minimum",
+          "dte_below_minimum",
+          "liquidity_below_minimum",
+          "total_score_below_minimum"
+        ]
+      },
+      {
+        "contract_id": "ABCD-20260821-C-55",
+        "underlying_symbol": "ABCD",
+        "strike": 55.0,
+        "expiration": "2026-08-21",
+        "dte": 44,
+        "total_score": 19,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "reasons": [
+          "delta_below_minimum",
+          "theta_below_minimum",
+          "vega_below_minimum",
+          "implied_volatility_below_minimum",
+          "spread_below_minimum",
+          "dte_below_minimum",
+          "liquidity_below_minimum",
+          "total_score_below_minimum"
+        ]
+      }
+    ]
+  },
+  "llm_thesis_package_summary": {
+    "metrics": {
+      "prompt_package_count": 1,
+      "parsed_thesis_record_count": 1,
+      "human_review_required_count": 2
+    },
+    "prompt_packages": [
+      {
+        "prompt_id": "BR-05-NVDA-20260708160000",
+        "symbol": "NVDA",
+        "contract_ids": [
+          "NVDA-20271217-C-140",
+          "NVDA-20271217-C-180",
+          "NVDA-20271217-C-220"
+        ],
+        "label": "HUMAN_REVIEW_REQUIRED"
+      }
+    ],
+    "thesis_records": [
+      {
+        "thesis_id": "THESIS-BR05-NVDA-001",
+        "prompt_id": "BR-05-NVDA-20260708160000",
+        "symbol": "NVDA",
+        "thesis_summary": "NVDA LEAPS contracts remain a research-only monitor candidate because the supplied scored contracts show strong liquidity, acceptable spreads, and long DTE, but all conclusions require human review.",
+        "confidence": "medium",
+        "source_citations": [
+          "NVDA-20271217-C-140",
+          "NVDA-20271217-C-180",
+          "Greeks IV Spread DTE Scoring"
+        ],
+        "risk_notes": [
+          "Research output cannot override deterministic gates.",
+          "No broker order call or live-trading permission is present."
+        ],
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "human_review_required": true
+      }
+    ]
+  },
+  "deterministic_risk_gate_summary": {
+    "metrics": {
+      "candidate_count": 6,
+      "paper_only_count": 2,
+      "human_review_required_count": 1,
+      "monitor_only_count": 0,
+      "research_only_count": 0,
+      "blocked_count": 3
+    },
+    "decisions": [
+      {
+        "contract_id": "NVDA-20271217-C-140",
+        "symbol": "NVDA",
+        "score": 97,
+        "label": "PAPER_ONLY",
+        "hard_block_reasons": [],
+        "review_reasons": [],
+        "chain_quality_score": 100,
+        "contract_total_score": 100,
+        "human_review_required": true,
+        "category": "hold"
+      },
+      {
+        "contract_id": "NVDA-20271217-C-180",
+        "symbol": "NVDA",
+        "score": 94,
+        "label": "PAPER_ONLY",
+        "hard_block_reasons": [],
+        "review_reasons": [],
+        "chain_quality_score": 100,
+        "contract_total_score": 100,
+        "human_review_required": true,
+        "category": "hold"
+      },
+      {
+        "contract_id": "NVDA-20271217-C-220",
+        "symbol": "NVDA",
+        "score": 87,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "hard_block_reasons": [],
+        "review_reasons": [
+          "catalyst_too_near_for_new_risk"
+        ],
+        "chain_quality_score": 100,
+        "contract_total_score": 92,
+        "human_review_required": true,
+        "category": "review"
+      },
+      {
+        "contract_id": "NVDA-20271217-C-260",
+        "symbol": "NVDA",
+        "score": 79,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "hard_block_reasons": [
+          "proposed_position_pct_above_maximum",
+          "symbol_concentration_above_maximum"
+        ],
+        "review_reasons": [
+          "contract_score_near_minimum"
+        ],
+        "chain_quality_score": 100,
+        "contract_total_score": 82,
+        "human_review_required": true,
+        "category": "reject"
+      },
+      {
+        "contract_id": "ABCD-20260821-C-45",
+        "symbol": "ABCD",
+        "score": 33,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "hard_block_reasons": [
+          "chain_quality_failed",
+          "contract_score_failed",
+          "portfolio_drawdown_above_maximum",
+          "candidate_drawdown_above_maximum"
+        ],
+        "review_reasons": [
+          "chain_quality_near_minimum",
+          "contract_score_near_minimum",
+          "thesis_quality_below_minimum"
+        ],
+        "chain_quality_score": 0,
+        "contract_total_score": 50,
+        "human_review_required": true,
+        "category": "reject"
+      },
+      {
+        "contract_id": "ABCD-20260821-C-55",
+        "symbol": "ABCD",
+        "score": 23,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "hard_block_reasons": [
+          "chain_quality_failed",
+          "contract_score_failed"
+        ],
+        "review_reasons": [
+          "chain_quality_near_minimum",
+          "contract_score_near_minimum",
+          "thesis_quality_below_minimum",
+          "catalyst_too_distant_for_thesis"
+        ],
+        "chain_quality_score": 0,
+        "contract_total_score": 19,
+        "human_review_required": true,
+        "category": "reject"
+      }
+    ]
+  },
+  "simulated_paper_contracts": [
+    {
+      "fill_id": "BR-14-PAPER-FILL-001",
+      "contract_id": "NVDA-20271217-C-140",
+      "symbol": "NVDA271217C00140000",
+      "underlying_symbol": "NVDA",
+      "contracts": 1,
+      "fill_price": 42.8,
+      "premium": 4280.0,
+      "label": "PAPER_ONLY",
+      "simulated_fill": true
+    },
+    {
+      "fill_id": "BR-14-PAPER-FILL-002",
+      "contract_id": "NVDA-20271217-C-180",
+      "symbol": "NVDA271217C00180000",
+      "underlying_symbol": "NVDA",
+      "contracts": 1,
+      "fill_price": 28.8,
+      "premium": 2880.0,
+      "label": "PAPER_ONLY",
+      "simulated_fill": true
+    }
+  ],
+  "paper_portfolio_state": {
+    "metrics": {
+      "position_count": 2,
+      "fill_count": 2,
+      "mark_count": 2,
+      "history_event_count": 4,
+      "warning_count": 0,
+      "human_review_required_count": 2
+    },
+    "cash": 92840.0,
+    "realized_pnl": 0.0,
+    "unrealized_pnl": 143.2,
+    "total_pnl": 143.2,
+    "net_liquidation_value": 100143.2,
+    "premium_at_risk": 7160.0,
+    "premium_at_risk_pct": 0.0716,
+    "warnings": [],
+    "positions": [
+      {
+        "contract_id": "NVDA-20271217-C-140",
+        "underlying_symbol": "NVDA",
+        "contracts": 1,
+        "average_price": 42.8,
+        "mark_price": 43.656,
+        "market_value": 4365.6,
+        "unrealized_pnl": 85.6,
+        "unrealized_pnl_pct": 0.02,
+        "label": "PAPER_ONLY",
+        "human_review_required": true
+      },
+      {
+        "contract_id": "NVDA-20271217-C-180",
+        "underlying_symbol": "NVDA",
+        "contracts": 1,
+        "average_price": 28.8,
+        "mark_price": 29.376,
+        "market_value": 2937.6,
+        "unrealized_pnl": 57.6,
+        "unrealized_pnl_pct": 0.02,
+        "label": "PAPER_ONLY",
+        "human_review_required": true
+      }
+    ]
+  },
+  "monitor_alert_summary": {
+    "metrics": {
+      "position_count": 2,
+      "snapshot_count": 2,
+      "alert_count": 0,
+      "warning_count": 0,
+      "human_review_required_alert_count": 0
+    },
+    "alerts": [],
+    "warnings": [],
+    "snapshots": [
+      {
+        "contract_id": "NVDA-20271217-C-140",
+        "observed_at": "2026-07-08T16:00:00",
+        "underlying_price_move_pct": 0.02,
+        "spread_change_pct": 0.005,
+        "implied_volatility_change_pct": 0.04,
+        "thesis_valid": true,
+        "current_risk_gate_label": "PAPER_ONLY",
+        "label": "MONITOR_ONLY"
+      },
+      {
+        "contract_id": "NVDA-20271217-C-180",
+        "observed_at": "2026-07-08T16:00:00",
+        "underlying_price_move_pct": 0.02,
+        "spread_change_pct": 0.005,
+        "implied_volatility_change_pct": 0.04,
+        "thesis_valid": true,
+        "current_risk_gate_label": "PAPER_ONLY",
+        "label": "MONITOR_ONLY"
+      }
+    ]
+  },
+  "operator_dashboard_references": {
+    "metrics": {
+      "candidate_count": 5,
+      "included_candidate_count": 3,
+      "paper_position_count": 2,
+      "alert_count": 0,
+      "thesis_note_count": 1,
+      "total_pnl": 143.2,
+      "unrealized_pnl": 143.2,
+      "realized_pnl": 0.0
+    },
+    "candidates": [
+      {
+        "symbol": "NVDA",
+        "candidate_score": 89,
+        "risk_score": 97,
+        "risk_label": "PAPER_ONLY",
+        "paper_position_count": 2,
+        "paper_market_value": 7303.2,
+        "alert_count": 0,
+        "thesis_id": "THESIS-BR05-NVDA-001",
+        "label": "PAPER_ONLY",
+        "human_review_required": true
+      },
+      {
+        "symbol": "MSFT",
+        "candidate_score": 83,
+        "risk_score": null,
+        "risk_label": null,
+        "paper_position_count": 0,
+        "paper_market_value": 0,
+        "alert_count": 0,
+        "thesis_id": null,
+        "label": "MONITOR_ONLY",
+        "human_review_required": true
+      },
+      {
+        "symbol": "TSLA",
+        "candidate_score": 70,
+        "risk_score": null,
+        "risk_label": null,
+        "paper_position_count": 0,
+        "paper_market_value": 0,
+        "alert_count": 0,
+        "thesis_id": null,
+        "label": "MONITOR_ONLY",
+        "human_review_required": true
+      },
+      {
+        "symbol": "ABCD",
+        "candidate_score": 60,
+        "risk_score": 33,
+        "risk_label": "BLOCKED_BY_SAFETY_GATE",
+        "paper_position_count": 0,
+        "paper_market_value": 0,
+        "alert_count": 0,
+        "thesis_id": null,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "human_review_required": true
+      },
+      {
+        "symbol": "XYZL",
+        "candidate_score": 38,
+        "risk_score": null,
+        "risk_label": null,
+        "paper_position_count": 0,
+        "paper_market_value": 0,
+        "alert_count": 0,
+        "thesis_id": null,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "human_review_required": true
+      }
+    ],
+    "paper_positions": [
+      {
+        "contract_id": "NVDA-20271217-C-140",
+        "underlying_symbol": "NVDA",
+        "contracts": 1,
+        "market_value": 4365.6,
+        "unrealized_pnl": 85.6,
+        "label": "PAPER_ONLY"
+      },
+      {
+        "contract_id": "NVDA-20271217-C-180",
+        "underlying_symbol": "NVDA",
+        "contracts": 1,
+        "market_value": 2937.6,
+        "unrealized_pnl": 57.6,
+        "label": "PAPER_ONLY"
+      }
+    ],
+    "thesis_notes": [
+      {
+        "thesis_id": "THESIS-BR05-NVDA-001",
+        "symbol": "NVDA",
+        "confidence": "medium",
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "human_review_required": true
+      }
+    ]
+  },
+  "hold_reject_review_categories": {
+    "hold": [
+      "NVDA-20271217-C-140",
+      "NVDA-20271217-C-180"
+    ],
+    "review": [
+      "NVDA-20271217-C-220"
+    ],
+    "reject": [
+      "NVDA-20271217-C-260",
+      "ABCD-20260821-C-45",
+      "ABCD-20260821-C-55"
+    ]
+  },
+  "review_questions": [
+    "Do BR-14 candidate inclusion and exclusion reasons match the committed evidence?",
+    "Do passed option chains and scored contracts remain source-grounded and complete enough for human review?",
+    "Do thesis records cite only supplied evidence and remain labeled HUMAN_REVIEW_REQUIRED?",
+    "Should hold-category paper contracts remain paper-only monitored items: NVDA-20271217-C-140, NVDA-20271217-C-180?",
+    "Should review-category contracts remain blocked pending manual decision: NVDA-20271217-C-220?",
+    "Are reject-category contracts correctly blocked by deterministic safety gates: NVDA-20271217-C-260, ABCD-20260821-C-45, ABCD-20260821-C-55?",
+    "Are all broker, order-path, credential, and live-trading controls still disabled?"
+  ],
+  "required_human_review_actions": [
+    "Human reviewer must compare this BR-17 packet against committed BR-14 evidence artifacts.",
+    "Human reviewer must verify every trade-relevant item remains HUMAN_REVIEW_REQUIRED.",
+    "Human reviewer must verify PAPER_ONLY items are simulated paper records, not broker actions.",
+    "Human reviewer must reject any item whose source evidence is stale, missing, or inconsistent.",
+    "Human reviewer must keep live trading disabled and broker order paths inactive."
+  ],
+  "acceptance_criteria": {
+    "source_phase_is_br14": true,
+    "all_evidence_artifacts_loaded": true,
+    "packet_is_read_only": true,
+    "session_not_rerun": true,
+    "evidence_not_mutated": true,
+    "no_credentials_or_provider_calls": true,
+    "no_broker_or_order_paths": true,
+    "source_live_trading_disabled": true,
+    "packet_live_trading_disabled": true,
+    "hold_review_reject_categories_present": true,
+    "human_review_required": true
+  },
+  "readiness_state": {
+    "state": "BLOCKED_BY_SAFETY_GATE_HUMAN_REVIEW_REQUIRED",
+    "ready_for_live_trading": false,
+    "broker_actions_allowed": false,
+    "manual_review_required": true
+  }
+}
