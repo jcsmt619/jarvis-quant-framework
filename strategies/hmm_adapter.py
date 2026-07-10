@@ -16,6 +16,7 @@ import pandas as pd
 
 from strategies.base import EdgeStrategy, Signal
 from core.hmm_engine import HMMRegimeEngine
+from core.hmm_tuning import HMMTuningProfile
 from core.regime_strategies import StrategyOrchestrator, LETF_STOP_MULTIPLIER
 from data.feature_engineering import log_returns
 
@@ -50,6 +51,8 @@ class HMMAllocationAdapter(EdgeStrategy):
         n_candidates = wf.get("n_candidates", [3, 4, 5])
         n_init = wf.get("n_init", 4)
         random_state = wf.get("random_state", 42)
+        profile_payload = config.get("hmm_tuning_profile")
+        tuning_profile = HMMTuningProfile.from_dict(profile_payload) if profile_payload else None
         self._letf_stop_multiplier = exit_rules.get(
             "letf_stop_multiplier", LETF_STOP_MULTIPLIER,
         )
@@ -61,6 +64,7 @@ class HMMAllocationAdapter(EdgeStrategy):
             n_init=n_init,
             min_train_bars=len(train_features),
             random_state=random_state,
+            tuning_profile=tuning_profile,
         )
         self._engine.train(train_features, returns=ret_label)
 

@@ -38,6 +38,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from core.hmm_engine import HMMRegimeEngine
+from core.hmm_tuning import HMMTuningProfile
 from core.regime_strategies import LETF_STOP_MULTIPLIER, StrategyOrchestrator
 from utils.runner_exit import RunnerManager
 from data.feature_engineering import build_features, log_returns, standardize_features
@@ -85,6 +86,7 @@ class WalkForwardBacktester:
         tail_monitor=None,                    # risk.tail_monitor.TailRiskMonitor
         tail_vix: "pd.Series | None" = None,  # VIX close indexed by date
         ensemble_seeds: list[int] | None = None,  # seed-ensemble brain (fixed k=3)
+        tuning_profile: HMMTuningProfile | None = None,
     ):
         self.train_window = train_window
         self.test_window = test_window
@@ -117,6 +119,7 @@ class WalkForwardBacktester:
         # across seeds in rank space. Cures the fit-lottery the robustness
         # battery exposed. None -> single-engine behavior, unchanged.
         self.ensemble_seeds = ensemble_seeds
+        self.tuning_profile = tuning_profile.validate() if tuning_profile is not None else None
 
     # ------------------------------------------------------------------
     # Core allocation simulator (shared by strategy + benchmarks)
@@ -261,6 +264,7 @@ class WalkForwardBacktester:
                 engine = HMMRegimeEngine(
                     n_candidates=self.n_candidates, n_init=self.n_init,
                     min_train_bars=self.train_window, random_state=self.random_state,
+                    tuning_profile=self.tuning_profile,
                 )
                 try:
                     engine.train(valid.iloc[is_start:is_end], returns=ret_label.iloc[is_start:is_end])
