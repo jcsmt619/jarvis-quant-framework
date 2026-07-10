@@ -1,7 +1,7 @@
 {
   "phase": "BR-16",
   "module": "Fixture to Real Data Boundary Design",
-  "as_of": "2026-07-10T03:13:55+00:00",
+  "as_of": "2026-07-10T03:18:16+00:00",
   "label": "HUMAN_REVIEW_REQUIRED",
   "safety": {
     "phase": "BR-16",
@@ -79,6 +79,7 @@
       ],
       "prohibited_inputs": [
         "credentials",
+        "env_file",
         "broker_connection",
         "broker_account_state",
         "order_route",

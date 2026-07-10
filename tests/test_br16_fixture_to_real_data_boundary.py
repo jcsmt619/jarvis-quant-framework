@@ -69,6 +69,10 @@ def test_br16_builds_boundary_payload_from_fixture_without_credentials_or_fetche
     assert set(REDACTED_FIELDS).issubset(set(payload["redaction_rules"]))
     assert all(item["credential_required"] is False for item in payload["provenance_records"])
     assert all(item["read_only"] is True for item in payload["provenance_records"])
+    assert all("credentials" in item["prohibited_inputs"] for item in payload["interfaces"])
+    assert all("env_file" in item["prohibited_inputs"] for item in payload["interfaces"])
+    assert all(any("broker" in value for value in item["prohibited_inputs"]) for item in payload["interfaces"])
+    assert all(any("order" in value for value in item["prohibited_inputs"]) for item in payload["interfaces"])
     assert all(item["failure_label"] == BLOCKED_BY_SAFETY_GATE for item in payload["validation_rules"])
     assert all(payload["acceptance_criteria"].values())
     assert payload["safety"]["real_data_fetch_attempted"] is False

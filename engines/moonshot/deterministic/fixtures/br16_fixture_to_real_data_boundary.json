@@ -30,6 +30,7 @@
       ],
       "prohibited_inputs": [
         "credentials",
+        "env_file",
         "broker_connection",
         "broker_account_state",
         "order_route",
