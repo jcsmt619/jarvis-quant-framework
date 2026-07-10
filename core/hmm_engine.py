@@ -37,6 +37,12 @@ from hmmlearn.hmm import GaussianHMM
 from scipy.special import logsumexp
 from scipy.stats import multivariate_normal
 
+from core.hmm_tuning import (
+    HMMGateDecision,
+    HMMTuningProfile,
+    evaluate_hmm_gate,
+)
+
 logger = logging.getLogger("hmm_engine")
 
 _TINY = 1e-12
@@ -91,7 +97,18 @@ class HMMRegimeEngine:
         min_confidence: float = 0.55,
         n_iter: int = 100,
         random_state: int = 42,
+        tuning_profile: HMMTuningProfile | None = None,
     ):
+        if tuning_profile is not None:
+            tuning_profile = tuning_profile.validate()
+            n_candidates = list(tuning_profile.state_counts)
+            min_train_bars = tuning_profile.min_train_bars
+            stability_bars = tuning_profile.persistence_bars
+            min_confidence = tuning_profile.confidence_threshold
+            n_init = tuning_profile.n_init
+            random_state = tuning_profile.random_state
+
+        self.tuning_profile = tuning_profile
         self.n_candidates = n_candidates or [3, 4, 5, 6, 7]
         self.n_init = n_init
         self.covariance_type = covariance_type
@@ -111,6 +128,8 @@ class HMMRegimeEngine:
         self.training_date: datetime | None = None
         self.vol_sorted_ids: list[int] = []          # regime ids, low -> high vol
         self.regime_info: dict[int, RegimeInfo] = {}  # keyed by state_id
+        self.feature_columns: list[str] = []
+        self.training_bars: int = 0
 
         # Live filtered-inference state.
         self._last_log_alpha: np.ndarray | None = None
@@ -159,11 +178,19 @@ class HMMRegimeEngine:
     # ------------------------------------------------------------------
     # Training
     # ------------------------------------------------------------------
+    def _select_profile_features(self, features: pd.DataFrame) -> pd.DataFrame:
+        if self.tuning_profile is None:
+            return features.copy()
+        return self.tuning_profile.select_features(features)
+
     def train(self, features: pd.DataFrame, returns: pd.Series | None = None) -> "HMMRegimeEngine":
-        X = np.asarray(features, dtype=float)
+        selected = self._select_profile_features(features)
+        X = np.asarray(selected, dtype=float)
         if len(X) < self.min_train_bars:
             raise ValueError(f"Need >= {self.min_train_bars} bars to train; got {len(X)}")
         n_samples, d = X.shape
+        self.feature_columns = [str(c) for c in selected.columns]
+        self.training_bars = int(n_samples)
 
         best = None  # (bic, k, model, ll)
         for k in self.n_candidates:
@@ -187,7 +214,7 @@ class HMMRegimeEngine:
             self.n_regimes, self.bic, {kk: round(v, 1) for kk, v in self.bic_scores.items()},
         )
 
-        self._build_regime_metadata(X, features.index, returns)
+        self._build_regime_metadata(X, selected.index, returns)
         # Reset live state so post-training inference starts clean.
         self.reset_state()
         return self
@@ -298,11 +325,15 @@ class HMMRegimeEngine:
         Compute P(state_t | observations_1:t) via the forward algorithm and
         return the most-likely filtered state at each t. Uses ONLY past/present.
         """
+        if isinstance(features_up_to_now, pd.DataFrame):
+            features_up_to_now = self._select_profile_features(features_up_to_now)
         X = np.asarray(features_up_to_now, dtype=float)
         return self._filtered_states(X)
 
     def predict_regime_proba(self, features_up_to_now) -> np.ndarray:
         """Filtered probability distribution over states, shape (T, K)."""
+        if isinstance(features_up_to_now, pd.DataFrame):
+            features_up_to_now = self._select_profile_features(features_up_to_now)
         X = np.asarray(features_up_to_now, dtype=float)
         return np.exp(self._forward_log_alpha(X))
 
@@ -325,6 +356,11 @@ class HMMRegimeEngine:
         """
         if self.model is None:
             raise RuntimeError("Engine not trained")
+        if isinstance(feature_row, pd.Series) and self.tuning_profile is not None:
+            missing = [name for name in self.tuning_profile.active_features if name not in feature_row.index]
+            if missing:
+                raise ValueError(f"missing HMM profile features for update: {missing}")
+            feature_row = feature_row.loc[list(self.tuning_profile.active_features)]
         x = np.asarray(feature_row, dtype=float).reshape(1, -1)
         log_emit = self._emission_logprob(x)[0]
         log_trans = np.log(self.model.transmat_ + _TINY)
@@ -360,6 +396,33 @@ class HMMRegimeEngine:
         else:
             logger.info("Regime hold: %s (id=%d, %d bars)", label, self._active_regime, self._consecutive)
         return state
+
+    def evaluate_gate(self, state: RegimeState) -> HMMGateDecision:
+        """Evaluate the BR-10D research-only safety gate for the current state."""
+        if self.tuning_profile is None:
+            profile = HMMTuningProfile(
+                asset="DEFAULT",
+                state_counts=tuple(self.n_candidates),
+                confidence_threshold=self.min_confidence,
+                persistence_bars=self.stability_bars,
+                min_train_bars=self.min_train_bars,
+                n_init=self.n_init,
+                random_state=self.random_state,
+            )
+        else:
+            profile = self.tuning_profile
+
+        volatility_rank = None
+        if self.n_regimes and state.state_id in self.vol_sorted_ids:
+            volatility_rank = self.vol_sorted_ids.index(state.state_id) / max(1, self.n_regimes - 1)
+        return evaluate_hmm_gate(
+            profile,
+            state,
+            flicker_rate=self.get_regime_flicker_rate(),
+            volatility_rank=volatility_rank,
+            trained_bars=self.training_bars,
+            timestamp=state.timestamp,
+        )
 
     def _apply_stability(self, raw_state: int) -> bool:
         """Return True iff a confirmed regime change happened this bar."""
@@ -430,14 +493,21 @@ class HMMRegimeEngine:
                 "training_date": self.training_date,
                 "labels": {sid: ri.regime_name for sid, ri in self.regime_info.items()},
                 "vol_sorted_ids": self.vol_sorted_ids,
+                "feature_columns": self.feature_columns,
+                "training_bars": self.training_bars,
             },
             "regime_info": self.regime_info,
             "config": {
                 "n_candidates": self.n_candidates,
+                "n_init": self.n_init,
+                "min_train_bars": self.min_train_bars,
                 "stability_bars": self.stability_bars,
                 "flicker_window": self.flicker_window,
                 "flicker_threshold": self.flicker_threshold,
                 "min_confidence": self.min_confidence,
+                "n_iter": self.n_iter,
+                "random_state": self.random_state,
+                "tuning_profile": self.tuning_profile.to_dict() if self.tuning_profile else None,
             },
         }
         with open(path, "wb") as fh:
@@ -449,12 +519,19 @@ class HMMRegimeEngine:
         with open(path, "rb") as fh:
             payload = pickle.load(fh)
         cfg = payload.get("config", {})
+        profile_payload = cfg.get("tuning_profile")
+        profile = HMMTuningProfile.from_dict(profile_payload) if profile_payload else None
         engine = cls(
             n_candidates=cfg.get("n_candidates"),
+            n_init=cfg.get("n_init", 10),
+            min_train_bars=cfg.get("min_train_bars", 504),
             stability_bars=cfg.get("stability_bars", 3),
             flicker_window=cfg.get("flicker_window", 20),
             flicker_threshold=cfg.get("flicker_threshold", 4),
             min_confidence=cfg.get("min_confidence", 0.55),
+            n_iter=cfg.get("n_iter", 100),
+            random_state=cfg.get("random_state", 42),
+            tuning_profile=profile,
         )
         engine.model = payload["model"]
         meta = payload["metadata"]
@@ -463,6 +540,8 @@ class HMMRegimeEngine:
         engine.bic_scores = meta.get("bic_scores", {})
         engine.training_date = meta.get("training_date")
         engine.vol_sorted_ids = meta.get("vol_sorted_ids", [])
+        engine.feature_columns = meta.get("feature_columns", [])
+        engine.training_bars = int(meta.get("training_bars", 0))
         engine.regime_info = payload["regime_info"]
         engine.reset_state()
         return engine
