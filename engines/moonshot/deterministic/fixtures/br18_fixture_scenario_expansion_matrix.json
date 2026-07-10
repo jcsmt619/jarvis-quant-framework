@@ -1,0 +1,164 @@
+{
+  "scenarios": [
+    {
+      "scenario_id": "BR18-BULLISH",
+      "scenario_type": "bullish",
+      "symbol": "NVDA",
+      "description": "Strong fixture candidate with passed chain quality, high contract score, packaged thesis, and paper-only hold.",
+      "expected_behavior": {
+        "candidate_selection": {"status": "selected", "label": "RESEARCH_ONLY", "reason": "high_trend_and_liquidity"},
+        "chain_quality": {"status": "passed", "label": "MONITOR_ONLY", "reason": "spread_dte_and_greeks_within_limits"},
+        "contract_scoring": {"status": "high_score", "label": "HUMAN_REVIEW_REQUIRED", "reason": "delta_iv_dte_score_above_threshold"},
+        "thesis_packaging": {"status": "packaged", "label": "HUMAN_REVIEW_REQUIRED", "reason": "fixture_thesis_present"},
+        "risk_gate_decision": {"status": "paper_hold", "label": "PAPER_ONLY", "reason": "deterministic_gates_passed_for_paper_simulation"},
+        "paper_only_portfolio_simulation": {"status": "simulated_hold", "label": "PAPER_ONLY", "reason": "local_fill_simulated_without_broker"},
+        "monitor_alerts": {"status": "clear", "label": "MONITOR_ONLY", "reason": "no_fixture_alert_threshold_breached"},
+        "dashboard_summary": {"status": "paper_hold_visible", "label": "MONITOR_ONLY", "reason": "dashboard_lists_paper_only_item"}
+      }
+    },
+    {
+      "scenario_id": "BR18-BEARISH",
+      "scenario_type": "bearish",
+      "symbol": "MSFT",
+      "description": "Bearish fixture trend keeps the candidate review-only and blocks paper simulation.",
+      "expected_behavior": {
+        "candidate_selection": {"status": "selected_for_review", "label": "RESEARCH_ONLY", "reason": "liquid_but_negative_trend"},
+        "chain_quality": {"status": "passed", "label": "MONITOR_ONLY", "reason": "chain_is_complete"},
+        "contract_scoring": {"status": "low_score", "label": "HUMAN_REVIEW_REQUIRED", "reason": "bearish_momentum_reduces_score"},
+        "thesis_packaging": {"status": "packaged", "label": "HUMAN_REVIEW_REQUIRED", "reason": "bearish_risk_notes_present"},
+        "risk_gate_decision": {"status": "review_required", "label": "HUMAN_REVIEW_REQUIRED", "reason": "negative_trend_review"},
+        "paper_only_portfolio_simulation": {"status": "no_fill", "label": "PAPER_ONLY", "reason": "paper_fill_requires_paper_only_risk_label"},
+        "monitor_alerts": {"status": "risk_review_alert", "label": "MONITOR_ONLY", "reason": "bearish_trend_alert"},
+        "dashboard_summary": {"status": "review_visible", "label": "MONITOR_ONLY", "reason": "dashboard_lists_human_review_item"}
+      }
+    },
+    {
+      "scenario_id": "BR18-NEUTRAL",
+      "scenario_type": "neutral",
+      "symbol": "AAPL",
+      "description": "Neutral fixture passes data checks but remains human-review-only.",
+      "expected_behavior": {
+        "candidate_selection": {"status": "selected_for_watch", "label": "RESEARCH_ONLY", "reason": "liquid_neutral_profile"},
+        "chain_quality": {"status": "passed", "label": "MONITOR_ONLY", "reason": "chain_is_usable"},
+        "contract_scoring": {"status": "medium_score", "label": "HUMAN_REVIEW_REQUIRED", "reason": "score_between_hold_and_reject"},
+        "thesis_packaging": {"status": "packaged", "label": "HUMAN_REVIEW_REQUIRED", "reason": "neutral_thesis_present"},
+        "risk_gate_decision": {"status": "review_required", "label": "HUMAN_REVIEW_REQUIRED", "reason": "insufficient_edge_for_paper_hold"},
+        "paper_only_portfolio_simulation": {"status": "no_fill", "label": "PAPER_ONLY", "reason": "human_review_required"},
+        "monitor_alerts": {"status": "watch", "label": "MONITOR_ONLY", "reason": "neutral_watchlist_item"},
+        "dashboard_summary": {"status": "watch_visible", "label": "MONITOR_ONLY", "reason": "dashboard_lists_watch_item"}
+      }
+    },
+    {
+      "scenario_id": "BR18-STALE-DATA",
+      "scenario_type": "stale-data",
+      "symbol": "AMD",
+      "description": "Stale fixture timestamp blocks the chain and all trade-relevant downstream stages.",
+      "expected_behavior": {
+        "candidate_selection": {"status": "selected_for_check", "label": "RESEARCH_ONLY", "reason": "candidate_fixture_present"},
+        "chain_quality": {"status": "blocked", "label": "BLOCKED_BY_SAFETY_GATE", "reason": "stale_data"},
+        "contract_scoring": {"status": "skipped", "label": "BLOCKED_BY_SAFETY_GATE", "reason": "stale_chain_block"},
+        "thesis_packaging": {"status": "skipped", "label": "HUMAN_REVIEW_REQUIRED", "reason": "stale_data_requires_review"},
+        "risk_gate_decision": {"status": "rejected", "label": "BLOCKED_BY_SAFETY_GATE", "reason": "stale_data"},
+        "paper_only_portfolio_simulation": {"status": "no_fill", "label": "PAPER_ONLY", "reason": "blocked_by_stale_data"},
+        "monitor_alerts": {"status": "stale_data_alert", "label": "MONITOR_ONLY", "reason": "fixture_age_exceeded"},
+        "dashboard_summary": {"status": "blocked_visible", "label": "MONITOR_ONLY", "reason": "dashboard_lists_stale_block"}
+      }
+    },
+    {
+      "scenario_id": "BR18-POOR-LIQUIDITY",
+      "scenario_type": "poor-liquidity",
+      "symbol": "XYZL",
+      "description": "Thin fixture candidate fails liquidity and wide-spread checks.",
+      "expected_behavior": {
+        "candidate_selection": {"status": "blocked", "label": "BLOCKED_BY_SAFETY_GATE", "reason": "poor_liquidity"},
+        "chain_quality": {"status": "blocked", "label": "BLOCKED_BY_SAFETY_GATE", "reason": "wide_spread"},
+        "contract_scoring": {"status": "skipped", "label": "BLOCKED_BY_SAFETY_GATE", "reason": "liquidity_block"},
+        "thesis_packaging": {"status": "skipped", "label": "HUMAN_REVIEW_REQUIRED", "reason": "blocked_candidate"},
+        "risk_gate_decision": {"status": "rejected", "label": "BLOCKED_BY_SAFETY_GATE", "reason": "poor_liquidity"},
+        "paper_only_portfolio_simulation": {"status": "no_fill", "label": "PAPER_ONLY", "reason": "blocked_by_liquidity"},
+        "monitor_alerts": {"status": "liquidity_alert", "label": "MONITOR_ONLY", "reason": "spread_or_volume_breach"},
+        "dashboard_summary": {"status": "blocked_visible", "label": "MONITOR_ONLY", "reason": "dashboard_lists_liquidity_block"}
+      }
+    },
+    {
+      "scenario_id": "BR18-NO-CANDIDATE",
+      "scenario_type": "no-candidate",
+      "symbol": "NONE",
+      "description": "Empty fixture screen proves downstream stages skip without side effects.",
+      "expected_behavior": {
+        "candidate_selection": {"status": "empty", "label": "RESEARCH_ONLY", "reason": "no_candidate_passed_filters"},
+        "chain_quality": {"status": "skipped", "label": "MONITOR_ONLY", "reason": "no_candidate"},
+        "contract_scoring": {"status": "skipped", "label": "HUMAN_REVIEW_REQUIRED", "reason": "no_candidate"},
+        "thesis_packaging": {"status": "skipped", "label": "HUMAN_REVIEW_REQUIRED", "reason": "no_candidate"},
+        "risk_gate_decision": {"status": "no_decision", "label": "BLOCKED_BY_SAFETY_GATE", "reason": "no_candidate"},
+        "paper_only_portfolio_simulation": {"status": "no_fill", "label": "PAPER_ONLY", "reason": "no_candidate"},
+        "monitor_alerts": {"status": "empty", "label": "MONITOR_ONLY", "reason": "nothing_to_monitor"},
+        "dashboard_summary": {"status": "empty_state", "label": "MONITOR_ONLY", "reason": "dashboard_lists_no_candidates"}
+      }
+    },
+    {
+      "scenario_id": "BR18-THESIS-MISSING",
+      "scenario_type": "thesis-missing",
+      "symbol": "META",
+      "description": "Candidate and chain pass, but missing analyst thesis blocks risk approval.",
+      "expected_behavior": {
+        "candidate_selection": {"status": "selected", "label": "RESEARCH_ONLY", "reason": "candidate_fixture_present"},
+        "chain_quality": {"status": "passed", "label": "MONITOR_ONLY", "reason": "chain_is_complete"},
+        "contract_scoring": {"status": "high_score", "label": "HUMAN_REVIEW_REQUIRED", "reason": "contract_score_passed"},
+        "thesis_packaging": {"status": "missing", "label": "HUMAN_REVIEW_REQUIRED", "reason": "thesis_missing"},
+        "risk_gate_decision": {"status": "rejected", "label": "BLOCKED_BY_SAFETY_GATE", "reason": "missing_thesis"},
+        "paper_only_portfolio_simulation": {"status": "no_fill", "label": "PAPER_ONLY", "reason": "missing_thesis"},
+        "monitor_alerts": {"status": "thesis_alert", "label": "MONITOR_ONLY", "reason": "human_review_missing_thesis"},
+        "dashboard_summary": {"status": "review_visible", "label": "MONITOR_ONLY", "reason": "dashboard_lists_thesis_gap"}
+      }
+    },
+    {
+      "scenario_id": "BR18-CHAIN-QUALITY-FAILED",
+      "scenario_type": "chain-quality-failed",
+      "symbol": "TSLA",
+      "description": "Fixture candidate passes selection but chain quality fails deterministic checks.",
+      "expected_behavior": {
+        "candidate_selection": {"status": "selected", "label": "RESEARCH_ONLY", "reason": "candidate_fixture_present"},
+        "chain_quality": {"status": "failed", "label": "BLOCKED_BY_SAFETY_GATE", "reason": "missing_greeks_or_bad_dte"},
+        "contract_scoring": {"status": "blocked", "label": "BLOCKED_BY_SAFETY_GATE", "reason": "chain_quality_failed"},
+        "thesis_packaging": {"status": "skipped", "label": "HUMAN_REVIEW_REQUIRED", "reason": "chain_quality_failed"},
+        "risk_gate_decision": {"status": "rejected", "label": "BLOCKED_BY_SAFETY_GATE", "reason": "chain_quality_failed"},
+        "paper_only_portfolio_simulation": {"status": "no_fill", "label": "PAPER_ONLY", "reason": "chain_quality_failed"},
+        "monitor_alerts": {"status": "quality_alert", "label": "MONITOR_ONLY", "reason": "contract_quality_block"},
+        "dashboard_summary": {"status": "blocked_visible", "label": "MONITOR_ONLY", "reason": "dashboard_lists_quality_block"}
+      }
+    },
+    {
+      "scenario_id": "BR18-RISK-REJECTED",
+      "scenario_type": "risk-rejected",
+      "symbol": "AVGO",
+      "description": "Fixture passes upstream checks but deterministic risk policy rejects it.",
+      "expected_behavior": {
+        "candidate_selection": {"status": "selected", "label": "RESEARCH_ONLY", "reason": "candidate_fixture_present"},
+        "chain_quality": {"status": "passed", "label": "MONITOR_ONLY", "reason": "chain_is_complete"},
+        "contract_scoring": {"status": "high_score", "label": "HUMAN_REVIEW_REQUIRED", "reason": "contract_score_passed"},
+        "thesis_packaging": {"status": "packaged", "label": "HUMAN_REVIEW_REQUIRED", "reason": "fixture_thesis_present"},
+        "risk_gate_decision": {"status": "rejected", "label": "BLOCKED_BY_SAFETY_GATE", "reason": "position_size_breach"},
+        "paper_only_portfolio_simulation": {"status": "no_fill", "label": "PAPER_ONLY", "reason": "risk_gate_rejected"},
+        "monitor_alerts": {"status": "risk_gate_alert", "label": "MONITOR_ONLY", "reason": "risk_policy_block"},
+        "dashboard_summary": {"status": "blocked_visible", "label": "MONITOR_ONLY", "reason": "dashboard_lists_risk_block"}
+      }
+    },
+    {
+      "scenario_id": "BR18-PAPER-HOLD",
+      "scenario_type": "paper-hold",
+      "symbol": "NVDA",
+      "description": "Existing paper-only fixture item stays held and monitored without new actions.",
+      "expected_behavior": {
+        "candidate_selection": {"status": "existing_paper_candidate", "label": "RESEARCH_ONLY", "reason": "already_in_paper_portfolio"},
+        "chain_quality": {"status": "passed", "label": "MONITOR_ONLY", "reason": "mark_data_usable"},
+        "contract_scoring": {"status": "hold_score", "label": "HUMAN_REVIEW_REQUIRED", "reason": "existing_position_review"},
+        "thesis_packaging": {"status": "packaged", "label": "HUMAN_REVIEW_REQUIRED", "reason": "existing_thesis_still_present"},
+        "risk_gate_decision": {"status": "paper_hold", "label": "PAPER_ONLY", "reason": "hold_existing_paper_position"},
+        "paper_only_portfolio_simulation": {"status": "hold_existing", "label": "PAPER_ONLY", "reason": "no_new_fill"},
+        "monitor_alerts": {"status": "hold_monitor", "label": "MONITOR_ONLY", "reason": "continue_monitoring_existing_position"},
+        "dashboard_summary": {"status": "paper_hold_visible", "label": "MONITOR_ONLY", "reason": "dashboard_lists_existing_paper_hold"}
+      }
+    }
+  ]
+}
