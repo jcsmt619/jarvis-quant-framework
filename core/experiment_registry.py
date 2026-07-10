@@ -19,6 +19,7 @@ EXPERIMENT_REGISTRY_FILE_NAME = "experiment_registry.jsonl"
 
 ALLOWED_EXPERIMENT_TYPES = (
     "backtest",
+    "hmm_regime_validation",
     "paper_drill",
     "strategy_evaluation",
     "promotion_history",
