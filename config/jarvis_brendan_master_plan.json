@@ -131,5 +131,26 @@
     "branch": "agent/br-14-local-paper-research-session-runner",
     "commit_message": "feat: add local paper research session runner",
     "spec": "Implement BR-14 local paper-only research session runner. It should orchestrate existing safe modules for an end-to-end dry run using fixture/sample data by default: candidate universe or screener output, options chain quality scoring, Greeks/IV/spread/DTE scoring, LLM thesis packet, deterministic risk gate, paper portfolio update, monitor output, and dashboard/report artifacts. It must not load credentials, connect to brokers, or place broker orders. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED. LIVE TRADING: DISABLED. Include tests and docs."
+  },
+  {
+    "phase": "BR-15",
+    "title": "Session Evidence Review Gate",
+    "branch": "agent/br-15-session-evidence-review-gate",
+    "commit_message": "feat: add session evidence review gate",
+    "spec": "Build BR-15 Session Evidence Review Gate. It should read the committed BR-14 local paper session evidence and generate deterministic JSON and Markdown review reports summarizing evidence integrity, safety manifest, session metrics, session flow completeness, generated artifact presence, simulated paper contracts, monitor alerts, readiness state, unresolved review items, acceptance criteria, and required human review actions. It must be read-only and evidence-review-only. It must not rerun the session, mutate evidence, delete artifacts, load secrets, connect to brokers, call broker endpoints, create broker actions, create order paths, or enable live trading. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED; BLOCKED_BY_SAFETY_GATE. LIVE TRADING: DISABLED. Include tests."
+  },
+  {
+    "phase": "BR-16",
+    "title": "Fixture to Real Data Boundary Design",
+    "branch": "agent/br-16-fixture-to-real-data-boundary-design",
+    "commit_message": "docs: add fixture to real data boundary design",
+    "spec": "Build BR-16 Fixture-to-Real-Data Boundary Design. Define deterministic interfaces, validation rules, schemas, staleness checks, provenance records, cache boundaries, fallback behavior, redaction rules, and test fixtures for eventually replacing local fixture/sample market data with read-only market data inputs. It must preserve offline tests and require no credentials by default. It must not use API keys, .env files, secrets, broker credentials, broker connections, account-state imports, broker routing, broker calls, broker actions, order paths, or live trading. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED; BLOCKED_BY_SAFETY_GATE. LIVE TRADING: DISABLED. Include tests and docs."
+  },
+  {
+    "phase": "BR-17",
+    "title": "BR-14 Manual Report Review Packet",
+    "branch": "agent/br-17-br14-manual-report-review-packet",
+    "commit_message": "feat: add BR-14 manual report review packet",
+    "spec": "Build BR-17 BR-14 Manual Report Review Packet. Generate deterministic JSON and Markdown human-review packets from the committed BR-14 session evidence. Summarize candidate universe, options chain quality, contract scoring, LLM thesis package, deterministic risk gate decisions, simulated paper contracts, paper portfolio state, monitor alerts, operator dashboard references, review questions, hold/reject/review categories, and required human review actions. It must be read-only. It must not rerun the session, edit evidence, load credentials, call data providers, connect to brokers, create trade instructions, create broker actions, create order paths, or enable live trading. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED; BLOCKED_BY_SAFETY_GATE. LIVE TRADING: DISABLED. Include tests."
   }
 ]
