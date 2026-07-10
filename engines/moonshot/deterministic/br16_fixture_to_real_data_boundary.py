@@ -73,6 +73,12 @@ class BoundaryInterface:
             raise ValueError("boundary interface requires allowed inputs")
         if not self.prohibited_inputs:
             raise ValueError("boundary interface requires prohibited inputs")
+        if not {"credentials", "env_file"}.issubset(set(self.prohibited_inputs)):
+            raise ValueError("boundary interface must prohibit credentials and env_file inputs")
+        if not any("broker" in item for item in self.prohibited_inputs):
+            raise ValueError("boundary interface must prohibit broker inputs")
+        if not any("order" in item for item in self.prohibited_inputs):
+            raise ValueError("boundary interface must prohibit order inputs")
         if not self.output_schema:
             raise ValueError("boundary interface requires output schema")
         _require_safe_label(self.label)
