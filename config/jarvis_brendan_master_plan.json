@@ -194,5 +194,26 @@
     "branch": "agent/br-23-promotion-gate-evidence-checklist",
     "commit_message": "feat: add promotion gate evidence checklist",
     "spec": "Build BR-23 Promotion Gate Evidence Checklist. Define deterministic JSON and Markdown checklist records that specify what evidence is required before any paper research idea can advance to a later review stage. The checklist must cover source freshness, provenance, scenario coverage, replay coverage, decision journal completeness, human review resolution, paper outcome tracking, risk policy compliance, stale-data rejection, liquidity rejection, and safety boundaries. It must produce blocked, review-required, or paper-only checklist classifications. It must not authorize live trading, broker actions, order paths, credential loading, data-provider calls, live state mutation, or any external routing. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED; BLOCKED_BY_SAFETY_GATE. LIVE TRADING: DISABLED. Include tests and docs."
+  },
+  {
+    "phase": "BR-24",
+    "title": "Consolidated Research Dossier",
+    "branch": "agent/br-24-consolidated-research-dossier",
+    "commit_message": "feat: add consolidated research dossier",
+    "spec": "Build BR-24 Consolidated Research Dossier. Create deterministic JSON and Markdown dossier records that consolidate BR-14 through BR-23 evidence into one operator-facing packet. It must summarize source evidence, candidate universe, option chain quality, contract scoring, thesis package context, risk gate outcomes, paper-only portfolio records, monitor observations, manual review packet, scenario matrix, replay evidence, paper decision journal, human review resolution ledger, paper outcome tracker, promotion gate checklist, unresolved blockers, required human review actions, acceptance criteria, and immutable safety boundaries. It must remain read-only, offline, deterministic, research-only, monitor-only, paper-only, and human-review-required. It must not load credentials, call data providers, connect to brokers, create broker actions, create order paths, mutate live state, or enable live trading. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED; BLOCKED_BY_SAFETY_GATE. LIVE TRADING: DISABLED. Include tests and docs."
+  },
+  {
+    "phase": "BR-25",
+    "title": "Paper Candidate Lifecycle State Machine",
+    "branch": "agent/br-25-paper-candidate-lifecycle-state-machine",
+    "commit_message": "feat: add paper candidate lifecycle state machine",
+    "spec": "Build BR-25 Paper Candidate Lifecycle State Machine. Define deterministic JSON and Markdown state-machine records for how research candidates move between blocked, review_required, paper_only, stale, duplicate, closed, and needs_more_evidence states. It must record allowed transitions, forbidden transitions, source evidence requirements, review resolution requirements, outcome tracker requirements, promotion gate requirements, audit trail requirements, and safety boundary requirements. It must not change live state, paper state, broker state, routing state, or external systems. It must not load credentials, call data providers, connect to brokers, create broker actions, create order paths, mutate live state, or enable live trading. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED; BLOCKED_BY_SAFETY_GATE. LIVE TRADING: DISABLED. Include tests and docs."
+  },
+  {
+    "phase": "BR-26",
+    "title": "Read Only Data Snapshot Import Contract",
+    "branch": "agent/br-26-read-only-data-snapshot-import-contract",
+    "commit_message": "feat: add read only data snapshot import contract",
+    "spec": "Build BR-26 Read-Only Data Snapshot Import Contract. Define deterministic schemas, validation rules, provenance fields, freshness checks, redaction rules, fixture examples, rejection reasons, and report artifacts for importing future read-only market data snapshots from approved files. It must be file-based, offline by default, deterministic, and fixture-testable. It must not use API keys, .env files, secrets, credentials, data-provider calls, broker connections, broker actions, account imports, order paths, live state mutation, or live trading. It must preserve existing fixture behavior and reject stale, missing, malformed, low-provenance, or unsafe snapshots. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED; BLOCKED_BY_SAFETY_GATE. LIVE TRADING: DISABLED. Include tests and docs."
   }
 ]
