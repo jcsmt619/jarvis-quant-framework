@@ -152,5 +152,26 @@
     "branch": "agent/br-17-br14-manual-report-review-packet",
     "commit_message": "feat: add BR-14 manual report review packet",
     "spec": "Build BR-17 BR-14 Manual Report Review Packet. Generate deterministic JSON and Markdown human-review packets from the committed BR-14 session evidence. Summarize candidate universe, options chain quality, contract scoring, LLM thesis package, deterministic risk gate decisions, simulated paper contracts, paper portfolio state, monitor alerts, operator dashboard references, review questions, hold/reject/review categories, and required human review actions. It must be read-only. It must not rerun the session, edit evidence, load credentials, call data providers, connect to brokers, create trade instructions, create broker actions, create order paths, or enable live trading. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED; BLOCKED_BY_SAFETY_GATE. LIVE TRADING: DISABLED. Include tests."
+  },
+  {
+    "phase": "BR-18",
+    "title": "Fixture Scenario Expansion Matrix",
+    "branch": "agent/br-18-fixture-scenario-expansion-matrix",
+    "commit_message": "feat: add fixture scenario expansion matrix",
+    "spec": "Build BR-18 Fixture Scenario Expansion Matrix. Add deterministic fixture scenarios for bullish, bearish, neutral, stale-data, poor-liquidity, no-candidate, thesis-missing, chain-quality-failed, risk-rejected, and paper-hold cases. Generate JSON and Markdown scenario matrix reports proving expected behavior across candidate selection, chain quality, contract scoring, thesis packaging, risk gate decisions, paper-only portfolio simulation, monitor alerts, and dashboard summaries. Offline fixture-only. No credentials, no data-provider calls, no broker connection, no broker actions, no order paths, no live state mutation. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED; BLOCKED_BY_SAFETY_GATE. LIVE TRADING: DISABLED. Include tests and docs."
+  },
+  {
+    "phase": "BR-19",
+    "title": "Historical Replay Evidence Pack",
+    "branch": "agent/br-19-historical-replay-evidence-pack",
+    "commit_message": "feat: add historical replay evidence pack",
+    "spec": "Build BR-19 Historical Replay Evidence Pack. Create deterministic offline historical-style replay records from committed fixture/replay inputs. Produce JSON and Markdown evidence packs summarizing replay windows, scenario provenance, candidate decisions, option-chain state, contract scoring, thesis context, risk gate outcomes, paper-only portfolio changes, monitor observations, dashboard references, unresolved review items, and human-review actions. Offline replay-only. No credentials, no data-provider calls, no broker connection, no broker actions, no order paths, no live state mutation. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED; BLOCKED_BY_SAFETY_GATE. LIVE TRADING: DISABLED. Include tests and docs."
+  },
+  {
+    "phase": "BR-20",
+    "title": "Paper Research Decision Journal",
+    "branch": "agent/br-20-paper-research-decision-journal",
+    "commit_message": "feat: add paper research decision journal",
+    "spec": "Build BR-20 Paper Research Decision Journal. Create deterministic JSON and Markdown journal records explaining why paper candidates were held, rejected, or sent for review. Link source evidence, scenario context, candidate scores, option-chain quality, contract scores, thesis package references, risk gate reasons, paper-only portfolio state, monitor outcomes, operator notes, acceptance criteria, and required human-review actions. Read-only paper records only. No credentials, no data-provider calls, no broker connection, no broker actions, no order paths, no live state mutation. RESEARCH_ONLY; MONITOR_ONLY; PAPER_ONLY; HUMAN_REVIEW_REQUIRED; BLOCKED_BY_SAFETY_GATE. LIVE TRADING: DISABLED. Include tests and docs."
   }
 ]
