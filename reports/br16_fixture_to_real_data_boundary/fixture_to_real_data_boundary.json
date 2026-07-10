@@ -1,0 +1,269 @@
+{
+  "phase": "BR-16",
+  "module": "Fixture to Real Data Boundary Design",
+  "as_of": "2026-07-10T03:13:55+00:00",
+  "label": "HUMAN_REVIEW_REQUIRED",
+  "safety": {
+    "phase": "BR-16",
+    "module": "Fixture to Real Data Boundary Design",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "fixture_data_default": true,
+    "offline_tests_preserved": true,
+    "read_only_real_data_design_only": true,
+    "credential_loading_attempted": false,
+    "env_file_read_attempted": false,
+    "secret_request_attempted": false,
+    "external_network_call_attempted": false,
+    "broker_connection_attempted": false,
+    "broker_read_call_performed": false,
+    "real_data_fetch_attempted": false,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  },
+  "metrics": {
+    "interface_count": 2,
+    "validation_rule_count": 4,
+    "schema_count": 2,
+    "staleness_rule_count": 3,
+    "provenance_record_count": 2,
+    "cache_policy_count": 1,
+    "fallback_behavior_count": 5,
+    "redaction_rule_count": 7,
+    "test_fixture_count": 3
+  },
+  "interfaces": [
+    {
+      "name": "MarketDataSnapshotInput",
+      "purpose": "Normalize fixture snapshots and future read-only market data snapshots into one deterministic record shape.",
+      "mode": "fixture_default",
+      "allowed_inputs": [
+        "local_json_fixture",
+        "local_cached_snapshot",
+        "read_only_market_data_record"
+      ],
+      "prohibited_inputs": [
+        "credentials",
+        "env_file",
+        "broker_account_state",
+        "order_route",
+        "mutable_live_feed"
+      ],
+      "output_schema": "MarketDataSnapshotV1",
+      "label": "MONITOR_ONLY"
+    },
+    {
+      "name": "OptionChainSnapshotInput",
+      "purpose": "Normalize fixture option chains and future read-only option-chain records without allowing order routing.",
+      "mode": "read_only_real_data_design",
+      "allowed_inputs": [
+        "local_json_fixture",
+        "local_cached_option_chain",
+        "read_only_option_chain_record"
+      ],
+      "prohibited_inputs": [
+        "credentials",
+        "broker_connection",
+        "broker_account_state",
+        "order_route",
+        "order_ticket"
+      ],
+      "output_schema": "OptionChainSnapshotV1",
+      "label": "MONITOR_ONLY"
+    }
+  ],
+  "validation_rules": [
+    {
+      "rule_id": "BR16-RULE-SYMBOL-001",
+      "field": "symbol",
+      "check": "required uppercase ticker-like identifier with no account or credential content",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE",
+      "human_review_required": true
+    },
+    {
+      "rule_id": "BR16-RULE-TIMESTAMP-001",
+      "field": "as_of",
+      "check": "required ISO-8601 timestamp; future timestamps are rejected",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE",
+      "human_review_required": true
+    },
+    {
+      "rule_id": "BR16-RULE-PRICE-001",
+      "field": "bid ask last close underlying_price",
+      "check": "numeric non-negative prices; ask cannot be below bid when both are present",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE",
+      "human_review_required": true
+    },
+    {
+      "rule_id": "BR16-RULE-PROVENANCE-001",
+      "field": "provenance",
+      "check": "source_type, source_name, captured_at, fixture_hash_or_cache_key, and read_only flag are required",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE",
+      "human_review_required": true
+    }
+  ],
+  "schemas": [
+    {
+      "name": "MarketDataSnapshotV1",
+      "required_fields": [
+        "symbol",
+        "as_of",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "provenance"
+      ],
+      "optional_fields": [
+        "dividend_adjusted",
+        "split_adjusted",
+        "source_latency_ms"
+      ],
+      "redacted_fields": [
+        "api_key",
+        "secret",
+        "token",
+        "password",
+        "oauth",
+        "private_key",
+        "account_id"
+      ],
+      "version": "1.0"
+    },
+    {
+      "name": "OptionChainSnapshotV1",
+      "required_fields": [
+        "underlying_symbol",
+        "underlying_price",
+        "as_of",
+        "contracts",
+        "provenance"
+      ],
+      "optional_fields": [
+        "greeks",
+        "implied_volatility",
+        "quote_as_of",
+        "source_latency_ms"
+      ],
+      "redacted_fields": [
+        "api_key",
+        "secret",
+        "token",
+        "password",
+        "oauth",
+        "private_key",
+        "account_id"
+      ],
+      "version": "1.0"
+    }
+  ],
+  "staleness_rules": [
+    {
+      "data_type": "daily_bar",
+      "max_age_seconds": 172800,
+      "fallback_on_stale": "use_fixture_snapshot",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE"
+    },
+    {
+      "data_type": "intraday_quote",
+      "max_age_seconds": 1800,
+      "fallback_on_stale": "block_record",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE"
+    },
+    {
+      "data_type": "option_chain",
+      "max_age_seconds": 1800,
+      "fallback_on_stale": "skip_symbol",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE"
+    }
+  ],
+  "provenance_records": [
+    {
+      "source_type": "fixture",
+      "source_name": "br03_options_chain_quality_fixture",
+      "capture_method": "local repository fixture",
+      "credential_required": false,
+      "read_only": true,
+      "recorded_fields": [
+        "source_type",
+        "source_name",
+        "captured_at",
+        "fixture_path",
+        "fixture_hash",
+        "read_only"
+      ]
+    },
+    {
+      "source_type": "real_data_design",
+      "source_name": "future_read_only_market_data_adapter",
+      "capture_method": "adapter contract only; no runtime fetch in BR-16",
+      "credential_required": false,
+      "read_only": true,
+      "recorded_fields": [
+        "source_type",
+        "source_name",
+        "captured_at",
+        "cache_key",
+        "read_only",
+        "redaction_status"
+      ]
+    }
+  ],
+  "cache_policies": [
+    {
+      "cache_name": "market_data_boundary_cache",
+      "write_scope": "local_artifact_only",
+      "read_scope": "offline_tests_and_read_only_inputs",
+      "ttl_seconds": 86400,
+      "fallback_behavior": "preserve_last_valid_fixture"
+    }
+  ],
+  "fallback_behaviors": [
+    "fixture_snapshot_is_default_when_no_read_only_input_is_supplied",
+    "stale_or_invalid_real_data_records_are_blocked_or_skipped_before_scoring",
+    "last_valid_fixture_snapshot_remains_available_for_offline_tests",
+    "missing_optional_fields_are_recorded_as_quality_flags",
+    "missing_required_fields_block_the_record"
+  ],
+  "redaction_rules": [
+    "api_key",
+    "secret",
+    "token",
+    "password",
+    "oauth",
+    "private_key",
+    "account_id"
+  ],
+  "test_fixtures": [
+    "br16_fixture_to_real_data_boundary.json",
+    "br03_options_chain_quality.json",
+    "br02_candidate_universe.json"
+  ],
+  "acceptance_criteria": {
+    "fixture_data_remains_default": true,
+    "offline_tests_preserved": true,
+    "read_only_real_data_design_only": true,
+    "no_credentials_or_env_files": true,
+    "no_network_or_real_fetch": true,
+    "no_broker_or_order_paths": true,
+    "live_trading_disabled": true,
+    "human_review_required": true
+  }
+}
