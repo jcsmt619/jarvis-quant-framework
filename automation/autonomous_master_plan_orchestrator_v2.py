@@ -12,6 +12,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from automation.autopilot_staging import (
+    discover_changes,
+    intended_phase_paths,
+    normalize_eof_whitespace,
+)
+
 
 USAGE_LIMIT_MARKERS = (
     "usage limit",
@@ -199,8 +205,9 @@ def git_status_short(repo: Path) -> str:
 
 
 def assert_clean_repo(repo: Path) -> None:
-    status = git_status_short(repo)
-    if status:
+    changes = discover_changes(repo)
+    if changes:
+        status = git_status_short(repo)
         raise RuntimeError("Repo is not clean:\n" + status)
 
 
@@ -215,22 +222,7 @@ def checkout_clean_main(repo: Path) -> None:
 
 
 def status_paths(repo: Path) -> list[str]:
-    result = run_command(("git", "status", "--short", "--untracked-files=all"), cwd=repo)
-    if result.returncode != 0:
-        raise RuntimeError(result.combined_output)
-
-    paths: list[str] = []
-    for raw in result.stdout.splitlines():
-        line = raw.rstrip()
-        if len(line) < 4:
-            continue
-        path = line[3:].strip()
-        if " -> " in path:
-            path = path.split(" -> ", 1)[1]
-        normalized = normalize_repo_path(path)
-        if normalized and normalized not in paths:
-            paths.append(normalized)
-    return paths
+    return intended_phase_paths(discover_changes(repo))
 
 
 def changed_source_paths(repo: Path) -> list[str]:
@@ -242,16 +234,7 @@ def changed_source_paths(repo: Path) -> list[str]:
 
 
 def trim_extra_blank_line_at_eof(repo: Path, paths: Iterable[str]) -> list[str]:
-    fixed: list[str] = []
-    for path_text in paths:
-        normalized = normalize_repo_path(path_text)
-        path = repo / normalized
-        if not path.exists() or not path.is_file():
-            continue
-        text = path.read_text(encoding="utf-8")
-        path.write_text(text.rstrip() + "\n", encoding="utf-8")
-        fixed.append(normalized)
-    return fixed
+    return normalize_eof_whitespace(repo, list(paths))
 
 
 def run_autopilot_for_phase(repo: Path, phase: str, timeout_seconds: int) -> CommandResult:
@@ -366,7 +349,10 @@ git pull origin main
 if ($LASTEXITCODE -ne 0) {{ exit $LASTEXITCODE }}
 
 git merge --no-ff {ps_quote(branch)} -m {ps_quote(merge_message)}
-if ($LASTEXITCODE -ne 0) {{ exit $LASTEXITCODE }}
+if ($LASTEXITCODE -ne 0) {{
+    git merge --abort
+    exit $LASTEXITCODE
+}}
 
 python -m pytest tests/ -q
 if ($LASTEXITCODE -ne 0) {{ exit $LASTEXITCODE }}
