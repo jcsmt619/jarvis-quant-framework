@@ -1,0 +1,350 @@
+{
+  "acceptance_criteria": {
+    "br28_report_accepted": true,
+    "br28_report_loaded": true,
+    "duplicate_and_circuit_breakers_enforced": true,
+    "human_review_actions_present": true,
+    "live_trading_disabled": true,
+    "no_broker_actions_order_paths_or_state_mutation": true,
+    "no_credentials_or_secrets": true,
+    "no_data_provider_or_network_calls": true,
+    "no_fixed_daily_trade_quota": true,
+    "offline_read_only_replay": true,
+    "opportunity_driven_selection": true,
+    "risk_budget_and_concentration_enforced": true,
+    "unsupported_performance_metrics_block_alpha_claim": true
+  },
+  "as_of": "2026-07-11T06:26:51+00:00",
+  "block_reasons": [
+    "br28_report_missing",
+    "br28_report_malformed",
+    "br28_report_not_accepted",
+    "candidate_not_human_review_required",
+    "missing_required_feature_inputs",
+    "non_positive_price",
+    "insufficient_liquidity",
+    "missing_benchmark_context",
+    "duplicate_signal_blocked",
+    "aggregate_risk_budget_exceeded",
+    "concentration_limit_exceeded",
+    "operational_circuit_breaker_open",
+    "post_decision_exit_prices_missing",
+    "outcome_return_series_missing",
+    "benchmark_return_series_missing",
+    "fold_history_missing",
+    "parameter_neighborhood_source_missing"
+  ],
+  "candidate_replay_decisions": [
+    {
+      "blocked_reasons": [],
+      "candidate_id": "br28-7eb903a69e21c8ab",
+      "decision_timestamp": "2026-07-10T20:00:00+00:00",
+      "gate_results": {
+        "benchmark_context_available": true,
+        "correlation_gate": true,
+        "feature_inputs_complete": true,
+        "human_review_boundary": true,
+        "lifecycle_gate": true,
+        "liquidity_gate": true,
+        "portfolio_risk_gate": true,
+        "safety_gate": true,
+        "screening_gate": true,
+        "strategy_gate": true
+      },
+      "gross_exposure": 0.5,
+      "label": "PAPER_ONLY",
+      "required_human_review_actions": [
+        "Review BR-29 offline replay evidence before any research promotion decision.",
+        "Confirm missing post-decision outcome data before interpreting performance metrics."
+      ],
+      "status": "PAPER_ONLY_RESEARCH_REPORTABLE",
+      "symbol": "QQQ",
+      "weight": 0.5
+    },
+    {
+      "blocked_reasons": [],
+      "candidate_id": "br28-f90aa6a950622bf1",
+      "decision_timestamp": "2026-07-10T20:00:00+00:00",
+      "gate_results": {
+        "benchmark_context_available": true,
+        "correlation_gate": true,
+        "feature_inputs_complete": true,
+        "human_review_boundary": true,
+        "lifecycle_gate": true,
+        "liquidity_gate": true,
+        "portfolio_risk_gate": true,
+        "safety_gate": true,
+        "screening_gate": true,
+        "strategy_gate": true
+      },
+      "gross_exposure": 0.5,
+      "label": "PAPER_ONLY",
+      "required_human_review_actions": [
+        "Review BR-29 offline replay evidence before any research promotion decision.",
+        "Confirm missing post-decision outcome data before interpreting performance metrics."
+      ],
+      "status": "PAPER_ONLY_RESEARCH_REPORTABLE",
+      "symbol": "SPY",
+      "weight": 0.5
+    }
+  ],
+  "cost_sensitivity": [
+    {
+      "cost_bps": 0,
+      "estimated_turnover_cost": 0.0,
+      "gross_return_supported": false,
+      "net_return_supported": false,
+      "turnover": 1.0
+    },
+    {
+      "cost_bps": 5,
+      "estimated_turnover_cost": 0.0005,
+      "gross_return_supported": false,
+      "net_return_supported": false,
+      "turnover": 1.0
+    },
+    {
+      "cost_bps": 10,
+      "estimated_turnover_cost": 0.001,
+      "gross_return_supported": false,
+      "net_return_supported": false,
+      "turnover": 1.0
+    },
+    {
+      "cost_bps": 25,
+      "estimated_turnover_cost": 0.0025,
+      "gross_return_supported": false,
+      "net_return_supported": false,
+      "turnover": 1.0
+    },
+    {
+      "cost_bps": 50,
+      "estimated_turnover_cost": 0.005,
+      "gross_return_supported": false,
+      "net_return_supported": false,
+      "turnover": 1.0
+    }
+  ],
+  "fold_stability": {
+    "explanation": "BR-28 snapshot candidates do not include fold-level outcome history.",
+    "label": "BLOCKED_BY_SAFETY_GATE",
+    "reason": "fold_history_missing",
+    "supported": false
+  },
+  "label": "HUMAN_REVIEW_REQUIRED",
+  "metrics": {
+    "advanced_candidate_count": 2,
+    "alpha_claimed": false,
+    "benchmark_excess_return": null,
+    "blocked_candidate_count": 0,
+    "calmar": null,
+    "candidate_count": 2,
+    "cost_sensitivity_supported": true,
+    "fold_stability_score": null,
+    "gross_exposure": 1.0,
+    "gross_research_return": null,
+    "hit_rate": null,
+    "max_drawdown": null,
+    "max_symbol_weight": 0.5,
+    "net_research_return": null,
+    "parameter_neighborhood_supported": false,
+    "sharpe": null,
+    "sortino": null,
+    "symbol_contribution_supported": true,
+    "trade_count": 2,
+    "turnover": 1.0
+  },
+  "module": "Offline Snapshot Research Replay Evidence Pack",
+  "parameter_neighborhood_evidence": {
+    "explanation": "BR-28 snapshot candidates preserve frozen inputs but do not include parameter-neighborhood replay results.",
+    "label": "BLOCKED_BY_SAFETY_GATE",
+    "reason": "parameter_neighborhood_source_missing",
+    "supported": false
+  },
+  "phase": "BR-29",
+  "readiness_state": {
+    "alpha_claim_allowed": false,
+    "broker_actions_allowed": false,
+    "data_provider_calls_allowed": false,
+    "external_routing_paths_allowed": false,
+    "human_review_required": true,
+    "live_state_mutation_allowed": false,
+    "manual_review_required": true,
+    "order_paths_allowed": false,
+    "paper_only": true,
+    "paper_state_mutation_allowed": false,
+    "ready_for_live_trading": false,
+    "research_only": true,
+    "state": "OFFLINE_RESEARCH_REPLAY_EVIDENCE_ONLY"
+  },
+  "replay_checks": {
+    "aggregate_risk_budget_enforced": true,
+    "br28_report_accepted": true,
+    "br28_report_loaded": true,
+    "candidates_remain_human_review_required": true,
+    "concentration_limit_enforced": true,
+    "duplicate_signal_controls_enforced": true,
+    "frozen_deterministic_boundaries_used": true,
+    "no_alpha_claim_created": true,
+    "no_fixed_daily_trade_quota": true,
+    "operational_circuit_breakers_enforced": true,
+    "opportunity_driven_selection": true,
+    "post_decision_outcomes_available": false
+  },
+  "required_human_review_actions": [
+    {
+      "action": "Review BR-29 offline replay evidence before any research promotion decision.",
+      "candidate_id": "br28-7eb903a69e21c8ab",
+      "symbol": "QQQ"
+    },
+    {
+      "action": "Confirm missing post-decision outcome data before interpreting performance metrics.",
+      "candidate_id": "br28-7eb903a69e21c8ab",
+      "symbol": "QQQ"
+    },
+    {
+      "action": "Review BR-29 offline replay evidence before any research promotion decision.",
+      "candidate_id": "br28-f90aa6a950622bf1",
+      "symbol": "SPY"
+    },
+    {
+      "action": "Confirm missing post-decision outcome data before interpreting performance metrics.",
+      "candidate_id": "br28-f90aa6a950622bf1",
+      "symbol": "SPY"
+    },
+    {
+      "action": "Do not claim alpha or approve live trading from this offline evidence pack.",
+      "candidate_id": "BR-29",
+      "symbol": "ALL"
+    }
+  ],
+  "safety": {
+    "LIVE TRADING": "DISABLED",
+    "alpha_claim_created": false,
+    "blocked_by_safety_gate": true,
+    "br28_snapshot_candidates_only": true,
+    "broker_action_created": false,
+    "broker_connection_attempted": false,
+    "broker_order_call_performed": false,
+    "broker_order_routing_enabled": false,
+    "broker_order_submitted": false,
+    "broker_read_call_performed": false,
+    "broker_state_mutation_allowed": false,
+    "broker_write_operations_authorized": false,
+    "correlation_gate_enforced": true,
+    "credential_loading_attempted": false,
+    "data_provider_call_attempted": false,
+    "data_provider_calls_authorized": false,
+    "env_file_read_attempted": false,
+    "evaluation_period_tuning_performed": false,
+    "external_network_call_attempted": false,
+    "external_routing_paths_authorized": false,
+    "fixed_daily_trade_quota_imposed": false,
+    "fixture_testable": true,
+    "frozen_deterministic_boundaries_used": true,
+    "human_review_required": true,
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "lifecycle_gate_enforced": true,
+    "liquidity_gate_enforced": true,
+    "live_state_mutation_allowed": false,
+    "live_state_mutation_attempted": false,
+    "live_trading_enabled": false,
+    "module": "Offline Snapshot Research Replay Evidence Pack",
+    "monitor_only": true,
+    "offline_only": true,
+    "opportunity_driven_selection": true,
+    "order_path_created": false,
+    "paper_only": true,
+    "paper_state_mutation_allowed": false,
+    "paper_state_mutation_attempted": false,
+    "parameter_optimization_performed": false,
+    "phase": "BR-29",
+    "portfolio_risk_gate_enforced": true,
+    "read_only": true,
+    "real_data_fetch_attempted": false,
+    "real_paper_order_submitted": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_wrapper_connected": false,
+    "report_only": true,
+    "research_only": true,
+    "routing_state_mutation_allowed": false,
+    "safety_gate_enforced": true,
+    "screening_gate_enforced": true,
+    "secret_request_attempted": false,
+    "strategy_gate_enforced": true,
+    "strategy_selected_using_evaluation_outcomes": false,
+    "trade_instruction_created": false
+  },
+  "source_paths": {
+    "BR-28 snapshot-to-candidate adapter report": "reports\\br28_snapshot_to_candidate_adapter\\snapshot_to_candidate_adapter.json"
+  },
+  "strategy_version": "br29.offline_snapshot_replay.v1",
+  "symbol_contribution": [
+    {
+      "candidate_id": "br28-7eb903a69e21c8ab",
+      "contribution_supported": false,
+      "gross_return_contribution": null,
+      "net_return_contribution": null,
+      "paper_weight": 0.5,
+      "reason": "post-decision outcome return is not present in frozen source data",
+      "symbol": "QQQ"
+    },
+    {
+      "candidate_id": "br28-f90aa6a950622bf1",
+      "contribution_supported": false,
+      "gross_return_contribution": null,
+      "net_return_contribution": null,
+      "paper_weight": 0.5,
+      "reason": "post-decision outcome return is not present in frozen source data",
+      "symbol": "SPY"
+    }
+  ],
+  "unresolved_blockers": [
+    {
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "reasons": [
+        "post_decision_exit_prices_missing",
+        "outcome_return_series_missing"
+      ],
+      "source": "performance_metrics"
+    },
+    {
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "reasons": [
+        "benchmark_return_series_missing"
+      ],
+      "source": "benchmark_metrics"
+    },
+    {
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "reasons": [
+        "fold_history_missing"
+      ],
+      "source": "fold_stability"
+    },
+    {
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "reasons": [
+        "parameter_neighborhood_source_missing"
+      ],
+      "source": "parameter_neighborhood"
+    }
+  ],
+  "unsupported_metrics": {
+    "benchmark_excess_return": "unsupported because benchmark return series is not present in the frozen BR-28 candidate report",
+    "calmar": "unsupported because frozen BR-28 candidates do not include post-decision exit prices or an outcome return series",
+    "fold_stability_score": "unsupported because fold-level walk-forward or CPCV outcomes are not present in the frozen BR-28 candidate report",
+    "gross_research_return": "unsupported because frozen BR-28 candidates do not include post-decision exit prices or an outcome return series",
+    "hit_rate": "unsupported because frozen BR-28 candidates do not include post-decision exit prices or an outcome return series",
+    "max_drawdown": "unsupported because frozen BR-28 candidates do not include post-decision exit prices or an outcome return series",
+    "net_research_return": "unsupported because frozen BR-28 candidates do not include post-decision exit prices or an outcome return series",
+    "sharpe": "unsupported because frozen BR-28 candidates do not include post-decision exit prices or an outcome return series",
+    "sortino": "unsupported because frozen BR-28 candidates do not include post-decision exit prices or an outcome return series"
+  }
+}
