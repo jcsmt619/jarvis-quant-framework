@@ -1,0 +1,67 @@
+{
+  "snapshot_version": "1",
+  "snapshot_id": "br26-fixture-daily-ohlcv-001",
+  "generated_at": "2026-07-10T20:00:00+00:00",
+  "freshness_as_of": "2026-07-10T20:00:00+00:00",
+  "source_kind": "approved_offline_file",
+  "data_domain": "daily_ohlcv",
+  "provenance": {
+    "provider_name": "fixture_vendor",
+    "provider_dataset": "daily_ohlcv_fixture",
+    "source_file_name": "missing_field.json",
+    "acquisition_method": "offline_file_export",
+    "collector": "human_operator",
+    "collected_at": "2026-07-10T20:00:00+00:00",
+    "checksum_sha256": "e2744d6a31021c4cf0d3c91244d9f68cdf403a1d189adce7492c421e08a63429",
+    "schema_name": "br26.read_only_data_snapshot.v1",
+    "quality_score": 0.98
+  },
+  "symbols": [
+    "SPY",
+    "QQQ"
+  ],
+  "safety": {
+    "credential_loading_attempted": false,
+    "env_file_read_attempted": false,
+    "secret_request_attempted": false,
+    "data_provider_call_attempted": false,
+    "external_network_call_attempted": false,
+    "real_data_fetch_attempted": false,
+    "broker_connection_attempted": false,
+    "broker_read_call_performed": false,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "trade_instruction_created": false,
+    "broker_action_created": false,
+    "order_path_created": false,
+    "live_state_mutation_attempted": false,
+    "paper_state_mutation_attempted": false,
+    "paper_state_mutation_allowed": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  },
+  "redaction": {
+    "redacted": true,
+    "redacted_fields": [
+      "api_key",
+      "oauth_token",
+      "password",
+      "private_key",
+      "secret",
+      "broker_credentials",
+      "account_id",
+      "account_number"
+    ]
+  },
+  "labels": [
+    "RESEARCH_ONLY",
+    "MONITOR_ONLY",
+    "PAPER_ONLY",
+    "HUMAN_REVIEW_REQUIRED",
+    "BLOCKED_BY_SAFETY_GATE"
+  ]
+}
