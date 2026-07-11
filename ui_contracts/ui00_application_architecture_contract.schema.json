@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "jarvis.ui00.application_architecture_contract.v1",
+  "title": "UI-00 Jarvis Application Architecture Contract",
+  "type": "object",
+  "required": [
+    "phase_id",
+    "contract_id",
+    "schema_version",
+    "labels",
+    "live_trading_status",
+    "safety",
+    "boundaries",
+    "read_models",
+    "commands",
+    "events",
+    "api",
+    "updates",
+    "auth",
+    "audit",
+    "failure_states",
+    "dashboard_modules",
+    "design"
+  ],
+  "properties": {
+    "phase_id": { "const": "UI-00" },
+    "contract_id": { "const": "jarvis.ui00.application_architecture_contract" },
+    "schema_version": { "const": "v1" },
+    "labels": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "RESEARCH_ONLY",
+          "MONITOR_ONLY",
+          "PAPER_ONLY",
+          "HUMAN_REVIEW_REQUIRED",
+          "BLOCKED_BY_SAFETY_GATE"
+        ]
+      },
+      "minItems": 5,
+      "uniqueItems": true
+    },
+    "live_trading_status": { "const": "LIVE TRADING: DISABLED" },
+    "safety": {
+      "type": "object",
+      "required": [
+        "live_trading_enabled",
+        "provider_credentials_stored_in_ui",
+        "broker_credentials_stored_in_ui",
+        "unrestricted_execution_access",
+        "broker_order_call_performed",
+        "external_order_routing_enabled",
+        "state_mutation_enabled",
+        "ui_required_for_engine_operation"
+      ],
+      "properties": {
+        "live_trading_enabled": { "const": false },
+        "provider_credentials_stored_in_ui": { "const": false },
+        "broker_credentials_stored_in_ui": { "const": false },
+        "unrestricted_execution_access": { "const": false },
+        "broker_order_call_performed": { "const": false },
+        "external_order_routing_enabled": { "const": false },
+        "state_mutation_enabled": { "const": false },
+        "ui_required_for_engine_operation": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    "boundaries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "responsibility", "may_access", "must_not_access"],
+        "properties": {
+          "name": { "enum": ["quant_engine", "local_service_api", "event_stream", "frontend", "desktop_shell"] },
+          "responsibility": { "type": "string" },
+          "may_access": { "type": "array", "items": { "type": "string" } },
+          "must_not_access": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 5
+    },
+    "read_models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "classification", "owner_boundary", "required_fields"],
+        "properties": {
+          "name": { "type": "string" },
+          "classification": { "enum": ["read_only"] },
+          "owner_boundary": { "type": "string" },
+          "required_fields": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 17
+    },
+    "commands": {
+      "type": "object",
+      "required": ["read_only", "state_changing", "forbidden"],
+      "properties": {
+        "read_only": { "type": "array", "items": { "$ref": "#/$defs/command" }, "minItems": 1 },
+        "state_changing": { "type": "array", "items": { "$ref": "#/$defs/command" }, "minItems": 1 },
+        "forbidden": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      },
+      "additionalProperties": false
+    },
+    "events": {
+      "type": "object",
+      "required": ["required_fields", "event_types"],
+      "properties": {
+        "required_fields": { "type": "array", "items": { "type": "string" }, "minItems": 9 },
+        "event_types": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+      },
+      "additionalProperties": false
+    },
+    "api": {
+      "type": "object",
+      "required": ["base_version", "compatibility_rule", "required_payload_fields"],
+      "properties": {
+        "base_version": { "const": "v1" },
+        "compatibility_rule": { "type": "string" },
+        "required_payload_fields": { "type": "array", "items": { "type": "string" }, "minItems": 4 }
+      },
+      "additionalProperties": false
+    },
+    "updates": {
+      "type": "object",
+      "required": ["transport_style", "message_types", "reconnect"],
+      "properties": {
+        "transport_style": { "const": "local_websocket_style" },
+        "message_types": { "type": "array", "items": { "type": "string" }, "minItems": 8 },
+        "reconnect": { "type": "array", "items": { "type": "string" }, "minItems": 3 }
+      },
+      "additionalProperties": false
+    },
+    "auth": {
+      "type": "object",
+      "required": ["credential_boundary", "roles"],
+      "properties": {
+        "credential_boundary": { "type": "string" },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "permissions"],
+            "properties": {
+              "name": { "enum": ["viewer", "researcher", "operator", "auditor", "admin"] },
+              "permissions": { "type": "array", "items": { "type": "string" } }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 5
+        }
+      },
+      "additionalProperties": false
+    },
+    "audit": {
+      "type": "object",
+      "required": ["required_fields", "idempotency"],
+      "properties": {
+        "required_fields": { "type": "array", "items": { "type": "string" }, "minItems": 10 },
+        "idempotency": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "failure_states": { "type": "array", "items": { "type": "string" }, "minItems": 10 },
+    "dashboard_modules": { "type": "array", "items": { "type": "string" }, "minItems": 17 },
+    "design": {
+      "type": "object",
+      "required": ["direction", "accessibility_requirements"],
+      "properties": {
+        "direction": { "type": "string" },
+        "accessibility_requirements": { "type": "array", "items": { "type": "string" }, "minItems": 4 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "command": {
+      "type": "object",
+      "required": ["name", "classification", "required_fields", "audit_required"],
+      "properties": {
+        "name": { "type": "string" },
+        "classification": { "enum": ["read_only", "state_changing"] },
+        "required_fields": { "type": "array", "items": { "type": "string" }, "minItems": 3 },
+        "audit_required": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

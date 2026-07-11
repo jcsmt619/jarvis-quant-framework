@@ -1,0 +1,237 @@
+{
+  "phase_id": "UI-00",
+  "contract_id": "jarvis.ui00.application_architecture_contract",
+  "schema_version": "v1",
+  "labels": [
+    "RESEARCH_ONLY",
+    "MONITOR_ONLY",
+    "PAPER_ONLY",
+    "HUMAN_REVIEW_REQUIRED",
+    "BLOCKED_BY_SAFETY_GATE"
+  ],
+  "live_trading_status": "LIVE TRADING: DISABLED",
+  "safety": {
+    "live_trading_enabled": false,
+    "provider_credentials_stored_in_ui": false,
+    "broker_credentials_stored_in_ui": false,
+    "unrestricted_execution_access": false,
+    "broker_order_call_performed": false,
+    "external_order_routing_enabled": false,
+    "state_mutation_enabled": false,
+    "ui_required_for_engine_operation": false
+  },
+  "boundaries": [
+    {
+      "name": "quant_engine",
+      "responsibility": "Own deterministic research, monitors, backtests, risk gates, paper drills, analyst artifacts, audit evidence, and independent CLI/script/test operation.",
+      "may_access": ["local files approved by engine modules", "paper ledgers", "audit ledgers", "fixtures"],
+      "must_not_access": ["UI session secrets", "desktop shell internals", "frontend storage"]
+    },
+    {
+      "name": "local_service_api",
+      "responsibility": "Expose versioned local contracts for read models, approved commands, auth checks, audit writes, and event subscriptions.",
+      "may_access": ["canonical read model store", "audit ledger", "event stream"],
+      "must_not_access": ["provider credentials in UI", "broker credentials in UI", "unrestricted execution functions"]
+    },
+    {
+      "name": "event_stream",
+      "responsibility": "Publish append-only status, audit, research, paper, and safety-gate events with sequence-based replay.",
+      "may_access": ["append-only event log", "correlation metadata"],
+      "must_not_access": ["secret stores", "provider APIs", "broker APIs"]
+    },
+    {
+      "name": "frontend",
+      "responsibility": "Render canonical read models, send typed local-service commands, and display stale, degraded, blocked, and human-review states truthfully.",
+      "may_access": ["local UI session", "versioned API", "event subscription"],
+      "must_not_access": ["broker adapters", "provider credentials", "broker credentials", "unrestricted execution functions", ".env"]
+    },
+    {
+      "name": "desktop_shell",
+      "responsibility": "Host the frontend, manage window lifecycle, and delegate authentication to the local service.",
+      "may_access": ["local UI session bootstrap", "frontend assets"],
+      "must_not_access": ["provider credentials", "broker credentials", "order routing", "live-trading toggles"]
+    }
+  ],
+  "read_models": [
+    { "name": "system_health", "classification": "read_only", "owner_boundary": "local_service_api", "required_fields": ["status", "heartbeat_age_seconds", "audit_ledger_status", "safety_status"] },
+    { "name": "data_status", "classification": "read_only", "owner_boundary": "local_service_api", "required_fields": ["freshness", "gaps", "stale_flags", "provenance"] },
+    { "name": "research", "classification": "read_only", "owner_boundary": "quant_engine", "required_fields": ["run_id", "label", "evidence_links", "validation_state"] },
+    { "name": "screener", "classification": "read_only", "owner_boundary": "quant_engine", "required_fields": ["candidate_id", "rank", "filters", "rejection_reasons"] },
+    { "name": "opportunities", "classification": "read_only", "owner_boundary": "quant_engine", "required_fields": ["opportunity_id", "label", "risk_state", "review_state"] },
+    { "name": "analyst_theses", "classification": "read_only", "owner_boundary": "quant_engine", "required_fields": ["thesis_id", "label", "human_review_required", "summary"] },
+    { "name": "market_regime", "classification": "read_only", "owner_boundary": "quant_engine", "required_fields": ["regime", "confidence", "model_version", "as_of"] },
+    { "name": "lifecycle", "classification": "read_only", "owner_boundary": "quant_engine", "required_fields": ["candidate_id", "stage", "promotion_gate_state", "review_state"] },
+    { "name": "risk_gate", "classification": "read_only", "owner_boundary": "quant_engine", "required_fields": ["decision", "blocked_reasons", "required_labels", "live_trading_status"] },
+    { "name": "portfolio", "classification": "read_only", "owner_boundary": "local_service_api", "required_fields": ["snapshot_id", "mode", "positions", "redacted_provenance"] },
+    { "name": "alerts", "classification": "read_only", "owner_boundary": "local_service_api", "required_fields": ["alert_id", "severity", "status", "ack_state"] },
+    { "name": "models", "classification": "read_only", "owner_boundary": "quant_engine", "required_fields": ["model_id", "validation_state", "drift_state", "evidence_links"] },
+    { "name": "performance_analytics", "classification": "read_only", "owner_boundary": "quant_engine", "required_fields": ["metric_set_id", "drawdown", "benchmark", "evidence_links"] },
+    { "name": "backtests", "classification": "read_only", "owner_boundary": "quant_engine", "required_fields": ["run_id", "walk_forward", "slippage_stress", "result_label"] },
+    { "name": "paper_activity", "classification": "read_only", "owner_boundary": "quant_engine", "required_fields": ["paper_run_id", "paper_ledger_ref", "paper_fill_count", "label"] },
+    { "name": "options", "classification": "read_only", "owner_boundary": "quant_engine", "required_fields": ["chain_quality", "greeks", "dte", "iv", "theta"] },
+    { "name": "moonshot_research", "classification": "read_only", "owner_boundary": "quant_engine", "required_fields": ["candidate_id", "leaps_score", "risk_review", "human_review_required"] }
+  ],
+  "commands": {
+    "read_only": [
+      {
+        "name": "get_read_model_snapshot",
+        "classification": "read_only",
+        "required_fields": ["schema_version", "correlation_id", "read_model_name"],
+        "audit_required": false
+      },
+      {
+        "name": "export_research_report",
+        "classification": "read_only",
+        "required_fields": ["schema_version", "correlation_id", "report_id"],
+        "audit_required": true
+      },
+      {
+        "name": "replay_fixture_event_stream",
+        "classification": "read_only",
+        "required_fields": ["schema_version", "correlation_id", "fixture_id"],
+        "audit_required": true
+      }
+    ],
+    "state_changing": [
+      {
+        "name": "acknowledge_alert",
+        "classification": "state_changing",
+        "required_fields": ["schema_version", "correlation_id", "idempotency_key", "actor_id", "alert_id"],
+        "audit_required": true
+      },
+      {
+        "name": "add_research_annotation",
+        "classification": "state_changing",
+        "required_fields": ["schema_version", "correlation_id", "idempotency_key", "actor_id", "artifact_id"],
+        "audit_required": true
+      }
+    ],
+    "forbidden": [
+      "create_broker_connection",
+      "submit_order",
+      "route_order",
+      "enable_live_trading",
+      "bypass_safety_gate",
+      "modify_secret"
+    ]
+  },
+  "events": {
+    "required_fields": [
+      "event_id",
+      "event_type",
+      "schema_version",
+      "sequence",
+      "correlation_id",
+      "causation_id",
+      "created_at",
+      "source_boundary",
+      "label",
+      "safety",
+      "payload"
+    ],
+    "event_types": [
+      "system_health_updated",
+      "read_model_updated",
+      "command_accepted",
+      "command_rejected",
+      "audit_record_appended",
+      "risk_gate_blocked",
+      "paper_activity_updated",
+      "analyst_thesis_added"
+    ]
+  },
+  "api": {
+    "base_version": "v1",
+    "compatibility_rule": "Breaking changes require a new major version; additive fields must be safely ignorable by clients.",
+    "required_payload_fields": ["schema_version", "contract_id", "correlation_id", "created_at"]
+  },
+  "updates": {
+    "transport_style": "local_websocket_style",
+    "message_types": [
+      "hello",
+      "snapshot_available",
+      "read_model_updated",
+      "command_accepted",
+      "command_rejected",
+      "audit_record_appended",
+      "heartbeat",
+      "disconnect_notice",
+      "resync_required"
+    ],
+    "reconnect": [
+      "resume_from_last_seen_sequence",
+      "request_full_snapshot_on_sequence_gap",
+      "mark_display_stale_on_heartbeat_expiry",
+      "ignore_duplicate_event_id"
+    ]
+  },
+  "auth": {
+    "credential_boundary": "Frontend and desktop shell receive short-lived local UI sessions only; provider and broker credentials remain outside the UI.",
+    "roles": [
+      { "name": "viewer", "permissions": ["read_models:read", "events:subscribe"] },
+      { "name": "researcher", "permissions": ["read_models:read", "events:subscribe", "research_annotations:create", "reports:export"] },
+      { "name": "operator", "permissions": ["read_models:read", "events:subscribe", "alerts:acknowledge", "paper_drills:request"] },
+      { "name": "auditor", "permissions": ["read_models:read", "events:subscribe", "audit:export", "audit:verify"] },
+      { "name": "admin", "permissions": ["read_models:read", "events:subscribe", "local_service_config:review"] }
+    ]
+  },
+  "audit": {
+    "required_fields": [
+      "audit_id",
+      "created_at",
+      "actor_id",
+      "role",
+      "command_name",
+      "command_classification",
+      "correlation_id",
+      "idempotency_key",
+      "result",
+      "label",
+      "failure_state",
+      "live_trading_status"
+    ],
+    "idempotency": "State-changing commands require idempotency_key. Replays return the original result or an IDEMPOTENCY_CONFLICT."
+  },
+  "failure_states": [
+    "DISCONNECTED",
+    "STALE",
+    "DEGRADED",
+    "AUTH_REQUIRED",
+    "FORBIDDEN",
+    "COMMAND_REJECTED",
+    "IDEMPOTENCY_CONFLICT",
+    "SCHEMA_VERSION_UNSUPPORTED",
+    "SAFETY_GATE_BLOCKED",
+    "RESYNC_REQUIRED",
+    "READ_MODEL_UNAVAILABLE"
+  ],
+  "dashboard_modules": [
+    "system_health",
+    "data_status",
+    "research",
+    "screener",
+    "opportunities",
+    "analyst_theses",
+    "market_regime",
+    "lifecycle",
+    "risk_gate",
+    "portfolio",
+    "alerts",
+    "models",
+    "performance_analytics",
+    "backtests",
+    "paper_activity",
+    "options",
+    "moonshot_research"
+  ],
+  "design": {
+    "direction": "Futuristic dark holographic blue-and-amber HUD with truthful status hierarchy and restrained effects.",
+    "accessibility_requirements": [
+      "Text labels must accompany color state.",
+      "Freshness and provenance timestamps must be visible.",
+      "Keyboard navigation and screen-reader names are required.",
+      "Stale, degraded, blocked, and human-review states must be distinct.",
+      "Decorative glow must not reduce contrast or hide blocked states."
+    ]
+  }
+}
