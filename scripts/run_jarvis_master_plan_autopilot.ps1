@@ -111,34 +111,36 @@ After patching, summarize changed files and tests to run.
 }
 
 function Get-ChangedPathsForCheckpoint {
-    $names = New-Object System.Collections.Generic.List[string]
-
-    $diffNames = & git diff --name-only
+    $statusJson = & python -m automation.autopilot_staging discover --repo $RepoRoot
     if ($LASTEXITCODE -ne 0) {
-        throw "Could not read git diff names."
+        throw "Could not discover changed paths with autopilot staging guard."
     }
 
-    foreach ($name in $diffNames) {
-        if (-not [string]::IsNullOrWhiteSpace($name)) {
-            $names.Add($name.Trim())
-        }
+    $status = $statusJson | ConvertFrom-Json
+    $paths = @($status.intended_paths)
+    if ($paths.Count -eq 0) {
+        return @()
     }
 
-    $statusLines = & git status --porcelain --untracked-files=all
+    return @($paths)
+}
+
+function Assert-CleanGitWorktree {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Context
+    )
+
+    $statusJson = & python -m automation.autopilot_staging discover --repo $RepoRoot
     if ($LASTEXITCODE -ne 0) {
-        throw "Could not read git status."
+        throw "Could not inspect git worktree before $Context. STOP."
     }
 
-    foreach ($line in $statusLines) {
-        if ($line -match "^\?\?\s+(.+)$") {
-            $path = $Matches[1].Trim()
-            if (-not [string]::IsNullOrWhiteSpace($path)) {
-                $names.Add($path)
-            }
-        }
+    $status = $statusJson | ConvertFrom-Json
+    $paths = @($status.intended_paths)
+    if ($paths.Count -gt 0) {
+        throw "Git worktree is not clean before $Context. STOP."
     }
-
-    return @($names | Select-Object -Unique)
 }
 
 function Invoke-PhaseCheckpoint {
@@ -200,6 +202,8 @@ function Merge-PhaseToMain {
 
     Write-Host "`n=== MERGE $($Phase.phase) INTO MAIN ===" -ForegroundColor Cyan
 
+    Assert-CleanGitWorktree -Context "merge checkout"
+
     git checkout main
     if ($LASTEXITCODE -ne 0) { throw "Could not checkout main. STOP." }
 
@@ -207,7 +211,10 @@ function Merge-PhaseToMain {
     if ($LASTEXITCODE -ne 0) { throw "Could not pull main. STOP." }
 
     git merge --no-ff $phaseBranch -m "merge $($Phase.phase) $($Phase.title)"
-    if ($LASTEXITCODE -ne 0) { throw "Merge failed for $($Phase.phase). STOP." }
+    if ($LASTEXITCODE -ne 0) {
+        git merge --abort
+        throw "Merge failed for $($Phase.phase); attempted merge abort. STOP."
+    }
 
     python -m pytest tests/ -q
     if ($LASTEXITCODE -ne 0) { throw "Full regression failed after merge for $($Phase.phase). STOP. Do not push main." }
@@ -262,6 +269,8 @@ foreach ($phase in $phases) {
 
     git pull origin main
     if ($LASTEXITCODE -ne 0) { throw "Could not pull main. STOP." }
+
+    Assert-CleanGitWorktree -Context "$($phase.phase) branch checkout"
 
     $existingBranch = git branch --list $phase.branch
 

@@ -123,12 +123,23 @@ if (-not $SkipFullSuite) {
 }
 
 if ($ChangedPath.Count -gt 0) {
+    Invoke-Step "Validate explicit phase paths" {
+        python -m automation.autopilot_staging validate --repo $RepoRoot @ChangedPath
+    }
+
+    Invoke-Step "Normalize EOF whitespace" {
+        python -m automation.autopilot_staging normalize-eof --repo $RepoRoot @ChangedPath
+    }
+
     Invoke-Step "Register changed paths for diff review" {
         foreach ($path in $ChangedPath) {
-            if (-not (Test-Path $path)) {
+            $deletedTrackedPath = @(& git ls-files --deleted -- $path)
+            if (-not (Test-Path $path) -and $deletedTrackedPath.Count -eq 0) {
                 throw "Changed path does not exist: $path"
             }
-            git add -N $path
+            if ($deletedTrackedPath.Count -eq 0) {
+                git add -N $path
+            }
         }
     }
 
