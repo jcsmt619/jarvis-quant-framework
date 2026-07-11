@@ -1,0 +1,127 @@
+{
+  "data_domain": "daily_ohlcv",
+  "freshness_as_of": "2026-07-11T16:00:00+00:00",
+  "generated_at": "2026-07-11T16:05:00+00:00",
+  "labels": [
+    "RESEARCH_ONLY",
+    "MONITOR_ONLY",
+    "PAPER_ONLY",
+    "HUMAN_REVIEW_REQUIRED",
+    "BLOCKED_BY_SAFETY_GATE"
+  ],
+  "provenance": {
+    "acquisition_method": "offline_file_export",
+    "checksum_sha256": "1d592ee1e2c61489bb4c1957a9a4dc4d581a2539395eb7890a6ed1d12cadcfbf",
+    "collected_at": "2026-07-11T16:05:00+00:00",
+    "collector": "br30_read_only_market_data_adapter",
+    "provider_dataset": "tastytrade.market-data.read-only",
+    "provider_name": "tastytrade",
+    "quality_score": 0.94,
+    "schema_name": "br26.read_only_data_snapshot.v1",
+    "source_file_name": "br30_normalized_br26_snapshot.json"
+  },
+  "provider_metadata": {
+    "feed_identity": "tastytrade.market-data.read-only",
+    "option_chain_metadata": [
+      {
+        "expiration": "2026-09-18",
+        "provider_timestamp": "2026-07-11T16:00:08+00:00",
+        "quality_flags": [
+          "authorized",
+          "metadata_only"
+        ],
+        "strike_count": 120,
+        "symbol": "SPY   260918C00650000",
+        "underlying": "SPY"
+      }
+    ],
+    "quote_metadata": [
+      {
+        "ask": 627.82,
+        "bid": 627.75,
+        "exchange_timestamp": "2026-07-11T16:00:00+00:00",
+        "provider_timestamp": "2026-07-11T16:00:07+00:00",
+        "quality_flags": [
+          "authorized",
+          "nbbo"
+        ],
+        "symbol": "SPY"
+      }
+    ],
+    "raw_source_file_name": "br30_tastytrade_recorded_response_valid.json",
+    "schema_version": "br30.read_only_market_data_adapter.v1",
+    "snapshot_metadata": {
+      "account_scope": "none",
+      "environment": "recorded_response",
+      "read_only": true,
+      "schema_version": "br30.read_only_market_data_adapter.v1",
+      "snapshot_id": "br30-recorded-tastytrade-001",
+      "snapshot_kind": "bars_quotes_options_metadata",
+      "source_file_name": "br30_tastytrade_recorded_response_valid.json"
+    }
+  },
+  "records": [
+    {
+      "close": 558.7,
+      "high": 559.4,
+      "low": 555.2,
+      "open": 556.1,
+      "symbol": "QQQ",
+      "timestamp": "2026-07-11T16:00:00+00:00",
+      "volume": 38100000
+    },
+    {
+      "close": 627.8,
+      "high": 628.2,
+      "low": 624.4,
+      "open": 625.1,
+      "symbol": "SPY",
+      "timestamp": "2026-07-11T16:00:00+00:00",
+      "volume": 65200000
+    }
+  ],
+  "redaction": {
+    "redacted": true,
+    "redacted_fields": [
+      "api_key",
+      "oauth_token",
+      "password",
+      "private_key",
+      "secret",
+      "broker_credentials",
+      "account_id",
+      "account_number"
+    ]
+  },
+  "safety": {
+    "LIVE TRADING": "DISABLED",
+    "broker_action_created": false,
+    "broker_connection_attempted": false,
+    "broker_order_call_performed": false,
+    "broker_order_routing_enabled": false,
+    "broker_order_submitted": false,
+    "broker_read_call_performed": false,
+    "credential_loading_attempted": false,
+    "data_provider_call_attempted": false,
+    "env_file_read_attempted": false,
+    "external_network_call_attempted": false,
+    "live_state_mutation_attempted": false,
+    "live_trading_enabled": false,
+    "order_path_created": false,
+    "paper_state_mutation_allowed": false,
+    "paper_state_mutation_attempted": false,
+    "real_data_fetch_attempted": false,
+    "real_paper_order_submitted": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_wrapper_connected": false,
+    "secret_request_attempted": false,
+    "trade_instruction_created": false
+  },
+  "snapshot_id": "br30-c1cd2f606fb8f997",
+  "snapshot_version": "1",
+  "source_kind": "approved_offline_file",
+  "symbols": [
+    "QQQ",
+    "SPY"
+  ]
+}
