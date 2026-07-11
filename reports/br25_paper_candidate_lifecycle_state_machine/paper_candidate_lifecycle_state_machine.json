@@ -1,0 +1,1935 @@
+{
+  "phase": "BR-25",
+  "module": "Paper Candidate Lifecycle State Machine",
+  "as_of": "2026-07-11T02:13:28+00:00",
+  "label": "HUMAN_REVIEW_REQUIRED",
+  "source_paths": {
+    "BR-24": "reports\\br24_consolidated_research_dossier\\consolidated_research_dossier.json"
+  },
+  "lifecycle_states": [
+    "blocked",
+    "review_required",
+    "paper_only",
+    "stale",
+    "duplicate",
+    "closed",
+    "needs_more_evidence"
+  ],
+  "requirement_sections": [
+    "source_evidence_requirements",
+    "review_resolution_requirements",
+    "outcome_tracker_requirements",
+    "promotion_gate_requirements",
+    "audit_trail_requirements",
+    "safety_boundary_requirements"
+  ],
+  "safety": {
+    "phase": "BR-25",
+    "module": "Paper Candidate Lifecycle State Machine",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "read_only": true,
+    "offline_only": true,
+    "committed_report_inputs_only": true,
+    "deterministic_state_machine_records_only": true,
+    "source_evidence_read_only": true,
+    "live_state_mutation_allowed": false,
+    "paper_state_mutation_allowed": false,
+    "broker_state_mutation_allowed": false,
+    "routing_state_mutation_allowed": false,
+    "live_trading_authorized": false,
+    "broker_actions_authorized": false,
+    "order_paths_authorized": false,
+    "data_provider_calls_authorized": false,
+    "credential_loading_attempted": false,
+    "env_file_read_attempted": false,
+    "secret_request_attempted": false,
+    "data_provider_call_attempted": false,
+    "external_network_call_attempted": false,
+    "real_data_fetch_attempted": false,
+    "broker_connection_attempted": false,
+    "broker_read_call_performed": false,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "trade_instruction_created": false,
+    "broker_action_created": false,
+    "order_path_created": false,
+    "live_state_mutation_attempted": false,
+    "paper_state_mutation_attempted": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  },
+  "metrics": {
+    "state_count": 7,
+    "transition_count": 49,
+    "allowed_transition_count": 19,
+    "forbidden_transition_count": 30,
+    "acceptance_criteria_count": 19,
+    "acceptance_criteria_passed_count": 19
+  },
+  "states": [
+    {
+      "state": "blocked",
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "terminal": false,
+      "description": "Candidate cannot advance because a deterministic gate, stale evidence, liquidity issue, or safety boundary blocks it.",
+      "requirements": {
+        "source_evidence_requirements": [
+          "BR-24 dossier reference",
+          "candidate id",
+          "source phase id",
+          "source artifact path",
+          "evidence timestamp",
+          "blocking reason",
+          "blocking gate name",
+          "reviewer-visible remediation note"
+        ],
+        "review_resolution_requirements": [
+          "reviewer must keep item blocked or request evidence"
+        ],
+        "outcome_tracker_requirements": [
+          "paper outcome tracker id when paper-only or closed after paper monitoring",
+          "monitor observation summary",
+          "no order or broker action reference"
+        ],
+        "promotion_gate_requirements": [
+          "promotion gate evidence checklist id when evaluating paper-only readiness",
+          "stale data, liquidity, safety, and human-review checks remain explicit",
+          "promotion gate cannot authorize live trading"
+        ],
+        "audit_trail_requirements": [
+          "previous state",
+          "next state",
+          "transition reason",
+          "operator or system reviewer id",
+          "timestamp"
+        ],
+        "safety_boundary_requirements": [
+          "RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, and BLOCKED_BY_SAFETY_GATE labels remain available",
+          "LIVE TRADING remains DISABLED",
+          "no credential, data-provider, broker, order path, paper state, live state, or routing mutation is allowed"
+        ]
+      }
+    },
+    {
+      "state": "review_required",
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "terminal": false,
+      "description": "Candidate is trade-relevant research that needs a human reviewer before any later paper-only lifecycle change.",
+      "requirements": {
+        "source_evidence_requirements": [
+          "BR-24 dossier reference",
+          "candidate id",
+          "source phase id",
+          "source artifact path",
+          "evidence timestamp",
+          "review question",
+          "review owner or queue",
+          "trade-relevant HUMAN_REVIEW_REQUIRED label"
+        ],
+        "review_resolution_requirements": [
+          "reviewer must resolve the open question before any state change"
+        ],
+        "outcome_tracker_requirements": [
+          "paper outcome tracker id when paper-only or closed after paper monitoring",
+          "monitor observation summary",
+          "no order or broker action reference"
+        ],
+        "promotion_gate_requirements": [
+          "promotion gate evidence checklist id when evaluating paper-only readiness",
+          "stale data, liquidity, safety, and human-review checks remain explicit",
+          "promotion gate cannot authorize live trading"
+        ],
+        "audit_trail_requirements": [
+          "previous state",
+          "next state",
+          "transition reason",
+          "operator or system reviewer id",
+          "timestamp"
+        ],
+        "safety_boundary_requirements": [
+          "RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, and BLOCKED_BY_SAFETY_GATE labels remain available",
+          "LIVE TRADING remains DISABLED",
+          "no credential, data-provider, broker, order path, paper state, live state, or routing mutation is allowed"
+        ]
+      }
+    },
+    {
+      "state": "paper_only",
+      "label": "PAPER_ONLY",
+      "terminal": false,
+      "description": "Candidate is eligible only for paper-only monitoring records and cannot route externally.",
+      "requirements": {
+        "source_evidence_requirements": [
+          "BR-24 dossier reference",
+          "candidate id",
+          "source phase id",
+          "source artifact path",
+          "evidence timestamp",
+          "paper-only outcome reference",
+          "paper-only monitor note",
+          "promotion gate checklist reference"
+        ],
+        "review_resolution_requirements": [
+          "reviewer must confirm paper-only status remains non-routed"
+        ],
+        "outcome_tracker_requirements": [
+          "paper outcome tracker id when paper-only or closed after paper monitoring",
+          "monitor observation summary",
+          "no order or broker action reference"
+        ],
+        "promotion_gate_requirements": [
+          "promotion gate evidence checklist id when evaluating paper-only readiness",
+          "stale data, liquidity, safety, and human-review checks remain explicit",
+          "promotion gate cannot authorize live trading"
+        ],
+        "audit_trail_requirements": [
+          "previous state",
+          "next state",
+          "transition reason",
+          "operator or system reviewer id",
+          "timestamp"
+        ],
+        "safety_boundary_requirements": [
+          "RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, and BLOCKED_BY_SAFETY_GATE labels remain available",
+          "LIVE TRADING remains DISABLED",
+          "no credential, data-provider, broker, order path, paper state, live state, or routing mutation is allowed"
+        ]
+      }
+    },
+    {
+      "state": "stale",
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "terminal": false,
+      "description": "Candidate evidence is too old or incomplete for review or paper-only continuation.",
+      "requirements": {
+        "source_evidence_requirements": [
+          "BR-24 dossier reference",
+          "candidate id",
+          "source phase id",
+          "source artifact path",
+          "evidence timestamp",
+          "staleness reason",
+          "stale source timestamp",
+          "fresh evidence requirement"
+        ],
+        "review_resolution_requirements": [
+          "reviewer must reject stale evidence for promotion"
+        ],
+        "outcome_tracker_requirements": [
+          "paper outcome tracker id when paper-only or closed after paper monitoring",
+          "monitor observation summary",
+          "no order or broker action reference"
+        ],
+        "promotion_gate_requirements": [
+          "promotion gate evidence checklist id when evaluating paper-only readiness",
+          "stale data, liquidity, safety, and human-review checks remain explicit",
+          "promotion gate cannot authorize live trading"
+        ],
+        "audit_trail_requirements": [
+          "previous state",
+          "next state",
+          "transition reason",
+          "operator or system reviewer id",
+          "timestamp"
+        ],
+        "safety_boundary_requirements": [
+          "RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, and BLOCKED_BY_SAFETY_GATE labels remain available",
+          "LIVE TRADING remains DISABLED",
+          "no credential, data-provider, broker, order path, paper state, live state, or routing mutation is allowed"
+        ]
+      }
+    },
+    {
+      "state": "duplicate",
+      "label": "MONITOR_ONLY",
+      "terminal": false,
+      "description": "Candidate duplicates a primary record and must not create a second workflow action.",
+      "requirements": {
+        "source_evidence_requirements": [
+          "BR-24 dossier reference",
+          "candidate id",
+          "source phase id",
+          "source artifact path",
+          "evidence timestamp",
+          "primary candidate id",
+          "duplicate detection reason",
+          "no second workflow action note"
+        ],
+        "review_resolution_requirements": [
+          "reviewer must link the primary candidate record"
+        ],
+        "outcome_tracker_requirements": [
+          "paper outcome tracker id when paper-only or closed after paper monitoring",
+          "monitor observation summary",
+          "no order or broker action reference"
+        ],
+        "promotion_gate_requirements": [
+          "promotion gate evidence checklist id when evaluating paper-only readiness",
+          "stale data, liquidity, safety, and human-review checks remain explicit",
+          "promotion gate cannot authorize live trading"
+        ],
+        "audit_trail_requirements": [
+          "previous state",
+          "next state",
+          "transition reason",
+          "operator or system reviewer id",
+          "timestamp"
+        ],
+        "safety_boundary_requirements": [
+          "RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, and BLOCKED_BY_SAFETY_GATE labels remain available",
+          "LIVE TRADING remains DISABLED",
+          "no credential, data-provider, broker, order path, paper state, live state, or routing mutation is allowed"
+        ]
+      }
+    },
+    {
+      "state": "closed",
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "terminal": true,
+      "description": "Candidate lifecycle is terminal until a separate future phase creates a new candidate record.",
+      "requirements": {
+        "source_evidence_requirements": [
+          "BR-24 dossier reference",
+          "candidate id",
+          "source phase id",
+          "source artifact path",
+          "evidence timestamp",
+          "closure reason",
+          "final reviewer note",
+          "terminal audit event"
+        ],
+        "review_resolution_requirements": [
+          "reviewer must provide final closeout rationale"
+        ],
+        "outcome_tracker_requirements": [
+          "paper outcome tracker id when paper-only or closed after paper monitoring",
+          "monitor observation summary",
+          "no order or broker action reference"
+        ],
+        "promotion_gate_requirements": [
+          "promotion gate evidence checklist id when evaluating paper-only readiness",
+          "stale data, liquidity, safety, and human-review checks remain explicit",
+          "promotion gate cannot authorize live trading"
+        ],
+        "audit_trail_requirements": [
+          "previous state",
+          "next state",
+          "transition reason",
+          "operator or system reviewer id",
+          "timestamp"
+        ],
+        "safety_boundary_requirements": [
+          "RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, and BLOCKED_BY_SAFETY_GATE labels remain available",
+          "LIVE TRADING remains DISABLED",
+          "no credential, data-provider, broker, order path, paper state, live state, or routing mutation is allowed"
+        ]
+      }
+    },
+    {
+      "state": "needs_more_evidence",
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "terminal": false,
+      "description": "Candidate lacks approved offline evidence needed to resolve review or blocked status.",
+      "requirements": {
+        "source_evidence_requirements": [
+          "BR-24 dossier reference",
+          "candidate id",
+          "source phase id",
+          "source artifact path",
+          "evidence timestamp",
+          "missing evidence category",
+          "approved offline evidence collection path",
+          "review owner or queue"
+        ],
+        "review_resolution_requirements": [
+          "reviewer must identify the missing evidence category"
+        ],
+        "outcome_tracker_requirements": [
+          "paper outcome tracker id when paper-only or closed after paper monitoring",
+          "monitor observation summary",
+          "no order or broker action reference"
+        ],
+        "promotion_gate_requirements": [
+          "promotion gate evidence checklist id when evaluating paper-only readiness",
+          "stale data, liquidity, safety, and human-review checks remain explicit",
+          "promotion gate cannot authorize live trading"
+        ],
+        "audit_trail_requirements": [
+          "previous state",
+          "next state",
+          "transition reason",
+          "operator or system reviewer id",
+          "timestamp"
+        ],
+        "safety_boundary_requirements": [
+          "RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, and BLOCKED_BY_SAFETY_GATE labels remain available",
+          "LIVE TRADING remains DISABLED",
+          "no credential, data-provider, broker, order path, paper state, live state, or routing mutation is allowed"
+        ]
+      }
+    }
+  ],
+  "allowed_transitions": [
+    {
+      "from_state": "blocked",
+      "to_state": "review_required",
+      "allowed": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot"
+      ],
+      "review_resolution_required": true,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "blocked",
+      "to_state": "closed",
+      "allowed": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot",
+        "outcome_tracker_reference"
+      ],
+      "review_resolution_required": true,
+      "outcome_tracker_required": true,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "blocked",
+      "to_state": "needs_more_evidence",
+      "allowed": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot",
+        "missing_evidence_category"
+      ],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "review_required",
+      "to_state": "blocked",
+      "allowed": true,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot"
+      ],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "review_required",
+      "to_state": "paper_only",
+      "allowed": true,
+      "label": "PAPER_ONLY",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot",
+        "outcome_tracker_reference",
+        "promotion_gate_checklist_reference"
+      ],
+      "review_resolution_required": true,
+      "outcome_tracker_required": true,
+      "promotion_gate_required": true,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "review_required",
+      "to_state": "duplicate",
+      "allowed": true,
+      "label": "MONITOR_ONLY",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot",
+        "primary_candidate_reference"
+      ],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "review_required",
+      "to_state": "closed",
+      "allowed": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot",
+        "outcome_tracker_reference"
+      ],
+      "review_resolution_required": true,
+      "outcome_tracker_required": true,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "review_required",
+      "to_state": "needs_more_evidence",
+      "allowed": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot",
+        "missing_evidence_category"
+      ],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "paper_only",
+      "to_state": "review_required",
+      "allowed": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot"
+      ],
+      "review_resolution_required": true,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "paper_only",
+      "to_state": "stale",
+      "allowed": true,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot",
+        "outcome_tracker_reference"
+      ],
+      "review_resolution_required": false,
+      "outcome_tracker_required": true,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "paper_only",
+      "to_state": "closed",
+      "allowed": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot",
+        "outcome_tracker_reference"
+      ],
+      "review_resolution_required": true,
+      "outcome_tracker_required": true,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "stale",
+      "to_state": "blocked",
+      "allowed": true,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot"
+      ],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "stale",
+      "to_state": "closed",
+      "allowed": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot",
+        "outcome_tracker_reference"
+      ],
+      "review_resolution_required": true,
+      "outcome_tracker_required": true,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "stale",
+      "to_state": "needs_more_evidence",
+      "allowed": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot",
+        "missing_evidence_category"
+      ],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "duplicate",
+      "to_state": "closed",
+      "allowed": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot",
+        "outcome_tracker_reference",
+        "primary_candidate_reference"
+      ],
+      "review_resolution_required": true,
+      "outcome_tracker_required": true,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "needs_more_evidence",
+      "to_state": "blocked",
+      "allowed": true,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot"
+      ],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "needs_more_evidence",
+      "to_state": "review_required",
+      "allowed": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot"
+      ],
+      "review_resolution_required": true,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "needs_more_evidence",
+      "to_state": "stale",
+      "allowed": true,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot",
+        "outcome_tracker_reference"
+      ],
+      "review_resolution_required": false,
+      "outcome_tracker_required": true,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    },
+    {
+      "from_state": "needs_more_evidence",
+      "to_state": "closed",
+      "allowed": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "required_evidence": [
+        "source_evidence_reference",
+        "review_resolution_reference",
+        "audit_trail_event",
+        "safety_boundary_snapshot",
+        "outcome_tracker_reference"
+      ],
+      "review_resolution_required": true,
+      "outcome_tracker_required": true,
+      "promotion_gate_required": false,
+      "audit_trail_required": true,
+      "safety_boundary_required": true,
+      "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+    }
+  ],
+  "forbidden_transitions": [
+    {
+      "from_state": "blocked",
+      "to_state": "blocked",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Self-transitions are forbidden; records require an audit event only when state changes."
+    },
+    {
+      "from_state": "blocked",
+      "to_state": "paper_only",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "blocked",
+      "to_state": "stale",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "blocked",
+      "to_state": "duplicate",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "review_required",
+      "to_state": "review_required",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Self-transitions are forbidden; records require an audit event only when state changes."
+    },
+    {
+      "from_state": "review_required",
+      "to_state": "stale",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "paper_only",
+      "to_state": "blocked",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "paper_only",
+      "to_state": "paper_only",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Self-transitions are forbidden; records require an audit event only when state changes."
+    },
+    {
+      "from_state": "paper_only",
+      "to_state": "duplicate",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "paper_only",
+      "to_state": "needs_more_evidence",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "stale",
+      "to_state": "review_required",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "stale",
+      "to_state": "paper_only",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "stale",
+      "to_state": "stale",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Self-transitions are forbidden; records require an audit event only when state changes."
+    },
+    {
+      "from_state": "stale",
+      "to_state": "duplicate",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "duplicate",
+      "to_state": "blocked",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "duplicate",
+      "to_state": "review_required",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "duplicate",
+      "to_state": "paper_only",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "duplicate",
+      "to_state": "stale",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "duplicate",
+      "to_state": "duplicate",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Self-transitions are forbidden; records require an audit event only when state changes."
+    },
+    {
+      "from_state": "duplicate",
+      "to_state": "needs_more_evidence",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "closed",
+      "to_state": "blocked",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Closed records are terminal and cannot transition."
+    },
+    {
+      "from_state": "closed",
+      "to_state": "review_required",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Closed records are terminal and cannot transition."
+    },
+    {
+      "from_state": "closed",
+      "to_state": "paper_only",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Closed records are terminal and cannot transition."
+    },
+    {
+      "from_state": "closed",
+      "to_state": "stale",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Closed records are terminal and cannot transition."
+    },
+    {
+      "from_state": "closed",
+      "to_state": "duplicate",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Closed records are terminal and cannot transition."
+    },
+    {
+      "from_state": "closed",
+      "to_state": "closed",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Closed records are terminal and cannot transition."
+    },
+    {
+      "from_state": "closed",
+      "to_state": "needs_more_evidence",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Closed records are terminal and cannot transition."
+    },
+    {
+      "from_state": "needs_more_evidence",
+      "to_state": "paper_only",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "needs_more_evidence",
+      "to_state": "duplicate",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+    },
+    {
+      "from_state": "needs_more_evidence",
+      "to_state": "needs_more_evidence",
+      "allowed": false,
+      "label": "BLOCKED_BY_SAFETY_GATE",
+      "required_evidence": [],
+      "review_resolution_required": false,
+      "outcome_tracker_required": false,
+      "promotion_gate_required": false,
+      "audit_trail_required": false,
+      "safety_boundary_required": true,
+      "rationale": "Self-transitions are forbidden; records require an audit event only when state changes."
+    }
+  ],
+  "transition_matrix": {
+    "blocked": [
+      {
+        "from_state": "blocked",
+        "to_state": "blocked",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Self-transitions are forbidden; records require an audit event only when state changes."
+      },
+      {
+        "from_state": "blocked",
+        "to_state": "review_required",
+        "allowed": true,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot"
+        ],
+        "review_resolution_required": true,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "blocked",
+        "to_state": "paper_only",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "blocked",
+        "to_state": "stale",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "blocked",
+        "to_state": "duplicate",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "blocked",
+        "to_state": "closed",
+        "allowed": true,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot",
+          "outcome_tracker_reference"
+        ],
+        "review_resolution_required": true,
+        "outcome_tracker_required": true,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "blocked",
+        "to_state": "needs_more_evidence",
+        "allowed": true,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot",
+          "missing_evidence_category"
+        ],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      }
+    ],
+    "review_required": [
+      {
+        "from_state": "review_required",
+        "to_state": "blocked",
+        "allowed": true,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot"
+        ],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "review_required",
+        "to_state": "review_required",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Self-transitions are forbidden; records require an audit event only when state changes."
+      },
+      {
+        "from_state": "review_required",
+        "to_state": "paper_only",
+        "allowed": true,
+        "label": "PAPER_ONLY",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot",
+          "outcome_tracker_reference",
+          "promotion_gate_checklist_reference"
+        ],
+        "review_resolution_required": true,
+        "outcome_tracker_required": true,
+        "promotion_gate_required": true,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "review_required",
+        "to_state": "stale",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "review_required",
+        "to_state": "duplicate",
+        "allowed": true,
+        "label": "MONITOR_ONLY",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot",
+          "primary_candidate_reference"
+        ],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "review_required",
+        "to_state": "closed",
+        "allowed": true,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot",
+          "outcome_tracker_reference"
+        ],
+        "review_resolution_required": true,
+        "outcome_tracker_required": true,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "review_required",
+        "to_state": "needs_more_evidence",
+        "allowed": true,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot",
+          "missing_evidence_category"
+        ],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      }
+    ],
+    "paper_only": [
+      {
+        "from_state": "paper_only",
+        "to_state": "blocked",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "paper_only",
+        "to_state": "review_required",
+        "allowed": true,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot"
+        ],
+        "review_resolution_required": true,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "paper_only",
+        "to_state": "paper_only",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Self-transitions are forbidden; records require an audit event only when state changes."
+      },
+      {
+        "from_state": "paper_only",
+        "to_state": "stale",
+        "allowed": true,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot",
+          "outcome_tracker_reference"
+        ],
+        "review_resolution_required": false,
+        "outcome_tracker_required": true,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "paper_only",
+        "to_state": "duplicate",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "paper_only",
+        "to_state": "closed",
+        "allowed": true,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot",
+          "outcome_tracker_reference"
+        ],
+        "review_resolution_required": true,
+        "outcome_tracker_required": true,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "paper_only",
+        "to_state": "needs_more_evidence",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      }
+    ],
+    "stale": [
+      {
+        "from_state": "stale",
+        "to_state": "blocked",
+        "allowed": true,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot"
+        ],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "stale",
+        "to_state": "review_required",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "stale",
+        "to_state": "paper_only",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "stale",
+        "to_state": "stale",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Self-transitions are forbidden; records require an audit event only when state changes."
+      },
+      {
+        "from_state": "stale",
+        "to_state": "duplicate",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "stale",
+        "to_state": "closed",
+        "allowed": true,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot",
+          "outcome_tracker_reference"
+        ],
+        "review_resolution_required": true,
+        "outcome_tracker_required": true,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "stale",
+        "to_state": "needs_more_evidence",
+        "allowed": true,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot",
+          "missing_evidence_category"
+        ],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      }
+    ],
+    "duplicate": [
+      {
+        "from_state": "duplicate",
+        "to_state": "blocked",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "duplicate",
+        "to_state": "review_required",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "duplicate",
+        "to_state": "paper_only",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "duplicate",
+        "to_state": "stale",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "duplicate",
+        "to_state": "duplicate",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Self-transitions are forbidden; records require an audit event only when state changes."
+      },
+      {
+        "from_state": "duplicate",
+        "to_state": "closed",
+        "allowed": true,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot",
+          "outcome_tracker_reference",
+          "primary_candidate_reference"
+        ],
+        "review_resolution_required": true,
+        "outcome_tracker_required": true,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "duplicate",
+        "to_state": "needs_more_evidence",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      }
+    ],
+    "closed": [
+      {
+        "from_state": "closed",
+        "to_state": "blocked",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Closed records are terminal and cannot transition."
+      },
+      {
+        "from_state": "closed",
+        "to_state": "review_required",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Closed records are terminal and cannot transition."
+      },
+      {
+        "from_state": "closed",
+        "to_state": "paper_only",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Closed records are terminal and cannot transition."
+      },
+      {
+        "from_state": "closed",
+        "to_state": "stale",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Closed records are terminal and cannot transition."
+      },
+      {
+        "from_state": "closed",
+        "to_state": "duplicate",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Closed records are terminal and cannot transition."
+      },
+      {
+        "from_state": "closed",
+        "to_state": "closed",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Closed records are terminal and cannot transition."
+      },
+      {
+        "from_state": "closed",
+        "to_state": "needs_more_evidence",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Closed records are terminal and cannot transition."
+      }
+    ],
+    "needs_more_evidence": [
+      {
+        "from_state": "needs_more_evidence",
+        "to_state": "blocked",
+        "allowed": true,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot"
+        ],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "needs_more_evidence",
+        "to_state": "review_required",
+        "allowed": true,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot"
+        ],
+        "review_resolution_required": true,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "needs_more_evidence",
+        "to_state": "paper_only",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "needs_more_evidence",
+        "to_state": "stale",
+        "allowed": true,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot",
+          "outcome_tracker_reference"
+        ],
+        "review_resolution_required": false,
+        "outcome_tracker_required": true,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "needs_more_evidence",
+        "to_state": "duplicate",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Transition is outside the deterministic lifecycle table and remains blocked by safety gate."
+      },
+      {
+        "from_state": "needs_more_evidence",
+        "to_state": "closed",
+        "allowed": true,
+        "label": "HUMAN_REVIEW_REQUIRED",
+        "required_evidence": [
+          "source_evidence_reference",
+          "review_resolution_reference",
+          "audit_trail_event",
+          "safety_boundary_snapshot",
+          "outcome_tracker_reference"
+        ],
+        "review_resolution_required": true,
+        "outcome_tracker_required": true,
+        "promotion_gate_required": false,
+        "audit_trail_required": true,
+        "safety_boundary_required": true,
+        "rationale": "Transition is allowed only with source evidence, review resolution, audit trail, and disabled safety boundary proof."
+      },
+      {
+        "from_state": "needs_more_evidence",
+        "to_state": "needs_more_evidence",
+        "allowed": false,
+        "label": "BLOCKED_BY_SAFETY_GATE",
+        "required_evidence": [],
+        "review_resolution_required": false,
+        "outcome_tracker_required": false,
+        "promotion_gate_required": false,
+        "audit_trail_required": false,
+        "safety_boundary_required": true,
+        "rationale": "Self-transitions are forbidden; records require an audit event only when state changes."
+      }
+    ]
+  },
+  "acceptance_criteria": {
+    "source_paths_include_br24": true,
+    "all_lifecycle_states_present": true,
+    "all_requirement_sections_present": true,
+    "allowed_transitions_recorded": true,
+    "forbidden_transitions_recorded": true,
+    "closed_state_has_no_allowed_exit": true,
+    "paper_only_requires_outcome_tracker": true,
+    "paper_only_requires_promotion_gate": true,
+    "all_allowed_transitions_require_audit": true,
+    "all_transitions_keep_safety_boundary": true,
+    "no_credentials_or_secrets": true,
+    "no_data_provider_or_network_calls": true,
+    "no_broker_actions_order_paths_or_state_mutation": true,
+    "live_state_not_mutated": true,
+    "paper_state_not_mutated": true,
+    "broker_state_not_mutated": true,
+    "routing_state_not_mutated": true,
+    "live_trading_disabled": true,
+    "human_review_required": true
+  },
+  "readiness_state": {
+    "state": "PAPER_CANDIDATE_LIFECYCLE_STATE_MACHINE_ONLY",
+    "candidate_lifecycle_defined": true,
+    "manual_review_required": true,
+    "ready_for_live_trading": false,
+    "live_state_mutation_allowed": false,
+    "paper_state_mutation_allowed": false,
+    "broker_state_mutation_allowed": false,
+    "routing_state_mutation_allowed": false,
+    "broker_actions_allowed": false,
+    "order_paths_allowed": false,
+    "data_provider_calls_allowed": false
+  }
+}
