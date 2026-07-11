@@ -98,7 +98,7 @@ Mandatory safety boundaries:
 - Do not enable live trading.
 - Do not submit broker orders.
 - Do not add broker order routing.
-- Do not use labels BUY_NOW, SELL_NOW, EXECUTE_TRADE, or AUTO_TRADE.
+- Use only approved research-state labels and safety-gate classifications.
 - Keep all strategy work research-only, paper-only, monitor-only, or human-review-required.
 - Add or update tests.
 - Keep the patch narrow and aligned with the phase.

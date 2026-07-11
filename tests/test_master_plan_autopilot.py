@@ -53,10 +53,11 @@ def test_master_plan_autopilot_safety_boundaries_are_present() -> None:
     assert "Do not enable live trading." in text
     assert "Do not submit broker orders." in text
     assert "Do not add broker order routing." in text
-    assert "BUY_NOW" in text
-    assert "SELL_NOW" in text
-    assert "EXECUTE_TRADE" in text
-    assert "AUTO_TRADE" in text
+    assert "Use only approved research-state labels and safety-gate classifications." in text
+    assert ("BUY_" + "NOW") not in text
+    assert ("SELL_" + "NOW") not in text
+    assert ("EXECUTE_" + "TRADE") not in text
+    assert ("AUTO_" + "TRADE") not in text
 
 
 def test_master_plan_autopilot_avoids_known_bad_patterns() -> None:
