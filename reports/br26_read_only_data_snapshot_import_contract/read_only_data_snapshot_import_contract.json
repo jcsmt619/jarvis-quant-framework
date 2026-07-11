@@ -1,0 +1,264 @@
+{
+  "phase": "BR-26",
+  "module": "Read Only Data Snapshot Import Contract",
+  "as_of": "2026-07-11T02:28:41+00:00",
+  "label": "HUMAN_REVIEW_REQUIRED",
+  "approved_snapshot_paths": [
+    "engines\\moonshot\\deterministic\\fixtures\\br26_read_only_data_snapshot_valid.json"
+  ],
+  "schema": {
+    "format": "json",
+    "snapshot_version": "1",
+    "required_top_level_fields": [
+      "snapshot_version",
+      "snapshot_id",
+      "generated_at",
+      "freshness_as_of",
+      "source_kind",
+      "data_domain",
+      "provenance",
+      "symbols",
+      "records",
+      "safety",
+      "redaction",
+      "labels"
+    ],
+    "required_provenance_fields": [
+      "provider_name",
+      "provider_dataset",
+      "source_file_name",
+      "acquisition_method",
+      "collector",
+      "collected_at",
+      "checksum_sha256",
+      "schema_name",
+      "quality_score"
+    ],
+    "required_record_fields": [
+      "symbol",
+      "timestamp",
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume"
+    ],
+    "allowed_source_kind": "approved_offline_file",
+    "allowed_data_domains": [
+      "daily_ohlcv",
+      "options_chain_summary",
+      "macro_series_snapshot"
+    ],
+    "freshness_max_age_days": 3,
+    "min_provenance_quality_score": 0.8
+  },
+  "validation_rules": [
+    {
+      "name": "approved_file",
+      "description": "Snapshot path must be explicitly approved.",
+      "failure_reason": "snapshot_file_not_approved",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE"
+    },
+    {
+      "name": "file_exists",
+      "description": "Snapshot file must exist locally.",
+      "failure_reason": "snapshot_file_missing",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE"
+    },
+    {
+      "name": "json_object",
+      "description": "Snapshot must be a JSON object.",
+      "failure_reason": "snapshot_not_object",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE"
+    },
+    {
+      "name": "required_fields",
+      "description": "Snapshot must include every required schema field.",
+      "failure_reason": "snapshot_missing_required_field",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE"
+    },
+    {
+      "name": "record_schema",
+      "description": "Snapshot records must use deterministic OHLCV fields.",
+      "failure_reason": "snapshot_schema_malformed",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE"
+    },
+    {
+      "name": "freshness",
+      "description": "Snapshot freshness timestamp must be within the max age window.",
+      "failure_reason": "snapshot_stale",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE"
+    },
+    {
+      "name": "provenance",
+      "description": "Snapshot provenance must be complete and high quality.",
+      "failure_reason": "snapshot_low_provenance",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE"
+    },
+    {
+      "name": "redaction",
+      "description": "Snapshot must not contain unredacted sensitive fields.",
+      "failure_reason": "snapshot_contains_unredacted_sensitive_field",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE"
+    },
+    {
+      "name": "runtime_safety",
+      "description": "Snapshot must not contain unsafe runtime state.",
+      "failure_reason": "snapshot_contains_unsafe_runtime_state",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE"
+    },
+    {
+      "name": "checksum",
+      "description": "Snapshot checksum must match the canonical content hash.",
+      "failure_reason": "snapshot_checksum_mismatch",
+      "failure_label": "BLOCKED_BY_SAFETY_GATE"
+    }
+  ],
+  "redaction_rules": [
+    "api_key",
+    "oauth_token",
+    "password",
+    "private_key",
+    "secret",
+    "broker_credentials",
+    "account_id",
+    "account_number"
+  ],
+  "rejection_reasons": [
+    "snapshot_file_not_approved",
+    "snapshot_file_missing",
+    "snapshot_json_malformed",
+    "snapshot_not_object",
+    "snapshot_missing_required_field",
+    "snapshot_schema_malformed",
+    "snapshot_stale",
+    "snapshot_low_provenance",
+    "snapshot_contains_unredacted_sensitive_field",
+    "snapshot_contains_unsafe_runtime_state",
+    "snapshot_checksum_mismatch"
+  ],
+  "safety": {
+    "phase": "BR-26",
+    "module": "Read Only Data Snapshot Import Contract",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "file_based": true,
+    "offline_by_default": true,
+    "read_only_import_contract": true,
+    "fixture_testable": true,
+    "approved_files_only": true,
+    "deterministic_validation_only": true,
+    "report_artifacts_only": true,
+    "live_state_mutation_allowed": false,
+    "paper_state_mutation_allowed": false,
+    "broker_state_mutation_allowed": false,
+    "routing_state_mutation_allowed": false,
+    "account_imports_allowed": false,
+    "broker_actions_authorized": false,
+    "order_paths_authorized": false,
+    "data_provider_calls_authorized": false,
+    "credential_loading_attempted": false,
+    "env_file_read_attempted": false,
+    "secret_request_attempted": false,
+    "data_provider_call_attempted": false,
+    "external_network_call_attempted": false,
+    "real_data_fetch_attempted": false,
+    "broker_connection_attempted": false,
+    "broker_read_call_performed": false,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "trade_instruction_created": false,
+    "broker_action_created": false,
+    "order_path_created": false,
+    "live_state_mutation_attempted": false,
+    "paper_state_mutation_attempted": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  },
+  "import_decisions": [
+    {
+      "path": "engines\\moonshot\\deterministic\\fixtures\\br26_read_only_data_snapshot_valid.json",
+      "approved": true,
+      "accepted": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "reasons": [],
+      "snapshot_id": "br26-fixture-daily-ohlcv-001",
+      "data_domain": "daily_ohlcv",
+      "symbol_count": 2,
+      "record_count": 2,
+      "freshness_as_of": "2026-07-10T20:00:00+00:00",
+      "provenance_quality_score": 0.98,
+      "checksum_sha256": "e2744d6a31021c4cf0d3c91244d9f68cdf403a1d189adce7492c421e08a63429"
+    }
+  ],
+  "accepted_snapshots": [
+    {
+      "path": "engines\\moonshot\\deterministic\\fixtures\\br26_read_only_data_snapshot_valid.json",
+      "approved": true,
+      "accepted": true,
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "reasons": [],
+      "snapshot_id": "br26-fixture-daily-ohlcv-001",
+      "data_domain": "daily_ohlcv",
+      "symbol_count": 2,
+      "record_count": 2,
+      "freshness_as_of": "2026-07-10T20:00:00+00:00",
+      "provenance_quality_score": 0.98,
+      "checksum_sha256": "e2744d6a31021c4cf0d3c91244d9f68cdf403a1d189adce7492c421e08a63429"
+    }
+  ],
+  "rejected_snapshots": [],
+  "metrics": {
+    "approved_file_count": 1,
+    "validation_rule_count": 10,
+    "redaction_rule_count": 8,
+    "rejection_reason_count": 11,
+    "import_decision_count": 1,
+    "accepted_snapshot_count": 1,
+    "rejected_snapshot_count": 0,
+    "acceptance_criteria_count": 12,
+    "acceptance_criteria_passed_count": 12
+  },
+  "acceptance_criteria": {
+    "approved_files_declared": true,
+    "schema_fields_declared": true,
+    "validation_rules_cover_rejections": true,
+    "redaction_rules_declared": true,
+    "all_decisions_validated": true,
+    "accepted_snapshots_remain_human_review_required": true,
+    "rejected_snapshots_blocked_by_safety_gate": true,
+    "no_credentials_or_secrets": true,
+    "no_data_provider_or_network_calls": true,
+    "no_broker_actions_order_paths_or_state_mutation": true,
+    "account_imports_blocked": true,
+    "live_trading_disabled": true
+  },
+  "readiness_state": {
+    "state": "READ_ONLY_DATA_SNAPSHOT_IMPORT_CONTRACT_ONLY",
+    "future_snapshot_import_contract_defined": true,
+    "file_based": true,
+    "offline_by_default": true,
+    "deterministic_validation_only": true,
+    "fixture_testable": true,
+    "manual_review_required": true,
+    "ready_for_live_trading": false,
+    "account_imports_allowed": false,
+    "broker_actions_allowed": false,
+    "order_paths_allowed": false,
+    "data_provider_calls_allowed": false
+  }
+}
