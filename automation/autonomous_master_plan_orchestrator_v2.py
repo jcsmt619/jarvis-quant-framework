@@ -12,6 +12,16 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Iterable, Sequence
 
+# JARVIS_REPO_IMPORT_BOOTSTRAP
+# Permit both package execution and direct-file execution from the repo.
+if __package__ in {None, ""}:
+    import sys as _sys
+    from pathlib import Path as _Path
+
+    _repo_root = str(_Path(__file__).resolve().parents[1])
+    if _repo_root not in _sys.path:
+        _sys.path.insert(0, _repo_root)
+
 from automation.autopilot_staging import (
     discover_changes,
     intended_phase_paths,
