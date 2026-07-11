@@ -1,0 +1,109 @@
+{
+  "provider": "tastytrade",
+  "feed": "tastytrade.market-data.read-only",
+  "metadata": {
+    "schema_version": "br30.read_only_market_data_adapter.v1",
+    "snapshot_id": "br30-recorded-tastytrade-001",
+    "source_file_name": "br30_tastytrade_recorded_response_valid.json",
+    "environment": "recorded_response",
+    "snapshot_kind": "bars_quotes_options_metadata",
+    "account_scope": "none",
+    "read_only": true
+  },
+  "capabilities": {
+    "market_data_read": true,
+    "account_mutation": false,
+    "execution": false,
+    "order_routing": false,
+    "position_mutation": false,
+    "external_routing": false,
+    "live_trading": false
+  },
+  "events": [
+    {
+      "event_id": "tt-spy-bar-20260711",
+      "event_type": "bar",
+      "symbol": "SPY",
+      "provider_timestamp": "2026-07-11T16:00:05+00:00",
+      "exchange_timestamp": "2026-07-11T16:00:00+00:00",
+      "acquisition_timestamp": "2026-07-11T16:00:08+00:00",
+      "open": 625.1,
+      "high": 628.2,
+      "low": 624.4,
+      "close": 627.8,
+      "volume": 65200000,
+      "quality_flags": [
+        "authorized",
+        "complete",
+        "regular_session"
+      ],
+      "provenance_score": 0.97,
+      "connection_state": "steady",
+      "retry_count": 0,
+      "rate_limit_remaining": 42,
+      "sandbox_reset": false
+    },
+    {
+      "event_id": "tt-qqq-bar-20260711",
+      "event_type": "bar",
+      "symbol": "QQQ",
+      "provider_timestamp": "2026-07-11T16:00:06+00:00",
+      "exchange_timestamp": "2026-07-11T16:00:00+00:00",
+      "acquisition_timestamp": "2026-07-11T16:00:09+00:00",
+      "open": 556.1,
+      "high": 559.4,
+      "low": 555.2,
+      "close": 558.7,
+      "volume": 38100000,
+      "quality_flags": [
+        "authorized",
+        "complete",
+        "regular_session"
+      ],
+      "provenance_score": 0.96,
+      "connection_state": "steady",
+      "retry_count": 0,
+      "rate_limit_remaining": 41,
+      "sandbox_reset": false
+    },
+    {
+      "event_id": "tt-spy-quote-20260711",
+      "event_type": "quote",
+      "symbol": "SPY",
+      "provider_timestamp": "2026-07-11T16:00:07+00:00",
+      "exchange_timestamp": "2026-07-11T16:00:00+00:00",
+      "acquisition_timestamp": "2026-07-11T16:00:10+00:00",
+      "bid": 627.75,
+      "ask": 627.82,
+      "quality_flags": [
+        "authorized",
+        "nbbo"
+      ],
+      "provenance_score": 0.95,
+      "connection_state": "steady",
+      "retry_count": 0,
+      "rate_limit_remaining": 40,
+      "sandbox_reset": false
+    },
+    {
+      "event_id": "tt-spy-chain-meta-20260711",
+      "event_type": "option_chain_metadata",
+      "symbol": "SPY   260918C00650000",
+      "underlying": "SPY",
+      "expiration": "2026-09-18",
+      "strike_count": 120,
+      "provider_timestamp": "2026-07-11T16:00:08+00:00",
+      "exchange_timestamp": "2026-07-11T16:00:00+00:00",
+      "acquisition_timestamp": "2026-07-11T16:00:11+00:00",
+      "quality_flags": [
+        "authorized",
+        "metadata_only"
+      ],
+      "provenance_score": 0.94,
+      "connection_state": "steady",
+      "retry_count": 0,
+      "rate_limit_remaining": 39,
+      "sandbox_reset": false
+    }
+  ]
+}

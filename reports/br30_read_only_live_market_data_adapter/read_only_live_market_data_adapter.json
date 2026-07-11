@@ -1,0 +1,333 @@
+{
+  "acceptance_criteria": {
+    "accepted_data_remains_human_review_required": true,
+    "all_quality_boundaries_enforced": true,
+    "br26_snapshot_schema_compatible": true,
+    "default_offline_fail_closed": true,
+    "live_trading_disabled": true,
+    "no_account_execution_or_state_mutation": true,
+    "no_credentials_or_secrets": true,
+    "no_external_network_or_real_fetch": true,
+    "provider_interface_declared": true,
+    "raw_and_normalized_checksums_present_when_accepted": true
+  },
+  "accepted_for_shadow_research": true,
+  "adapter_checks": {
+    "acquisition_timestamp_valid": true,
+    "br26_snapshot_schema_compatible": true,
+    "clock_skew_within_limit": true,
+    "duplicates_rejected": true,
+    "exchange_timestamp_valid": true,
+    "feed_identity_approved": true,
+    "malformed_payload_rejected": true,
+    "missing_bars_rejected": true,
+    "normalized_snapshot_created": true,
+    "offline_default_fail_closed": true,
+    "provider_interface_declared": true,
+    "provider_timestamp_valid": true,
+    "quality_flags_accepted": true,
+    "raw_evidence_preserved": true,
+    "runtime_config_external_required": true,
+    "secret_material_absent": true,
+    "unsafe_capabilities_absent": true
+  },
+  "adapter_schema_name": "br30.read_only_market_data_adapter.v1",
+  "approved_feeds": [
+    "tastytrade.market-data.read-only"
+  ],
+  "as_of": "2026-07-11T16:05:00+00:00",
+  "boundary_evidence": {
+    "delayed_feed_events": 0,
+    "duplicate_events": 0,
+    "max_retry_count": 0,
+    "min_rate_limit_remaining": 39,
+    "reconnect_boundary_events": 0,
+    "sandbox_reset_events": 0
+  },
+  "evidence": {
+    "acquisition_timestamp": "2026-07-11T16:00:08+00:00",
+    "exchange_timestamp": "2026-07-11T16:00:00+00:00",
+    "feed_identity": "tastytrade.market-data.read-only",
+    "normalized_checksum_sha256": "1d592ee1e2c61489bb4c1957a9a4dc4d581a2539395eb7890a6ed1d12cadcfbf",
+    "provenance_score": 0.97,
+    "provider_name": "tastytrade",
+    "provider_timestamp": "2026-07-11T16:00:05+00:00",
+    "quality_flags": [
+      "authorized",
+      "complete",
+      "regular_session"
+    ],
+    "raw_checksum_sha256": "d49e24d2e0ee75a45133a7ec2d24915f2822d4583d31d12b42e192fc02bc20eb",
+    "raw_path": "engines\\moonshot\\deterministic\\fixtures\\br30_tastytrade_recorded_response_valid.json",
+    "schema_version": "br30.read_only_market_data_adapter.v1"
+  },
+  "known_rejection_reasons": [
+    "runtime_mode_not_allowed",
+    "runtime_config_missing",
+    "runtime_config_inside_repository",
+    "runtime_config_contains_secret_material",
+    "raw_payload_missing",
+    "raw_payload_malformed",
+    "provider_identity_mismatch",
+    "feed_not_approved",
+    "feed_mismatch",
+    "schema_version_unsupported",
+    "provider_timestamp_invalid",
+    "exchange_timestamp_invalid",
+    "acquisition_timestamp_invalid",
+    "clock_skew_exceeded",
+    "stale_data",
+    "delayed_feed",
+    "low_provenance",
+    "low_quality_flag",
+    "duplicate_event",
+    "missing_bar",
+    "incomplete_record",
+    "timezone_invalid",
+    "reconnect_boundary_open",
+    "retry_boundary_exceeded",
+    "rate_limit_boundary_exceeded",
+    "sandbox_reset_detected",
+    "unsafe_capability_present",
+    "secret_material_detected"
+  ],
+  "label": "HUMAN_REVIEW_REQUIRED",
+  "metrics": {
+    "acceptance_criteria_count": 10,
+    "acceptance_criteria_passed_count": 10,
+    "adapter_check_count": 17,
+    "adapter_check_passed_count": 17,
+    "normalized_record_count": 2,
+    "normalized_symbol_count": 2,
+    "rejection_reason_count": 0
+  },
+  "module": "Read Only Live Market Data Adapter",
+  "normalized_snapshot": {
+    "data_domain": "daily_ohlcv",
+    "freshness_as_of": "2026-07-11T16:00:00+00:00",
+    "generated_at": "2026-07-11T16:05:00+00:00",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "provenance": {
+      "acquisition_method": "offline_file_export",
+      "checksum_sha256": "1d592ee1e2c61489bb4c1957a9a4dc4d581a2539395eb7890a6ed1d12cadcfbf",
+      "collected_at": "2026-07-11T16:05:00+00:00",
+      "collector": "br30_read_only_market_data_adapter",
+      "provider_dataset": "tastytrade.market-data.read-only",
+      "provider_name": "tastytrade",
+      "quality_score": 0.94,
+      "schema_name": "br26.read_only_data_snapshot.v1",
+      "source_file_name": "br30_normalized_br26_snapshot.json"
+    },
+    "provider_metadata": {
+      "feed_identity": "tastytrade.market-data.read-only",
+      "option_chain_metadata": [
+        {
+          "expiration": "2026-09-18",
+          "provider_timestamp": "2026-07-11T16:00:08+00:00",
+          "quality_flags": [
+            "authorized",
+            "metadata_only"
+          ],
+          "strike_count": 120,
+          "symbol": "SPY   260918C00650000",
+          "underlying": "SPY"
+        }
+      ],
+      "quote_metadata": [
+        {
+          "ask": 627.82,
+          "bid": 627.75,
+          "exchange_timestamp": "2026-07-11T16:00:00+00:00",
+          "provider_timestamp": "2026-07-11T16:00:07+00:00",
+          "quality_flags": [
+            "authorized",
+            "nbbo"
+          ],
+          "symbol": "SPY"
+        }
+      ],
+      "raw_source_file_name": "br30_tastytrade_recorded_response_valid.json",
+      "schema_version": "br30.read_only_market_data_adapter.v1",
+      "snapshot_metadata": {
+        "account_scope": "none",
+        "environment": "recorded_response",
+        "read_only": true,
+        "schema_version": "br30.read_only_market_data_adapter.v1",
+        "snapshot_id": "br30-recorded-tastytrade-001",
+        "snapshot_kind": "bars_quotes_options_metadata",
+        "source_file_name": "br30_tastytrade_recorded_response_valid.json"
+      }
+    },
+    "records": [
+      {
+        "close": 558.7,
+        "high": 559.4,
+        "low": 555.2,
+        "open": 556.1,
+        "symbol": "QQQ",
+        "timestamp": "2026-07-11T16:00:00+00:00",
+        "volume": 38100000
+      },
+      {
+        "close": 627.8,
+        "high": 628.2,
+        "low": 624.4,
+        "open": 625.1,
+        "symbol": "SPY",
+        "timestamp": "2026-07-11T16:00:00+00:00",
+        "volume": 65200000
+      }
+    ],
+    "redaction": {
+      "redacted": true,
+      "redacted_fields": [
+        "api_key",
+        "oauth_token",
+        "password",
+        "private_key",
+        "secret",
+        "broker_credentials",
+        "account_id",
+        "account_number"
+      ]
+    },
+    "safety": {
+      "LIVE TRADING": "DISABLED",
+      "broker_action_created": false,
+      "broker_connection_attempted": false,
+      "broker_order_call_performed": false,
+      "broker_order_routing_enabled": false,
+      "broker_order_submitted": false,
+      "broker_read_call_performed": false,
+      "credential_loading_attempted": false,
+      "data_provider_call_attempted": false,
+      "env_file_read_attempted": false,
+      "external_network_call_attempted": false,
+      "live_state_mutation_attempted": false,
+      "live_trading_enabled": false,
+      "order_path_created": false,
+      "paper_state_mutation_allowed": false,
+      "paper_state_mutation_attempted": false,
+      "real_data_fetch_attempted": false,
+      "real_paper_order_submitted": false,
+      "real_paper_wrapper_attempted": false,
+      "real_paper_wrapper_connected": false,
+      "secret_request_attempted": false,
+      "trade_instruction_created": false
+    },
+    "snapshot_id": "br30-c1cd2f606fb8f997",
+    "snapshot_version": "1",
+    "source_kind": "approved_offline_file",
+    "symbols": [
+      "QQQ",
+      "SPY"
+    ]
+  },
+  "phase": "BR-30",
+  "provider_name": "tastytrade",
+  "raw_payload_summary": {
+    "event_count": 4,
+    "event_types": [
+      "bar",
+      "option_chain_metadata",
+      "quote"
+    ],
+    "feed": "tastytrade.market-data.read-only",
+    "provider": "tastytrade",
+    "symbols": [
+      "QQQ",
+      "SPY",
+      "SPY   260918C00650000"
+    ]
+  },
+  "readiness_state": {
+    "account_mutation_allowed": false,
+    "broker_actions_allowed": false,
+    "execution_methods_available": false,
+    "external_routing_paths_allowed": false,
+    "human_review_required": true,
+    "live_state_mutation_allowed": false,
+    "manual_review_required": true,
+    "order_paths_allowed": false,
+    "paper_state_mutation_allowed": false,
+    "ready_for_live_trading": false,
+    "state": "READ_ONLY_MARKET_DATA_EVIDENCE_ONLY",
+    "suitable_for_later_shadow_research": true
+  },
+  "rejection_reasons": [],
+  "request_mode": "recorded_response",
+  "safety": {
+    "LIVE TRADING": "DISABLED",
+    "account_capabilities_available": false,
+    "blocked_by_safety_gate": true,
+    "br26_snapshot_contract_target": true,
+    "broker_action_created": false,
+    "broker_connection_attempted": false,
+    "broker_order_call_performed": false,
+    "broker_order_routing_enabled": false,
+    "broker_order_submitted": false,
+    "broker_read_call_performed": false,
+    "broker_state_mutation_allowed": false,
+    "broker_write_operations_authorized": false,
+    "credential_loading_attempted": false,
+    "current_runtime_mode": "recorded_response",
+    "data_provider_call_attempted": false,
+    "data_provider_calls_authorized": false,
+    "default_runtime_mode": "offline",
+    "env_file_read_attempted": false,
+    "execution_capabilities_available": false,
+    "external_network_call_attempted": false,
+    "external_routing_paths_authorized": false,
+    "fail_closed_by_default": true,
+    "fixture_testable": true,
+    "human_review_required": true,
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "live_state_mutation_allowed": false,
+    "live_state_mutation_attempted": false,
+    "live_trading_enabled": false,
+    "local_secret_storage_required_for_real_provider": true,
+    "module": "Read Only Live Market Data Adapter",
+    "monitor_only": true,
+    "normalized_evidence_immutable": true,
+    "offline_by_default": true,
+    "order_path_created": false,
+    "paper_only": true,
+    "paper_state_mutation_allowed": false,
+    "paper_state_mutation_attempted": false,
+    "phase": "BR-30",
+    "position_mutation_capabilities_available": false,
+    "provider_independent_interface": true,
+    "raw_evidence_immutable": true,
+    "read_only_market_data_only": true,
+    "real_data_fetch_attempted": false,
+    "real_paper_order_submitted": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_wrapper_connected": false,
+    "recorded_response_testable": true,
+    "research_only": true,
+    "routing_state_mutation_allowed": false,
+    "secret_request_attempted": false,
+    "separate_runtime_config_required": true,
+    "shadow_research_only": true,
+    "tastytrade_compatible_adapter": true,
+    "trade_instruction_created": false
+  },
+  "supported_modes": [
+    "offline",
+    "fixture",
+    "recorded_response"
+  ],
+  "target_snapshot_schema_name": "br26.read_only_data_snapshot.v1"
+}
