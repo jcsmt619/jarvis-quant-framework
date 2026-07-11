@@ -1,0 +1,249 @@
+{
+  "phase": "BR-27",
+  "module": "Approved Snapshot Intake Review Gate",
+  "as_of": "2026-07-11T05:54:51+00:00",
+  "label": "HUMAN_REVIEW_REQUIRED",
+  "source_paths": {
+    "BR-26 import contract": "reports\\br26_read_only_data_snapshot_import_contract\\read_only_data_snapshot_import_contract.json",
+    "approved offline snapshot": "engines\\moonshot\\deterministic\\fixtures\\br26_read_only_data_snapshot_valid.json"
+  },
+  "review_checks": [
+    "file_approval",
+    "checksum",
+    "schema",
+    "provenance",
+    "freshness",
+    "redaction",
+    "runtime_safety",
+    "observation_timestamps"
+  ],
+  "rejection_reasons": [
+    "br26_report_missing",
+    "br26_report_malformed",
+    "br26_report_phase_mismatch",
+    "br26_report_safety_disabled_flags_missing",
+    "snapshot_file_not_approved_by_br26",
+    "snapshot_file_missing",
+    "snapshot_json_malformed",
+    "snapshot_not_object",
+    "snapshot_missing_required_field",
+    "snapshot_schema_malformed",
+    "snapshot_provenance_missing_or_low_quality",
+    "snapshot_stale",
+    "snapshot_contains_unredacted_sensitive_field",
+    "snapshot_contains_unsafe_runtime_state",
+    "snapshot_checksum_mismatch",
+    "snapshot_observation_timestamp_invalid",
+    "snapshot_accepted_without_separate_review_decision"
+  ],
+  "safety": {
+    "phase": "BR-27",
+    "module": "Approved Snapshot Intake Review Gate",
+    "labels": [
+      "RESEARCH_ONLY",
+      "MONITOR_ONLY",
+      "PAPER_ONLY",
+      "HUMAN_REVIEW_REQUIRED",
+      "BLOCKED_BY_SAFETY_GATE"
+    ],
+    "research_only": true,
+    "monitor_only": true,
+    "paper_only": true,
+    "human_review_required": true,
+    "blocked_by_safety_gate": true,
+    "offline_only": true,
+    "read_only": true,
+    "report_only": true,
+    "fixture_testable": true,
+    "committed_br26_report_only": true,
+    "approved_offline_snapshot_only": true,
+    "immutable_source_evidence": true,
+    "deterministic_review_gate_only": true,
+    "accepted_snapshot_is_research_evidence_only": true,
+    "separate_review_decision_required": true,
+    "advancement_authorized": false,
+    "live_state_mutation_allowed": false,
+    "paper_state_mutation_allowed": false,
+    "broker_state_mutation_allowed": false,
+    "routing_state_mutation_allowed": false,
+    "broker_write_operations_authorized": false,
+    "external_routing_paths_authorized": false,
+    "data_provider_calls_authorized": false,
+    "credential_loading_attempted": false,
+    "env_file_read_attempted": false,
+    "secret_request_attempted": false,
+    "data_provider_call_attempted": false,
+    "external_network_call_attempted": false,
+    "real_data_fetch_attempted": false,
+    "broker_connection_attempted": false,
+    "broker_read_call_performed": false,
+    "real_paper_wrapper_connected": false,
+    "real_paper_wrapper_attempted": false,
+    "real_paper_order_submitted": false,
+    "broker_order_call_performed": false,
+    "broker_order_submitted": false,
+    "broker_order_routing_enabled": false,
+    "trade_instruction_created": false,
+    "broker_action_created": false,
+    "order_path_created": false,
+    "live_state_mutation_attempted": false,
+    "paper_state_mutation_attempted": false,
+    "live_trading_enabled": false,
+    "LIVE TRADING": "DISABLED"
+  },
+  "review_records": [
+    {
+      "snapshot_path": "engines\\moonshot\\deterministic\\fixtures\\br26_read_only_data_snapshot_valid.json",
+      "br26_report_path": "reports\\br26_read_only_data_snapshot_import_contract\\read_only_data_snapshot_import_contract.json",
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "accepted_as_research_evidence": true,
+      "advancement_allowed": false,
+      "separate_review_decision_required": true,
+      "checks": {
+        "file_approval": true,
+        "checksum": true,
+        "schema": true,
+        "provenance": true,
+        "freshness": true,
+        "redaction": true,
+        "runtime_safety": true,
+        "observation_timestamps": true
+      },
+      "rejection_evidence": [],
+      "unresolved_blockers": [],
+      "required_human_review_actions": [
+        "Confirm the approved snapshot may remain research evidence only.",
+        "Record a separate human-review decision before any downstream adapter consumes the snapshot.",
+        "Keep live trading disabled and do not create broker actions, order paths, or state mutations."
+      ],
+      "observation_timestamps": {
+        "generated_at": "2026-07-10T20:00:00+00:00",
+        "freshness_as_of": "2026-07-10T20:00:00+00:00",
+        "collected_at": "2026-07-10T20:00:00+00:00",
+        "record_timestamps": [
+          "2026-07-10T20:00:00+00:00",
+          "2026-07-10T20:00:00+00:00"
+        ]
+      },
+      "source_evidence": {
+        "br26_report": {
+          "path": "reports\\br26_read_only_data_snapshot_import_contract\\read_only_data_snapshot_import_contract.json",
+          "exists": true,
+          "sha256": "fa042a3f338e829a71ed2ad3157cfbaba47f2c468d2300e8c67354cfde70fdc0",
+          "phase": "BR-26",
+          "module": "Read Only Data Snapshot Import Contract"
+        },
+        "approved_snapshot": {
+          "path": "engines\\moonshot\\deterministic\\fixtures\\br26_read_only_data_snapshot_valid.json",
+          "exists": true,
+          "sha256": "7c75081aca9552fd4252e4047e72ba6744c9effb42545647ca3aec3cda5b88c5"
+        }
+      },
+      "snapshot_summary": {
+        "snapshot_id": "br26-fixture-daily-ohlcv-001",
+        "data_domain": "daily_ohlcv",
+        "symbol_count": 2,
+        "record_count": 2,
+        "checksum_sha256": "e2744d6a31021c4cf0d3c91244d9f68cdf403a1d189adce7492c421e08a63429",
+        "provenance_quality_score": 0.98
+      }
+    }
+  ],
+  "accepted_research_evidence": [
+    {
+      "snapshot_path": "engines\\moonshot\\deterministic\\fixtures\\br26_read_only_data_snapshot_valid.json",
+      "br26_report_path": "reports\\br26_read_only_data_snapshot_import_contract\\read_only_data_snapshot_import_contract.json",
+      "label": "HUMAN_REVIEW_REQUIRED",
+      "accepted_as_research_evidence": true,
+      "advancement_allowed": false,
+      "separate_review_decision_required": true,
+      "checks": {
+        "file_approval": true,
+        "checksum": true,
+        "schema": true,
+        "provenance": true,
+        "freshness": true,
+        "redaction": true,
+        "runtime_safety": true,
+        "observation_timestamps": true
+      },
+      "rejection_evidence": [],
+      "unresolved_blockers": [],
+      "required_human_review_actions": [
+        "Confirm the approved snapshot may remain research evidence only.",
+        "Record a separate human-review decision before any downstream adapter consumes the snapshot.",
+        "Keep live trading disabled and do not create broker actions, order paths, or state mutations."
+      ],
+      "observation_timestamps": {
+        "generated_at": "2026-07-10T20:00:00+00:00",
+        "freshness_as_of": "2026-07-10T20:00:00+00:00",
+        "collected_at": "2026-07-10T20:00:00+00:00",
+        "record_timestamps": [
+          "2026-07-10T20:00:00+00:00",
+          "2026-07-10T20:00:00+00:00"
+        ]
+      },
+      "source_evidence": {
+        "br26_report": {
+          "path": "reports\\br26_read_only_data_snapshot_import_contract\\read_only_data_snapshot_import_contract.json",
+          "exists": true,
+          "sha256": "fa042a3f338e829a71ed2ad3157cfbaba47f2c468d2300e8c67354cfde70fdc0",
+          "phase": "BR-26",
+          "module": "Read Only Data Snapshot Import Contract"
+        },
+        "approved_snapshot": {
+          "path": "engines\\moonshot\\deterministic\\fixtures\\br26_read_only_data_snapshot_valid.json",
+          "exists": true,
+          "sha256": "7c75081aca9552fd4252e4047e72ba6744c9effb42545647ca3aec3cda5b88c5"
+        }
+      },
+      "snapshot_summary": {
+        "snapshot_id": "br26-fixture-daily-ohlcv-001",
+        "data_domain": "daily_ohlcv",
+        "symbol_count": 2,
+        "record_count": 2,
+        "checksum_sha256": "e2744d6a31021c4cf0d3c91244d9f68cdf403a1d189adce7492c421e08a63429",
+        "provenance_quality_score": 0.98
+      }
+    }
+  ],
+  "rejected_snapshots": [],
+  "metrics": {
+    "source_path_count": 2,
+    "review_record_count": 1,
+    "accepted_research_evidence_count": 1,
+    "rejected_snapshot_count": 0,
+    "review_check_count": 8,
+    "rejection_reason_count": 17,
+    "required_human_review_action_count": 3,
+    "acceptance_criteria_count": 12,
+    "acceptance_criteria_passed_count": 12
+  },
+  "acceptance_criteria": {
+    "source_paths_include_br26_and_snapshot": true,
+    "all_review_records_validated": true,
+    "all_checks_recorded": true,
+    "accepted_snapshots_remain_research_evidence_only": true,
+    "separate_review_decision_required": true,
+    "rejected_snapshots_blocked_by_safety_gate": true,
+    "no_credentials_or_secrets": true,
+    "no_data_provider_or_network_calls": true,
+    "no_broker_actions_order_paths_or_state_mutation": true,
+    "advancement_not_authorized": true,
+    "live_trading_disabled": true,
+    "human_review_required": true
+  },
+  "readiness_state": {
+    "state": "APPROVED_SNAPSHOT_INTAKE_REVIEW_GATE_ONLY",
+    "accepted_snapshot_is_research_evidence_only": true,
+    "manual_review_required": true,
+    "separate_review_decision_required": true,
+    "ready_for_candidate_adapter": false,
+    "ready_for_live_trading": false,
+    "paper_state_mutation_allowed": false,
+    "live_state_mutation_allowed": false,
+    "broker_actions_allowed": false,
+    "order_paths_allowed": false,
+    "data_provider_calls_allowed": false
+  }
+}
