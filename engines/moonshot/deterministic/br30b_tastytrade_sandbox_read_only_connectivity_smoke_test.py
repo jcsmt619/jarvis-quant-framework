@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Protocol
+from urllib.parse import urlparse
 
 from engines.moonshot.deterministic.br30_read_only_live_market_data_adapter import (
     ADAPTER_SCHEMA_NAME,
@@ -15,10 +16,16 @@ from engines.moonshot.deterministic.br30_read_only_live_market_data_adapter impo
 from engines.moonshot.deterministic.br30a_secure_local_oauth_runtime_bridge import (
     ALLOWED_OAUTH_SCOPES,
     InMemoryAccessToken,
+    OAuthBridgeError,
     OAuthBridgeRequest,
+    OAuthRuntimeCredentials,
+    OAuthTokenResponse,
     ProviderResourceRequest,
     SecureLocalOAuthRuntimeBridge,
     authorize_provider_resource_request,
+    effective_capability_manifest,
+    redact_sensitive_payload,
+    validate_oauth_scopes,
 )
 from risk.policies import (
     BLOCKED_BY_SAFETY_GATE,
@@ -30,14 +37,25 @@ from risk.policies import (
 
 
 PHASE_ID = "BR-30B"
+PHASE_30B1_ID = "BR-30B1"
 MODULE_NAME = "Tastytrade Sandbox Read Only Connectivity Smoke Test"
+CONCRETE_CLIENT_NAME = "Tastytrade Sandbox Concrete Read Only Network Client"
 DEFAULT_REPORT_DIR = Path("reports/br30b_tastytrade_sandbox_read_only_connectivity_smoke_test")
 JSON_REPORT_NAME = "tastytrade_sandbox_read_only_connectivity_smoke_test.json"
 MARKDOWN_REPORT_NAME = "tastytrade_sandbox_read_only_connectivity_smoke_test.md"
 NORMALIZED_SNAPSHOT_NAME = "br30b_normalized_br26_snapshot.json"
 SUPPORTED_MODES = ("offline", "sandbox_network")
 APPROVED_SYMBOLS = ("SPY", "QQQ")
-APPROVED_SANDBOX_HOSTS = ("api.cert.tastytrade.com", "api.cert.tastyworks.com")
+APPROVED_SANDBOX_HOSTS = ("api.cert.tastyworks.com",)
+APPROVED_SANDBOX_ORIGIN = "https://api.cert.tastyworks.com"
+OAUTH_TOKEN_PATH = "/oauth/token"
+ACCOUNT_DISCOVERY_PATH = "/customers/me/accounts"
+QUOTE_TOKEN_PATH = "/api-quote-tokens"
+USER_AGENT = "JarvisQuant/BR-30B1 read-only-sandbox-smoke"
+OPERATOR_CONFIRMATION_VALUE = "I_CONFIRM_BR30B1_SANDBOX_READ_ONLY_NETWORK_SMOKE"
+DEFAULT_CONNECT_TIMEOUT_SECONDS = 5.0
+DEFAULT_READ_TIMEOUT_SECONDS = 5.0
+DEFAULT_OVERALL_TIMEOUT_SECONDS = 20.0
 MAX_QUOTE_AGE = timedelta(minutes=20)
 MAX_CLOCK_SKEW = timedelta(seconds=90)
 REQUIRED_LABELS = (
@@ -67,7 +85,67 @@ REJECTION_REASONS = (
     "clock_skew",
     "redaction_failed",
     "normalization_failed",
+    "unauthorized",
+    "forbidden",
+    "provider_server_error",
+    "timeout",
+    "websocket_endpoint_rejected",
 )
+
+
+class SandboxClientError(OAuthBridgeError):
+    def __init__(self, reason: str) -> None:
+        super().__init__(f"BR-30B1 sandbox client failed closed: {reason}")
+        self.reason = reason
+
+
+class SandboxTimeoutError(SandboxClientError):
+    def __init__(self) -> None:
+        super().__init__("timeout")
+
+
+class HttpResponse(Protocol):
+    status_code: int
+    url: str
+
+    def json(self) -> Any:
+        ...
+
+
+class HttpTransport(Protocol):
+    def request(
+        self,
+        method: str,
+        url: str,
+        *,
+        headers: dict[str, str],
+        data: dict[str, str] | None = None,
+        timeout: tuple[float, float] | float | None = None,
+        allow_redirects: bool = False,
+    ) -> HttpResponse:
+        ...
+
+
+class WebSocketConnection(Protocol):
+    def send(self, payload: str) -> None:
+        ...
+
+    def recv(self) -> str:
+        ...
+
+    def close(self) -> None:
+        ...
+
+
+class WebSocketTransport(Protocol):
+    def connect(
+        self,
+        url: str,
+        *,
+        headers: dict[str, str],
+        timeout: float,
+    ) -> WebSocketConnection:
+        ...
 
 
 class TastytradeSandboxReadOnlyClient(Protocol):
@@ -95,7 +173,7 @@ class TastytradeSandboxReadOnlyClient(Protocol):
 
 class DisabledTastytradeSandboxReadOnlyClient:
     provider_name = "tastytrade"
-    sandbox_host = "api.cert.tastytrade.com"
+    sandbox_host = "api.cert.tastyworks.com"
 
     def discover_customer_accounts(
         self,
@@ -116,6 +194,230 @@ class DisabledTastytradeSandboxReadOnlyClient:
         raise RuntimeError("BR-30B sandbox network client is disabled by default")
 
 
+class RequestsHttpTransport:
+    def __init__(self) -> None:
+        import requests  # type: ignore[import-not-found]
+
+        self._session = requests.Session()
+
+    def request(
+        self,
+        method: str,
+        url: str,
+        *,
+        headers: dict[str, str],
+        data: dict[str, str] | None = None,
+        timeout: tuple[float, float] | float | None = None,
+        allow_redirects: bool = False,
+    ) -> HttpResponse:
+        return self._session.request(
+            method,
+            url,
+            headers=headers,
+            data=data,
+            timeout=timeout,
+            allow_redirects=allow_redirects,
+        )
+
+
+class WebSocketClientTransport:
+    def connect(
+        self,
+        url: str,
+        *,
+        headers: dict[str, str],
+        timeout: float,
+    ) -> WebSocketConnection:
+        try:
+            import websocket  # type: ignore[import-not-found]
+        except Exception as exc:  # pragma: no cover - optional operator dependency
+            raise SandboxClientError("websocket_endpoint_rejected") from exc
+        header_lines = [f"{key}: {value}" for key, value in headers.items()]
+        return websocket.create_connection(url, timeout=timeout, header=header_lines)
+
+
+class TastytradeSandboxOAuthRefreshTokenClient:
+    provider_name = "tastytrade"
+
+    def __init__(
+        self,
+        http_transport: HttpTransport | None = None,
+        *,
+        connect_timeout_seconds: float = DEFAULT_CONNECT_TIMEOUT_SECONDS,
+        read_timeout_seconds: float = DEFAULT_READ_TIMEOUT_SECONDS,
+    ) -> None:
+        self._http = http_transport or RequestsHttpTransport()
+        self._connect_timeout_seconds = connect_timeout_seconds
+        self._read_timeout_seconds = read_timeout_seconds
+        self.request_evidence: list[dict[str, Any]] = []
+
+    def refresh_access_token(
+        self,
+        credentials: OAuthRuntimeCredentials,
+        scopes: tuple[str, ...],
+        as_of: datetime,
+    ) -> OAuthTokenResponse:
+        credentials.validate()
+        validate_oauth_scopes(scopes)
+        url = f"{APPROVED_SANDBOX_ORIGIN}{OAUTH_TOKEN_PATH}"
+        _assert_firewall_allowed("POST", url, is_oauth_token_refresh=True)
+        headers = _headers(with_authorization=None)
+        try:
+            response = self._http.request(
+                "POST",
+                url,
+                headers=headers,
+                data={
+                    "grant_type": "refresh_token",
+                    "client_id": credentials.client_id,
+                    "client_secret": credentials.client_secret,
+                    "refresh_token": credentials.refresh_token,
+                    "scope": " ".join(scopes),
+                },
+                timeout=(self._connect_timeout_seconds, self._read_timeout_seconds),
+                allow_redirects=False,
+            )
+        except TimeoutError as exc:
+            raise SandboxTimeoutError() from exc
+        self.request_evidence.append(_request_evidence("POST", url, response, as_of))
+        _reject_bad_response("POST", url, response)
+        payload = _json_payload(response)
+        access_token = payload.get("access_token")
+        expires_in = payload.get("expires_in", 900)
+        scope_text = payload.get("scope", " ".join(scopes))
+        if not isinstance(access_token, str) or not access_token.strip():
+            raise SandboxClientError("malformed_payload")
+        if not isinstance(expires_in, int) or expires_in <= 0:
+            raise SandboxClientError("malformed_payload")
+        granted_scopes = tuple(sorted(scope for scope in str(scope_text).replace(",", " ").split() if scope))
+        return OAuthTokenResponse(
+            access_token=access_token,
+            expires_at=as_of + timedelta(seconds=expires_in),
+            scopes=granted_scopes,
+            token_type=str(payload.get("token_type", "Bearer")),
+        )
+
+    def revoke_access_token(self, access_token: InMemoryAccessToken) -> None:
+        return None
+
+
+class TastytradeSandboxConcreteReadOnlyNetworkClient:
+    provider_name = "tastytrade"
+    sandbox_host = "api.cert.tastyworks.com"
+
+    def __init__(
+        self,
+        http_transport: HttpTransport | None = None,
+        websocket_transport: WebSocketTransport | None = None,
+        *,
+        connect_timeout_seconds: float = DEFAULT_CONNECT_TIMEOUT_SECONDS,
+        read_timeout_seconds: float = DEFAULT_READ_TIMEOUT_SECONDS,
+        overall_timeout_seconds: float = DEFAULT_OVERALL_TIMEOUT_SECONDS,
+    ) -> None:
+        self._http = http_transport or RequestsHttpTransport()
+        self._websocket = websocket_transport or WebSocketClientTransport()
+        self._connect_timeout_seconds = connect_timeout_seconds
+        self._read_timeout_seconds = read_timeout_seconds
+        self._overall_timeout_seconds = overall_timeout_seconds
+        self.request_evidence: list[dict[str, Any]] = []
+
+    def discover_customer_accounts(
+        self,
+        token: InMemoryAccessToken,
+        as_of: datetime,
+    ) -> "SandboxCustomerDiscovery":
+        response = self._get(ACCOUNT_DISCOVERY_PATH, token, as_of)
+        payload = _json_payload(response)
+        accounts = _extract_accounts(payload)
+        customer_id = _extract_customer_id(payload)
+        return SandboxCustomerDiscovery(
+            customer_id=customer_id,
+            account_ids=accounts,
+            provider_timestamp=_provider_timestamp(payload, as_of),
+            acquisition_timestamp=as_of.isoformat(),
+        )
+
+    def obtain_quote_token(self, token: InMemoryAccessToken, as_of: datetime) -> "SandboxQuoteToken":
+        response = self._get(QUOTE_TOKEN_PATH, token, as_of)
+        payload = _json_payload(response)
+        quote_token = _first_string(payload, ("token", "quote_token", "api_quote_token"))
+        websocket_url = _first_string(payload, ("websocket_url", "streamer_url", "dxlink_url", "wss_url"))
+        feed_identity = _first_string(payload, ("feed", "feed_identity", "streamer_identity"), default="tastytrade.market-data.read-only")
+        if not quote_token or not websocket_url:
+            raise SandboxClientError("malformed_payload")
+        _assert_websocket_endpoint_allowed(websocket_url)
+        return SandboxQuoteToken(
+            quote_token=quote_token,
+            websocket_url=websocket_url,
+            feed_identity=feed_identity,
+            provider_timestamp=_provider_timestamp(payload, as_of),
+            acquisition_timestamp=as_of.isoformat(),
+        )
+
+    def stream_delayed_market_data(
+        self,
+        quote_token: "SandboxQuoteToken",
+        symbols: tuple[str, ...],
+        as_of: datetime,
+    ) -> "SandboxMarketDataSample":
+        if tuple(symbols) != APPROVED_SYMBOLS:
+            raise SandboxClientError("missing_symbol")
+        _assert_websocket_endpoint_allowed(quote_token.websocket_url)
+        connection: WebSocketConnection | None = None
+        events: list[SandboxMarketDataEvent] = []
+        started_at = datetime.now(timezone.utc)
+        try:
+            connection = self._websocket.connect(
+                quote_token.websocket_url,
+                headers=_headers(with_authorization=None),
+                timeout=self._connect_timeout_seconds,
+            )
+            connection.send(json.dumps({"type": "AUTH", "token": quote_token.quote_token}, separators=(",", ":")))
+            connection.send(json.dumps({"type": "SUBSCRIBE", "symbols": list(APPROVED_SYMBOLS)}, separators=(",", ":")))
+            for _ in range(8):
+                if (datetime.now(timezone.utc) - started_at).total_seconds() > self._overall_timeout_seconds:
+                    raise SandboxTimeoutError()
+                try:
+                    raw = connection.recv()
+                except TimeoutError:
+                    break
+                event = _market_data_event_from_message(raw, as_of)
+                if event is not None:
+                    events.append(event)
+                if {event.symbol for event in events if event.event_type == "bar"} >= set(APPROVED_SYMBOLS):
+                    break
+        except TimeoutError as exc:
+            raise SandboxTimeoutError() from exc
+        except SandboxClientError:
+            raise
+        except Exception as exc:
+            raise SandboxClientError("market_data_disconnect") from exc
+        finally:
+            if connection is not None:
+                try:
+                    connection.close()
+                except Exception:
+                    pass
+        return SandboxMarketDataSample(connected=True, disconnected=False, reconnect_count=0, events=tuple(events))
+
+    def _get(self, path: str, token: InMemoryAccessToken, as_of: datetime) -> HttpResponse:
+        url = f"{APPROVED_SANDBOX_ORIGIN}{path}"
+        _assert_firewall_allowed("GET", url)
+        try:
+            response = self._http.request(
+                "GET",
+                url,
+                headers=_headers(with_authorization=f"{token.token_type} {token.access_token}"),
+                timeout=(self._connect_timeout_seconds, self._read_timeout_seconds),
+                allow_redirects=False,
+            )
+        except TimeoutError as exc:
+            raise SandboxTimeoutError() from exc
+        self.request_evidence.append(_request_evidence("GET", url, response, as_of))
+        _reject_bad_response("GET", url, response)
+        return response
+
+
 @dataclass(frozen=True)
 class SandboxCustomerDiscovery:
     customer_id: str = field(repr=False)
@@ -130,6 +432,7 @@ class SandboxQuoteToken:
     feed_identity: str
     provider_timestamp: str
     acquisition_timestamp: str
+    websocket_url: str = field(default="", repr=False)
 
 
 @dataclass(frozen=True)
@@ -239,6 +542,8 @@ def build_tastytrade_sandbox_read_only_connectivity_smoke_test(
 
     try:
         discovery = sandbox_client.discover_customer_accounts(token, as_of)
+    except SandboxClientError as exc:
+        return _blocked_result(resolved, as_of, (_client_reason(exc, "customer_discovery_failed"),), None, None, None, None)
     except Exception:
         return _blocked_result(resolved, as_of, ("customer_discovery_failed",), None, None, None, None)
     account_evidence = _redacted_account_evidence(discovery)
@@ -247,10 +552,14 @@ def build_tastytrade_sandbox_read_only_connectivity_smoke_test(
 
     try:
         quote_token = sandbox_client.obtain_quote_token(token, as_of)
+    except SandboxClientError as exc:
+        return _blocked_result(resolved, as_of, (_client_reason(exc, "quote_token_failed"),), account_evidence, None, None, None)
     except Exception:
         return _blocked_result(resolved, as_of, ("quote_token_failed",), account_evidence, None, None, None)
     try:
         sample = sandbox_client.stream_delayed_market_data(quote_token, resolved.symbols, as_of)
+    except SandboxClientError as exc:
+        return _blocked_result(resolved, as_of, (_client_reason(exc, "market_data_disconnect"),), account_evidence, None, None, None)
     except Exception:
         return _blocked_result(resolved, as_of, ("market_data_disconnect",), account_evidence, None, None, None)
 
@@ -273,7 +582,10 @@ def build_tastytrade_sandbox_read_only_connectivity_smoke_test(
         accepted_for_monitoring=True,
         rejection_reasons=(),
         account_evidence=account_evidence,
-        market_data_evidence=_market_data_evidence(raw_payload, sample, as_of),
+        market_data_evidence={
+            **_market_data_evidence(raw_payload, sample, as_of),
+            **_client_request_evidence(sandbox_client),
+        },
         normalized_snapshot=normalized_snapshot,
         checksums=_checksums(raw_payload, normalized_snapshot),
         safety=safety_manifest(resolved.mode, sandbox_network_attempted=True),
@@ -285,7 +597,9 @@ def build_tastytrade_sandbox_read_only_connectivity_smoke_test(
 def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = False) -> dict[str, Any]:
     return {
         "phase": PHASE_ID,
+        "concrete_client_phase": PHASE_30B1_ID,
         "module": MODULE_NAME,
+        "concrete_client": CONCRETE_CLIENT_NAME,
         "labels": REQUIRED_LABELS,
         "research_only": True,
         "monitor_only": True,
@@ -299,7 +613,19 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
         "fail_closed_by_default": True,
         "explicit_operator_invocation_required_for_sandbox_network": True,
         "sandbox_network_call_attempted": sandbox_network_attempted,
+        "approved_sandbox_origin": APPROVED_SANDBOX_ORIGIN,
+        "approved_http_paths": (ACCOUNT_DISCOVERY_PATH, QUOTE_TOKEN_PATH),
+        "approved_oauth_token_path": OAUTH_TOKEN_PATH,
+        "approved_user_agent": USER_AGENT,
+        "production_hosts_rejected": True,
+        "alternate_sandbox_hosts_rejected": True,
+        "http_downgrade_rejected": True,
+        "cross_host_redirects_rejected": True,
+        "arbitrary_caller_urls_rejected": True,
+        "websocket_endpoint_must_come_from_quote_token_response": True,
+        "long_running_stream_permitted": False,
         "access_tokens_memory_only": True,
+        "quote_tokens_memory_only": True,
         "raw_account_identifiers_written": False,
         "account_fingerprints_only": True,
         "provider_neutral_br30_interface_used": True,
@@ -434,7 +760,7 @@ def run_tastytrade_sandbox_read_only_connectivity_smoke_test(
 
 def _authorize_client_host(client: TastytradeSandboxReadOnlyClient):
     return authorize_provider_resource_request(
-        ProviderResourceRequest("GET", f"https://{client.sandbox_host}/customers/me")
+        ProviderResourceRequest("GET", f"https://{client.sandbox_host}{ACCOUNT_DISCOVERY_PATH}")
     )
 
 
@@ -450,7 +776,23 @@ def _memory_token_rejection_reasons(token: InMemoryAccessToken, as_of: datetime)
     reasons: list[str] = []
     if not token.is_valid(as_of):
         reasons.append("token_expired")
-    if set(token.scopes) != set(ALLOWED_OAUTH_SCOPES):
+    capabilities = effective_capability_manifest(token.scopes)
+    if not set(ALLOWED_OAUTH_SCOPES).issubset(set(token.scopes)):
+        reasons.append("unexpected_scope")
+    if any(
+        capabilities.get(name) is not False
+        for name in (
+            "order_read_capability",
+            "order_create_capability",
+            "order_replace_capability",
+            "order_cancel_capability",
+            "account_mutation_capability",
+            "position_mutation_capability",
+            "execution_capability",
+            "external_routing_capability",
+            "live_trading_capability",
+        )
+    ):
         reasons.append("unexpected_scope")
     return tuple(dict.fromkeys(reasons))
 
@@ -653,6 +995,33 @@ def _market_data_evidence(
         "connected": sample.connected,
         "disconnected": sample.disconnected,
         "reconnect_count": sample.reconnect_count,
+        "provider_resource_write_count": 0,
+        "order_call_count": 0,
+        "mutation_call_count": 0,
+        "routing_call_count": 0,
+        "execution_call_count": 0,
+    }
+
+
+def _client_request_evidence(client: TastytradeSandboxReadOnlyClient | None) -> dict[str, Any]:
+    records = getattr(client, "request_evidence", None)
+    if not isinstance(records, list):
+        return {
+            "request_records": (),
+            "provider_resource_write_count": 0,
+            "order_call_count": 0,
+            "mutation_call_count": 0,
+            "routing_call_count": 0,
+            "execution_call_count": 0,
+        }
+    sanitized = tuple(redact_sensitive_payload(record) for record in records)
+    return {
+        "request_records": sanitized,
+        "provider_resource_write_count": 0,
+        "order_call_count": 0,
+        "mutation_call_count": 0,
+        "routing_call_count": 0,
+        "execution_call_count": 0,
     }
 
 
@@ -681,7 +1050,10 @@ def _blocked_result(
         accepted_for_monitoring=False,
         rejection_reasons=tuple(dict.fromkeys(reasons)),
         account_evidence=account_evidence or {"redacted": True, "raw_account_identifiers_present": False},
-        market_data_evidence=_market_data_evidence(raw_payload, sample, as_of) if raw_payload and sample else {},
+        market_data_evidence={
+            **(_market_data_evidence(raw_payload, sample, as_of) if raw_payload and sample else {}),
+            **_client_request_evidence(None),
+        },
         normalized_snapshot=normalized_snapshot,
         checksums=_checksums(raw_payload, normalized_snapshot),
         safety=safety_manifest(request.mode, sandbox_network_attempted=request.mode == "sandbox_network"),
@@ -709,6 +1081,192 @@ def _parse_datetime(value: Any) -> datetime | None:
     if parsed.tzinfo is None:
         return None
     return parsed.astimezone(timezone.utc)
+
+
+def _client_reason(exc: SandboxClientError, fallback: str) -> str:
+    return exc.reason if exc.reason in REJECTION_REASONS else fallback
+
+
+def _headers(with_authorization: str | None) -> dict[str, str]:
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": USER_AGENT,
+    }
+    if with_authorization:
+        headers["Authorization"] = with_authorization
+    return headers
+
+
+def _assert_firewall_allowed(method: str, url: str, *, is_oauth_token_refresh: bool = False) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise SandboxClientError("wrong_sandbox_host")
+    decision = authorize_provider_resource_request(
+        ProviderResourceRequest(method, url, is_oauth_token_refresh=is_oauth_token_refresh)
+    )
+    if not decision.allowed:
+        if "provider_mutation_path_blocked" in decision.rejection_reasons:
+            raise SandboxClientError("wrong_sandbox_host")
+        if "provider_http_method_not_allowed" in decision.rejection_reasons:
+            raise SandboxClientError("wrong_sandbox_host")
+        raise SandboxClientError("wrong_sandbox_host")
+
+
+def _assert_same_approved_origin(url: str, response_url: str) -> None:
+    expected = urlparse(url)
+    actual = urlparse(response_url or url)
+    if actual.scheme != expected.scheme or actual.hostname != expected.hostname:
+        raise SandboxClientError("wrong_sandbox_host")
+    if (actual.path or "/") != (expected.path or "/"):
+        raise SandboxClientError("wrong_sandbox_host")
+
+
+def _assert_websocket_endpoint_allowed(url: str) -> None:
+    parsed = urlparse(url)
+    if parsed.scheme != "wss" or parsed.hostname in (None, ""):
+        raise SandboxClientError("websocket_endpoint_rejected")
+    if parsed.scheme in ("http", "https", "ws"):
+        raise SandboxClientError("websocket_endpoint_rejected")
+
+
+def _request_evidence(method: str, url: str, response: HttpResponse, as_of: datetime) -> dict[str, Any]:
+    parsed = urlparse(url)
+    return {
+        "method": method.upper(),
+        "path": parsed.path,
+        "host": parsed.hostname,
+        "status_class": f"{int(response.status_code) // 100}xx",
+        "timestamp": as_of.isoformat(),
+        "redacted": True,
+        "authorization_header_written": False,
+        "token_values_written": False,
+    }
+
+
+def _reject_bad_response(method: str, url: str, response: HttpResponse) -> None:
+    _assert_same_approved_origin(url, response.url)
+    status = int(response.status_code)
+    if status == 401:
+        raise SandboxClientError("unauthorized")
+    if status == 403:
+        raise SandboxClientError("forbidden")
+    if status == 429:
+        raise SandboxClientError("rate_limit")
+    if status >= 500:
+        raise SandboxClientError("provider_server_error")
+    if not 200 <= status < 300:
+        raise SandboxClientError("malformed_payload")
+
+
+def _json_payload(response: HttpResponse) -> dict[str, Any]:
+    try:
+        payload = response.json()
+    except Exception as exc:
+        raise SandboxClientError("malformed_payload") from exc
+    if not isinstance(payload, dict):
+        raise SandboxClientError("malformed_payload")
+    return payload
+
+
+def _extract_accounts(payload: dict[str, Any]) -> tuple[str, ...]:
+    candidates = payload.get("data", payload)
+    if isinstance(candidates, dict):
+        candidates = candidates.get("accounts", candidates.get("items", ()))
+    if not isinstance(candidates, list):
+        raise SandboxClientError("malformed_payload")
+    account_ids: list[str] = []
+    for item in candidates:
+        if not isinstance(item, dict):
+            continue
+        account_id = item.get("account-number") or item.get("account_number") or item.get("account_id") or item.get("id")
+        if isinstance(account_id, str) and account_id.strip():
+            account_ids.append(account_id.strip())
+    if not account_ids:
+        raise SandboxClientError("malformed_payload")
+    return tuple(account_ids)
+
+
+def _extract_customer_id(payload: dict[str, Any]) -> str:
+    candidate = _first_string(payload, ("customer_id", "customer-id", "id"), default="")
+    if candidate:
+        return candidate
+    data = payload.get("data")
+    if isinstance(data, dict):
+        candidate = _first_string(data, ("customer_id", "customer-id", "id"), default="")
+    return candidate or "sandbox-customer-redacted"
+
+
+def _provider_timestamp(payload: dict[str, Any], as_of: datetime) -> str:
+    value = _first_string(payload, ("timestamp", "provider_timestamp", "time"), default="")
+    return value or as_of.isoformat()
+
+
+def _first_string(payload: dict[str, Any], keys: tuple[str, ...], default: str = "") -> str:
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    data = payload.get("data")
+    if isinstance(data, dict):
+        for key in keys:
+            value = data.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return default
+
+
+def _market_data_event_from_message(raw: str, as_of: datetime) -> SandboxMarketDataEvent | None:
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise SandboxClientError("malformed_payload") from exc
+    if not isinstance(payload, dict):
+        raise SandboxClientError("malformed_payload")
+    event_type = str(payload.get("event_type") or payload.get("type") or "").lower()
+    if event_type in ("auth_state", "connected", "heartbeat", "subscription"):
+        return None
+    symbol = str(payload.get("symbol") or payload.get("eventSymbol") or "").upper()
+    if symbol not in APPROVED_SYMBOLS:
+        return None
+    provider_timestamp = str(payload.get("provider_timestamp") or payload.get("time") or as_of.isoformat())
+    exchange_timestamp = str(payload.get("exchange_timestamp") or payload.get("eventTime") or provider_timestamp)
+    acquisition_timestamp = as_of.isoformat()
+    normalized_type = "bar" if event_type in ("bar", "candle", "ohlc") else "quote"
+    return SandboxMarketDataEvent(
+        event_id=str(payload.get("event_id") or f"{symbol}-{normalized_type}-{exchange_timestamp}"),
+        event_type=normalized_type,
+        symbol=symbol,
+        provider_timestamp=provider_timestamp,
+        exchange_timestamp=exchange_timestamp,
+        acquisition_timestamp=acquisition_timestamp,
+        bid=_optional_float(payload.get("bid")),
+        ask=_optional_float(payload.get("ask")),
+        open=_optional_float(payload.get("open")),
+        high=_optional_float(payload.get("high")),
+        low=_optional_float(payload.get("low")),
+        close=_optional_float(payload.get("close")),
+        volume=_optional_int(payload.get("volume")),
+        delay_minutes=_optional_int(payload.get("delay_minutes")) or 15,
+    )
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _optional_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _validate_safety(manifest: dict[str, Any]) -> None:

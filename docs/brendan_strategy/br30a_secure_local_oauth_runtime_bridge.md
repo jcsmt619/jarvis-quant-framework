@@ -62,14 +62,21 @@ BR-30A1 adds a strict read-only HTTP method and endpoint allowlist for the later
 Allowed provider-resource methods are:
 
 - `GET`
-- `HEAD`
 
 POST, PUT, PATCH, and DELETE provider-resource operations are blocked, except for the isolated OAuth token refresh exchange on the configured token endpoint. The token refresh exchange is not a provider-resource operation and must not expose order, mutation, routing, execution, or live-trading capability.
 
 Allowed sandbox hosts are:
 
-- `api.cert.tastytrade.com`
 - `api.cert.tastyworks.com`
+
+Allowed token exchange endpoint:
+
+- `POST https://api.cert.tastyworks.com/oauth/token`
+
+Allowed read-only provider-resource endpoints:
+
+- `GET https://api.cert.tastyworks.com/customers/me/accounts`
+- `GET https://api.cert.tastyworks.com/api-quote-tokens`
 
 Production hosts are rejected. Unknown endpoints are rejected. Mutation paths containing order, position, transfer, deposit, withdrawal, ACH, wire, or transaction markers are rejected even for read methods.
 
