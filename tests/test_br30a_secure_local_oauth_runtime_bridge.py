@@ -145,23 +145,26 @@ def test_br30a1_rejects_unknown_provider_granted_scopes() -> None:
 
 def test_br30a1_provider_resource_firewall_allows_only_sandbox_read_only_requests_and_token_refresh() -> None:
     read_allowed = authorize_provider_resource_request(
-        ProviderResourceRequest("GET", "https://api.cert.tastytrade.com/customers/me")
+        ProviderResourceRequest("GET", "https://api.cert.tastyworks.com/customers/me/accounts")
     )
     refresh_allowed = authorize_provider_resource_request(
         ProviderResourceRequest(
             "POST",
-            "https://api.cert.tastytrade.com/oauth/token",
+            "https://api.cert.tastyworks.com/oauth/token",
             is_oauth_token_refresh=True,
         )
     )
     write_blocked = authorize_provider_resource_request(
-        ProviderResourceRequest("POST", "https://api.cert.tastytrade.com/customers/me/accounts")
+        ProviderResourceRequest("POST", "https://api.cert.tastyworks.com/customers/me/accounts")
     )
     mutation_path_blocked = authorize_provider_resource_request(
-        ProviderResourceRequest("GET", "https://api.cert.tastytrade.com/accounts/123/orders")
+        ProviderResourceRequest("GET", "https://api.cert.tastyworks.com/accounts/123/orders")
     )
     production_blocked = authorize_provider_resource_request(
         ProviderResourceRequest("GET", "https://api.tastytrade.com/customers/me")
+    )
+    alternate_host_blocked = authorize_provider_resource_request(
+        ProviderResourceRequest("GET", "https://api.cert.tastytrade.com/customers/me/accounts")
     )
 
     assert read_allowed.allowed is True
@@ -172,6 +175,8 @@ def test_br30a1_provider_resource_firewall_allows_only_sandbox_read_only_request
     assert "provider_mutation_path_blocked" in mutation_path_blocked.rejection_reasons
     assert production_blocked.allowed is False
     assert "provider_host_not_sandbox" in production_blocked.rejection_reasons
+    assert alternate_host_blocked.allowed is False
+    assert "provider_host_not_sandbox" in alternate_host_blocked.rejection_reasons
 
 
 def test_br30a1_effective_capability_manifest_stays_read_only_when_provider_scope_has_trade() -> None:

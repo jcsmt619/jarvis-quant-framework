@@ -24,17 +24,13 @@ SUPPORTED_ENVIRONMENTS = (ENVIRONMENT_SANDBOX,)
 ALLOWED_OAUTH_SCOPES = ("openid", "read")
 JARVIS_REQUESTED_OAUTH_SCOPES = ALLOWED_OAUTH_SCOPES
 TASTYTRADE_SANDBOX_PROVIDER_GRANTED_SCOPES = ("openid", "read", "trade")
-SANDBOX_PROVIDER_HOSTS = ("api.cert.tastytrade.com", "api.cert.tastyworks.com")
-READ_ONLY_PROVIDER_METHODS = ("GET", "HEAD")
+SANDBOX_PROVIDER_HOSTS = ("api.cert.tastyworks.com",)
+READ_ONLY_PROVIDER_METHODS = ("GET",)
 OAUTH_TOKEN_REFRESH_METHOD = "POST"
-OAUTH_TOKEN_REFRESH_PATHS = ("/oauth/token", "/oauth2/token")
+OAUTH_TOKEN_REFRESH_PATHS = ("/oauth/token",)
 READ_ONLY_PROVIDER_PATH_PREFIXES = (
-    "/customers/me",
     "/customers/me/accounts",
-    "/instruments",
-    "/market-data",
-    "/quote-streamer-tokens",
-    "/sessions/validate",
+    "/api-quote-tokens",
 )
 MUTATION_PATH_MARKERS = (
     "/orders",

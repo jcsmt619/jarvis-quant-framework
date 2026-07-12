@@ -25,12 +25,17 @@ from engines.moonshot.deterministic.br30b_tastytrade_sandbox_read_only_connectiv
     MARKDOWN_REPORT_NAME,
     MODULE_NAME,
     NORMALIZED_SNAPSHOT_NAME,
+    OPERATOR_CONFIRMATION_VALUE,
     PHASE_ID,
     SandboxCustomerDiscovery,
+    SandboxClientError,
     SandboxMarketDataEvent,
     SandboxMarketDataSample,
     SandboxQuoteToken,
     SandboxSmokeTestRequest,
+    TastytradeSandboxConcreteReadOnlyNetworkClient,
+    TastytradeSandboxOAuthRefreshTokenClient,
+    USER_AGENT,
     build_tastytrade_sandbox_read_only_connectivity_smoke_test,
     render_markdown_tastytrade_sandbox_read_only_connectivity,
     run_tastytrade_sandbox_read_only_connectivity_smoke_test,
@@ -108,6 +113,21 @@ def test_br30b_sandbox_network_accepts_mocked_read_only_delayed_sample_and_norma
     assert "mock-quote-token" not in str(payload)
 
 
+def test_br30b_accepts_provider_granted_trade_scope_when_effective_capabilities_remain_false() -> None:
+    result = build_tastytrade_sandbox_read_only_connectivity_smoke_test(
+        SandboxSmokeTestRequest(mode="sandbox_network", as_of=AS_OF),
+        oauth_bridge=valid_bridge(
+            OAuthTokenResponse("mock-access-token", AS_OF + timedelta(minutes=15), ("openid", "read", "trade"))
+        ),
+        sandbox_client=FakeSandboxClient(),
+    )
+
+    assert result.accepted_for_monitoring is True
+    assert result.safety["execution_methods_available"] is False
+    assert result.safety["broker_order_call_performed"] is False
+    assert result.safety["live_trading_enabled"] is False
+
+
 def test_br30b_written_normalized_snapshot_is_importable_by_br26_when_approved() -> None:
     out_dir = Path(".codex_pytest_tmp/br30b_smoke")
     if out_dir.exists():
@@ -143,7 +163,6 @@ def test_br30b_written_normalized_snapshot_is_importable_by_br26_when_approved()
         ("missing_client", "sandbox_client_missing"),
         ("token_failure", "access_token_unavailable"),
         ("expired_token", "token_expired"),
-        ("unexpected_scope", "unexpected_scope"),
         ("wrong_host", "wrong_sandbox_host"),
         ("discovery_error", "customer_discovery_failed"),
         ("quote_token_error", "quote_token_failed"),
@@ -163,8 +182,6 @@ def test_br30b_rejects_token_host_and_read_only_setup_failures(
         bridge = SecureLocalOAuthRuntimeBridge(vault=FakeVault(missing=True), token_client=FakeTokenClient.valid())
     elif case == "expired_token":
         bridge = valid_bridge(OAuthTokenResponse("mock-access-token", AS_OF - timedelta(seconds=1), ("openid", "read")))
-    elif case == "unexpected_scope":
-        bridge = valid_bridge(OAuthTokenResponse("mock-access-token", AS_OF + timedelta(minutes=15), ("openid", "read", "trade")))
     elif case == "wrong_host":
         client = FakeSandboxClient(sandbox_host="api.tastytrade.com")
     elif case == "discovery_error":
@@ -286,6 +303,172 @@ def test_br30b_validation_rejects_unsafe_safety_mutations() -> None:
         replace(result, safety={**result.safety, "LIVE TRADING": "ENABLED"}).validate()
 
 
+def test_br30b1_concrete_token_exchange_uses_only_oauth_post_and_redacts_tokens() -> None:
+    transport = FakeHttpTransport(
+        {
+            ("POST", "https://api.cert.tastyworks.com/oauth/token"): FakeResponse(
+                200,
+                "https://api.cert.tastyworks.com/oauth/token",
+                {"access_token": "mock-access-token", "expires_in": 900, "scope": "openid read trade", "token_type": "Bearer"},
+            )
+        }
+    )
+    client = TastytradeSandboxOAuthRefreshTokenClient(http_transport=transport)
+
+    response = client.refresh_access_token(FakeVault().credentials, ("openid", "read"), AS_OF)
+
+    assert response.scopes == ("openid", "read", "trade")
+    assert transport.calls[0]["method"] == "POST"
+    assert transport.calls[0]["url"] == "https://api.cert.tastyworks.com/oauth/token"
+    assert transport.calls[0]["allow_redirects"] is False
+    assert transport.calls[0]["headers"]["User-Agent"] == USER_AGENT
+    assert "Authorization" not in transport.calls[0]["headers"]
+    assert "mock-access-token" not in str(client.request_evidence)
+
+
+def test_br30b1_concrete_client_discovers_accounts_and_quote_token_with_redacted_evidence() -> None:
+    transport = FakeHttpTransport.valid()
+    websocket = FakeWebSocketTransport()
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(http_transport=transport, websocket_transport=websocket)
+    token = InMemoryAccessToken("tastytrade", "sandbox", "mock-access-token", AS_OF + timedelta(minutes=15), ("openid", "read"))
+
+    result = build_tastytrade_sandbox_read_only_connectivity_smoke_test(
+        SandboxSmokeTestRequest(mode="sandbox_network", as_of=AS_OF),
+        oauth_bridge=valid_bridge(),
+        sandbox_client=client,
+    )
+    payload = tastytrade_sandbox_read_only_connectivity_payload(result)
+
+    assert client.discover_customer_accounts(token, AS_OF).account_ids == ("raw-acct-001", "raw-acct-002")
+    assert payload["accepted_for_monitoring"] is True
+    assert payload["market_data_evidence"]["request_records"][0]["method"] == "GET"
+    assert payload["market_data_evidence"]["request_records"][0]["path"] == "/customers/me/accounts"
+    assert payload["market_data_evidence"]["request_records"][1]["path"] == "/api-quote-tokens"
+    assert payload["market_data_evidence"]["provider_resource_write_count"] == 0
+    assert payload["market_data_evidence"]["order_call_count"] == 0
+    assert payload["market_data_evidence"]["mutation_call_count"] == 0
+    assert payload["market_data_evidence"]["routing_call_count"] == 0
+    assert payload["market_data_evidence"]["execution_call_count"] == 0
+    assert websocket.connected_url == "wss://streamer.cert.tastyworks.com/quote"
+    assert "mock-access-token" not in str(payload)
+    assert "mock-quote-token" not in str(payload)
+    assert "raw-acct-001" not in str(payload)
+
+
+@pytest.mark.parametrize(
+    ("status", "expected_reason"),
+    [
+        (401, "unauthorized"),
+        (403, "forbidden"),
+        (429, "rate_limit"),
+        (500, "provider_server_error"),
+    ],
+)
+def test_br30b1_concrete_client_maps_http_failures_to_sanitized_reasons(status: int, expected_reason: str) -> None:
+    transport = FakeHttpTransport(
+        {
+            ("GET", "https://api.cert.tastyworks.com/customers/me/accounts"): FakeResponse(
+                status,
+                "https://api.cert.tastyworks.com/customers/me/accounts",
+                {"error": "redacted"},
+            )
+        }
+    )
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(http_transport=transport, websocket_transport=FakeWebSocketTransport())
+
+    result = build_tastytrade_sandbox_read_only_connectivity_smoke_test(
+        SandboxSmokeTestRequest(mode="sandbox_network", as_of=AS_OF),
+        oauth_bridge=valid_bridge(),
+        sandbox_client=client,
+    )
+
+    assert result.accepted_for_monitoring is False
+    assert expected_reason in result.rejection_reasons
+
+
+@pytest.mark.parametrize(
+    ("method", "url"),
+    [
+        ("GET", "https://api.tastytrade.com/customers/me/accounts"),
+        ("GET", "https://api.cert.tastytrade.com/customers/me/accounts"),
+        ("GET", "http://api.cert.tastyworks.com/customers/me/accounts"),
+        ("POST", "https://api.cert.tastyworks.com/customers/me/accounts"),
+        ("GET", "https://api.cert.tastyworks.com/accounts/123/orders"),
+    ],
+)
+def test_br30b1_firewall_rejects_production_alternate_http_write_and_order_paths(method: str, url: str) -> None:
+    transport = FakeHttpTransport({})
+
+    with pytest.raises(SandboxClientError):
+        transport.force_request_through_firewall(method, url)
+
+
+def test_br30b1_rejects_cross_host_redirect_and_websocket_substitution() -> None:
+    redirected = FakeHttpTransport(
+        {
+            ("GET", "https://api.cert.tastyworks.com/customers/me/accounts"): FakeResponse(
+                200,
+                "https://api.tastytrade.com/customers/me/accounts",
+                {"data": {"accounts": [{"account-number": "raw-acct"}]}},
+            )
+        }
+    )
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(http_transport=redirected, websocket_transport=FakeWebSocketTransport())
+
+    assert _blocked_reason_for_client(client) == "wrong_sandbox_host"
+
+    substituted = FakeHttpTransport.valid(quote_url="https://streamer.cert.tastyworks.com/quote")
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(http_transport=substituted, websocket_transport=FakeWebSocketTransport())
+
+    assert _blocked_reason_for_client(client) == "websocket_endpoint_rejected"
+
+
+@pytest.mark.parametrize(
+    ("case", "expected_reason"),
+    [
+        ("timeout", "timeout"),
+        ("malformed_json", "malformed_payload"),
+        ("missing_symbols", "missing_symbol"),
+        ("disconnect", "market_data_disconnect"),
+    ],
+)
+def test_br30b1_concrete_client_rejects_timeout_malformed_json_missing_symbols_and_disconnect(
+    case: str,
+    expected_reason: str,
+) -> None:
+    if case == "timeout":
+        client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+            http_transport=FakeHttpTransport.valid(timeout=True),
+            websocket_transport=FakeWebSocketTransport(),
+        )
+    elif case == "malformed_json":
+        client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+            http_transport=FakeHttpTransport.valid(malformed=True),
+            websocket_transport=FakeWebSocketTransport(),
+        )
+    elif case == "missing_symbols":
+        client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+            http_transport=FakeHttpTransport.valid(),
+            websocket_transport=FakeWebSocketTransport(messages_for=("SPY",)),
+        )
+    else:
+        client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+            http_transport=FakeHttpTransport.valid(),
+            websocket_transport=FakeWebSocketTransport(disconnect=True),
+        )
+
+    assert _blocked_reason_for_client(client) == expected_reason
+
+
+def test_br30b1_operator_runner_requires_exact_confirmation_value() -> None:
+    script = SCRIPT_PATH.read_text(encoding="utf-8")
+
+    assert "--confirm" in script
+    assert "OPERATOR_CONFIRMATION_VALUE" in script
+    assert "KeyringCredentialVault()" in script
+    assert "TastytradeSandboxConcreteReadOnlyNetworkClient()" in script
+
+
 def test_br30b_source_does_not_introduce_order_paths_or_forbidden_labels() -> None:
     source = MODULE_PATH.read_text(encoding="utf-8")
     disallowed = [
@@ -297,7 +480,6 @@ def test_br30b_source_does_not_introduce_order_paths_or_forbidden_labels() -> No
         "place_order",
         "create_order",
         "cancel_order",
-        "requests.",
         "httpx.",
         "urllib.request",
     ]
@@ -375,7 +557,7 @@ class FakeSandboxClient:
     def __init__(
         self,
         *,
-        sandbox_host: str = "api.cert.tastytrade.com",
+        sandbox_host: str = "api.cert.tastyworks.com",
         discovery_error: bool = False,
         quote_token_error: bool = False,
         stream_error: bool = False,
@@ -416,6 +598,165 @@ class FakeSandboxClient:
         if self.stream_error:
             raise RuntimeError("stream failed")
         return self.sample
+
+
+class FakeResponse:
+    def __init__(self, status_code: int, url: str, payload: object, *, json_error: bool = False) -> None:
+        self.status_code = status_code
+        self.url = url
+        self.payload = payload
+        self.json_error = json_error
+
+    def json(self) -> object:
+        if self.json_error:
+            raise ValueError("malformed")
+        return self.payload
+
+
+class FakeHttpTransport:
+    def __init__(
+        self,
+        responses: dict[tuple[str, str], FakeResponse],
+        *,
+        timeout: bool = False,
+    ) -> None:
+        self.responses = responses
+        self.timeout = timeout
+        self.calls: list[dict[str, object]] = []
+
+    @classmethod
+    def valid(
+        cls,
+        *,
+        quote_url: str = "wss://streamer.cert.tastyworks.com/quote",
+        timeout: bool = False,
+        malformed: bool = False,
+    ) -> "FakeHttpTransport":
+        return cls(
+            {
+                ("GET", "https://api.cert.tastyworks.com/customers/me/accounts"): FakeResponse(
+                    200,
+                    "https://api.cert.tastyworks.com/customers/me/accounts",
+                    {"data": {"customer-id": "raw-customer", "accounts": [{"account-number": "raw-acct-001"}, {"account-number": "raw-acct-002"}]}},
+                    json_error=malformed,
+                ),
+                ("GET", "https://api.cert.tastyworks.com/api-quote-tokens"): FakeResponse(
+                    200,
+                    "https://api.cert.tastyworks.com/api-quote-tokens",
+                    {
+                        "data": {
+                            "token": "mock-quote-token",
+                            "websocket_url": quote_url,
+                            "feed_identity": "tastytrade.market-data.read-only",
+                        }
+                    },
+                ),
+            },
+            timeout=timeout,
+        )
+
+    def request(
+        self,
+        method: str,
+        url: str,
+        *,
+        headers: dict[str, str],
+        data: dict[str, str] | None = None,
+        timeout: tuple[float, float] | float | None = None,
+        allow_redirects: bool = False,
+    ) -> FakeResponse:
+        self.calls.append(
+            {
+                "method": method,
+                "url": url,
+                "headers": headers,
+                "data": data,
+                "timeout": timeout,
+                "allow_redirects": allow_redirects,
+            }
+        )
+        if self.timeout:
+            raise TimeoutError("timeout")
+        return self.responses[(method, url)]
+
+    def force_request_through_firewall(self, method: str, url: str) -> None:
+        from engines.moonshot.deterministic import br30b_tastytrade_sandbox_read_only_connectivity_smoke_test as br30b
+
+        br30b._assert_firewall_allowed(method, url)  # type: ignore[attr-defined]
+
+
+class FakeWebSocketTransport:
+    def __init__(
+        self,
+        *,
+        messages_for: tuple[str, ...] = APPROVED_SYMBOLS,
+        disconnect: bool = False,
+    ) -> None:
+        self.messages_for = messages_for
+        self.disconnect = disconnect
+        self.connected_url: str | None = None
+
+    def connect(
+        self,
+        url: str,
+        *,
+        headers: dict[str, str],
+        timeout: float,
+    ) -> "FakeWebSocketConnection":
+        self.connected_url = url
+        if self.disconnect:
+            raise RuntimeError("disconnect")
+        return FakeWebSocketConnection(self.messages_for)
+
+
+class FakeWebSocketConnection:
+    def __init__(self, messages_for: tuple[str, ...]) -> None:
+        exchange_time = AS_OF - timedelta(minutes=15)
+        self.messages = [
+            json_message(
+                {
+                    "event_type": "bar",
+                    "symbol": symbol,
+                    "provider_timestamp": (exchange_time + timedelta(seconds=5)).isoformat(),
+                    "exchange_timestamp": exchange_time.isoformat(),
+                    "open": 620.0,
+                    "high": 626.0,
+                    "low": 619.0,
+                    "close": 625.0,
+                    "volume": 1000,
+                }
+            )
+            for symbol in messages_for
+        ]
+        self.sent: list[str] = []
+        self.closed = False
+
+    def send(self, payload: str) -> None:
+        self.sent.append(payload)
+
+    def recv(self) -> str:
+        if not self.messages:
+            raise TimeoutError("bounded sample exhausted")
+        return self.messages.pop(0)
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def json_message(payload: dict[str, object]) -> str:
+    import json
+
+    return json.dumps(payload)
+
+
+def _blocked_reason_for_client(client: TastytradeSandboxConcreteReadOnlyNetworkClient) -> str:
+    result = build_tastytrade_sandbox_read_only_connectivity_smoke_test(
+        SandboxSmokeTestRequest(mode="sandbox_network", as_of=AS_OF),
+        oauth_bridge=valid_bridge(),
+        sandbox_client=client,
+    )
+    assert result.accepted_for_monitoring is False
+    return result.rejection_reasons[0]
 
 
 class FakeVault:

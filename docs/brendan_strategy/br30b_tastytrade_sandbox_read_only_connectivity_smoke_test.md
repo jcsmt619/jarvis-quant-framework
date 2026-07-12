@@ -6,11 +6,32 @@ LIVE TRADING: DISABLED
 
 ## Purpose
 
-BR-30B defines the tastytrade sandbox read-only connectivity smoke test.
+BR-30B defines the tastytrade sandbox read-only connectivity smoke test. BR-30B1 adds the concrete tastytrade sandbox read-only network client and operator smoke runner.
 
-Default execution is fixture-only/offline and fail closed. The separate `sandbox_network` mode is explicit operator-invoked only and requires an injected read-only sandbox client plus the BR-30A secure local OAuth bridge.
+Default execution is fixture-only/offline and fail closed. The separate `sandbox_network` mode is explicit operator-invoked only and requires both `--mode sandbox_network` and the exact confirmation value `I_CONFIRM_BR30B1_SANDBOX_READ_ONLY_NETWORK_SMOKE`.
 
-The smoke test is evidence-only. It is intended to prove that a local vaulted refresh token can be exchanged for a short-lived memory-only access token, that only `openid` and `read` are active for Jarvis, that a minimal customer/account discovery request can be redacted, that a sandbox quote token can be obtained, and that delayed sandbox market data for approved symbols such as `SPY` and `QQQ` can be normalized through the BR-30 and BR-26 contracts.
+The smoke test is evidence-only. It is intended to prove that a local vaulted refresh token can be exchanged for a short-lived memory-only access token, that only `openid` and `read` are requested by Jarvis, that a provider-granted sandbox `trade` scope remains raw provider metadata with no effective Jarvis trade capability, that a minimal customer/account discovery request can be redacted, that a sandbox quote token can be obtained, and that delayed sandbox market data for approved symbols `SPY` and `QQQ` can be normalized through the BR-30 and BR-26 contracts.
+
+## BR-30B1 Network Allowlist
+
+The only approved REST origin is:
+
+- `https://api.cert.tastyworks.com`
+
+The unverified `api.cert.tastytrade.com` host, production hosts, HTTP downgrade, cross-host redirects, arbitrary caller-supplied URLs, and redirects to non-approved origins are rejected.
+
+The only approved POST is:
+
+- `POST /oauth/token`
+
+After authentication, the only approved REST reads are:
+
+- `GET /customers/me/accounts`
+- `GET /api-quote-tokens`
+
+The concrete client does not represent or expose order, position, transaction, balance mutation, watchlist mutation, account mutation, or order-management endpoints.
+
+The API quote token and access token remain memory-only. The websocket endpoint must come from the authenticated `/api-quote-tokens` response, must use `wss://`, and cannot be supplied or substituted by the caller. The bounded stream subscribes only to `SPY` and `QQQ`, collects a small delayed sandbox sample, then closes. Strict connect, read, and overall timeouts prevent long-running streams.
 
 ## Evidence Preserved
 
@@ -28,6 +49,9 @@ BR-30B preserves:
 - schema version
 - quality flags
 - redacted customer/account fingerprints
+- request methods and paths
+- status classes
+- explicit zero counts for provider-resource writes, order calls, mutations, routing, and execution
 
 Raw account identifiers must not appear in reports, logs, fixtures, or UI state.
 
@@ -47,9 +71,9 @@ BR-30B does not authorize live trading.
 ## Runtime Modes
 
 - `offline`: default, fixture-only/offline, fail closed.
-- `sandbox_network`: explicit operator-invoked mode requiring an injected OAuth bridge and read-only sandbox client.
+- `sandbox_network`: explicit operator-invoked mode requiring the exact confirmation value and local vaulted BR-30A credentials.
 
-The repository runner intentionally has no built-in network client. Running it in `sandbox_network` without an injected client remains blocked by safety gate.
+Running the repository runner in `sandbox_network` without the confirmation value remains blocked by safety gate. Automated tests and build phases use mocked transports only and do not call tastytrade.
 
 ## Boundary Cases
 
@@ -69,6 +93,20 @@ Mocked tests cover:
 - malformed payload
 - missing symbol
 - redaction
+- production-host rejection
+- alternate-host rejection
+- HTTP downgrade
+- cross-host redirect
+- write-method rejection
+- order-path rejection
+- websocket substitution
+- timeout
+- 401
+- 403
+- 429
+- 5xx
+- token leakage
+- raw-account leakage
 
 ## Required Disabled State
 
@@ -87,10 +125,10 @@ Offline fail-closed report:
 python scripts/run_br30b_tastytrade_sandbox_read_only_connectivity_smoke_test.py
 ```
 
-Explicit blocked sandbox-network mode from the repository runner:
+Explicit sandbox-network mode from the repository runner:
 
 ```powershell
-python scripts/run_br30b_tastytrade_sandbox_read_only_connectivity_smoke_test.py --mode sandbox_network
+python scripts/run_br30b_tastytrade_sandbox_read_only_connectivity_smoke_test.py --mode sandbox_network --confirm I_CONFIRM_BR30B1_SANDBOX_READ_ONLY_NETWORK_SMOKE
 ```
 
 Run tests:

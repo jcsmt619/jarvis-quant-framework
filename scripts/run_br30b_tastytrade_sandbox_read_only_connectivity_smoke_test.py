@@ -15,9 +15,16 @@ from engines.moonshot.deterministic.br30b_tastytrade_sandbox_read_only_connectiv
     JSON_REPORT_NAME,
     MARKDOWN_REPORT_NAME,
     NORMALIZED_SNAPSHOT_NAME,
+    OPERATOR_CONFIRMATION_VALUE,
     SandboxSmokeTestRequest,
+    TastytradeSandboxConcreteReadOnlyNetworkClient,
+    TastytradeSandboxOAuthRefreshTokenClient,
     run_tastytrade_sandbox_read_only_connectivity_smoke_test,
     tastytrade_sandbox_read_only_connectivity_payload,
+)
+from engines.moonshot.deterministic.br30a_secure_local_oauth_runtime_bridge import (
+    KeyringCredentialVault,
+    SecureLocalOAuthRuntimeBridge,
 )
 
 
@@ -25,13 +32,28 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run BR-30B tastytrade sandbox read-only smoke evidence.")
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_REPORT_DIR)
     parser.add_argument("--mode", choices=("offline", "sandbox_network"), default="offline")
+    parser.add_argument("--confirm", default="")
     parser.add_argument("--symbol", action="append", dest="symbols")
     parser.add_argument("--as-of", default=None)
     args = parser.parse_args()
 
     symbols = tuple(args.symbols) if args.symbols else APPROVED_SYMBOLS
     request = SandboxSmokeTestRequest(symbols=symbols, mode=args.mode, as_of=_parse_as_of(args.as_of))
-    result = run_tastytrade_sandbox_read_only_connectivity_smoke_test(request=request, out_dir=args.out_dir)
+    oauth_bridge = None
+    sandbox_client = None
+    if args.mode == "sandbox_network" and args.confirm == OPERATOR_CONFIRMATION_VALUE:
+        token_client = TastytradeSandboxOAuthRefreshTokenClient()
+        oauth_bridge = SecureLocalOAuthRuntimeBridge(
+            vault=KeyringCredentialVault(),
+            token_client=token_client,
+        )
+        sandbox_client = TastytradeSandboxConcreteReadOnlyNetworkClient()
+    result = run_tastytrade_sandbox_read_only_connectivity_smoke_test(
+        request=request,
+        out_dir=args.out_dir,
+        oauth_bridge=oauth_bridge,
+        sandbox_client=sandbox_client,
+    )
     payload = tastytrade_sandbox_read_only_connectivity_payload(result)
 
     print(f"{payload['phase']} {payload['module']}")
