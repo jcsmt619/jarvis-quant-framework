@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
+import shutil
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -62,7 +64,8 @@ DEFAULT_READ_TIMEOUT_SECONDS = 5.0
 DEFAULT_OVERALL_TIMEOUT_SECONDS = 20.0
 DXLINK_SIDECAR_DIR = Path("integrations/tastytrade_dxlink")
 DXLINK_SIDECAR_ENTRYPOINT = DXLINK_SIDECAR_DIR / "dxlink_read_only_sidecar.mjs"
-DXLINK_NODE_ARGV = ("node", str(DXLINK_SIDECAR_ENTRYPOINT))
+DXLINK_NODE_EXECUTABLE = str(Path(shutil.which("node.exe") or shutil.which("node") or "node").resolve())
+DXLINK_NODE_ARGV = (DXLINK_NODE_EXECUTABLE, str(DXLINK_SIDECAR_ENTRYPOINT))
 DXLINK_STDIN_MAX_BYTES = 4096
 DXLINK_STDOUT_MAX_BYTES = 16384
 DXLINK_STDERR_MAX_BYTES = 2048
@@ -72,6 +75,36 @@ DXLINK_ALLOWED_STDERR_CODES = (
     "dxlink_subscription_failed",
     "dxlink_timeout",
     "dxlink_process_failed",
+)
+DXLINK_CHILD_ENV_ALLOWLIST = (
+    "COMSPEC",
+    "PATH",
+    "PATHEXT",
+    "SSL_CERT_DIR",
+    "SSL_CERT_FILE",
+    "SYSTEMDRIVE",
+    "SYSTEMROOT",
+    "TEMP",
+    "TMP",
+    "USERPROFILE",
+    "WINDIR",
+)
+DXLINK_CHILD_ENV_DENY_KEY_MARKERS = (
+    "ACCOUNT",
+    "API_KEY",
+    "AUTH",
+    "BROKER",
+    "CLIENT_ID",
+    "CLIENT_SECRET",
+    "CREDENTIAL",
+    "CUSTOMER",
+    "KEY",
+    "OAUTH",
+    "PASSWORD",
+    "PRIVATE",
+    "REFRESH",
+    "SECRET",
+    "TOKEN",
 )
 MAX_QUOTE_AGE = timedelta(minutes=20)
 MAX_CLOCK_SKEW = timedelta(seconds=90)
@@ -264,7 +297,7 @@ class SubprocessDXLinkSidecarRunner:
                 encoding="utf-8",
                 errors="replace",
                 shell=False,
-                env={},
+                env=_dxlink_child_environment(),
             )
         except FileNotFoundError as exc:
             raise SandboxClientError("dxlink_dependency_unavailable") from exc
@@ -696,6 +729,8 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
         "dxlink_sidecar_shell_execution": False,
         "dxlink_sidecar_stdin_only_secret_transport": True,
         "dxlink_sidecar_environment_secret_transport": False,
+        "dxlink_sidecar_child_environment_allowlist": DXLINK_CHILD_ENV_ALLOWLIST,
+        "dxlink_sidecar_child_environment_secret_key_markers_blocked": DXLINK_CHILD_ENV_DENY_KEY_MARKERS,
         "dxlink_sidecar_command_line_secret_transport": False,
         "dxlink_sidecar_temporary_file_secret_transport": False,
         "dxlink_sidecar_stdout_machine_readable_only": True,
@@ -1235,6 +1270,19 @@ def _dxlink_stdin_payload(
     if len(text.encode("utf-8")) > DXLINK_STDIN_MAX_BYTES:
         raise SandboxClientError("dxlink_output_malformed")
     return text
+
+
+def _dxlink_child_environment() -> dict[str, str]:
+    child_env: dict[str, str] = {}
+    allowed = set(DXLINK_CHILD_ENV_ALLOWLIST)
+    for key, value in os.environ.items():
+        upper_key = key.upper()
+        if upper_key not in allowed:
+            continue
+        if any(marker in upper_key for marker in DXLINK_CHILD_ENV_DENY_KEY_MARKERS):
+            continue
+        child_env[key] = value
+    return child_env
 
 
 def _sample_from_dxlink_stdout(stdout: str, as_of: datetime) -> SandboxMarketDataSample:

@@ -20,29 +20,33 @@ async function main() {
   } = await import("@dxfeed/dxlink-api");
   const inputText = await readBoundedStdin();
   const request = parseRequest(inputText);
-  const client = new DXLinkWebSocketClient(request.dxlinkUrl);
+  const client = new DXLinkWebSocketClient();
   const events = [];
   let closed = false;
   const timeout = setTimeout(() => safeExit("dxlink_timeout", client), request.timeoutMs);
 
   try {
     client.setAuthToken(request.quoteToken);
-    const feed = new DXLinkFeed(client, FeedContract.AUTO, FeedDataFormat.COMPACT);
-    await openClient(client);
-    subscribe(feed, "Quote", request.symbols);
-    subscribe(feed, "Candle", request.symbols.map((symbol) => `${symbol}{=1m}`));
-    attachEvents(feed, (eventType, payload) => {
-      const normalized = normalizeEvent(eventType, payload, request.acquisitionTimestamp);
-      if (normalized) {
-        events.push(normalized);
-      }
-      if (hasCompleteSample(events) || events.length >= MAX_EVENTS) {
-        closed = true;
-        clearTimeout(timeout);
-        closeQuietly(client);
-        writeResult(events);
+    const feed = new DXLinkFeed(client, FeedContract.AUTO);
+    configureFeed(feed, FeedDataFormat);
+    await openClient(client, request.dxlinkUrl);
+    attachEvents(feed, (eventBatch) => {
+      for (const payload of boundedEventBatch(eventBatch)) {
+        const eventType = payload.eventType || payload.type;
+        const normalized = normalizeEvent(eventType, payload, request.acquisitionTimestamp);
+        if (normalized) {
+          events.push(normalized);
+        }
+        if (hasCompleteSample(events) || events.length >= MAX_EVENTS) {
+          closed = true;
+          clearTimeout(timeout);
+          closeQuietly(client);
+          writeResult(events);
+        }
       }
     });
+    subscribe(feed, "Quote", request.symbols);
+    subscribe(feed, "Candle", request.symbols.map((symbol) => `${symbol}{=1m}`));
   } catch (error) {
     clearTimeout(timeout);
     closeQuietly(client);
@@ -57,32 +61,54 @@ async function main() {
   }
 }
 
+function configureFeed(feed, FeedDataFormat) {
+  if (typeof feed.configure !== "function") {
+    throw new Error("subscription");
+  }
+  feed.configure({
+    acceptAggregationPeriod: 60,
+    acceptDataFormat: FeedDataFormat.COMPACT,
+    acceptEventFields: COMPACT_FIELDS,
+  });
+}
+
 function subscribe(feed, eventType, symbols) {
   if (!EVENT_TYPES.includes(eventType)) {
     throw new Error("subscription");
   }
-  feed.addSubscriptions({
-    type: eventType,
-    symbols,
-    fields: COMPACT_FIELDS[eventType],
-  });
+  for (const symbol of symbols) {
+    feed.addSubscriptions({ type: eventType, symbol });
+  }
 }
 
-function attachEvents(feed, onEvent) {
+function attachEvents(feed, listener) {
   if (typeof feed.addEventListener === "function") {
-    feed.addEventListener("event", (event) => onEvent(event.eventType || event.type, event));
-    return;
-  }
-  if (typeof feed.on === "function") {
-    feed.on("event", (event) => onEvent(event.eventType || event.type, event));
+    feed.addEventListener(listener);
     return;
   }
   throw new Error("subscription");
 }
 
-async function openClient(client) {
+function boundedEventBatch(eventBatch) {
+  if (Array.isArray(eventBatch)) {
+    return eventBatch.slice(0, MAX_EVENTS);
+  }
+  if (eventBatch && typeof eventBatch[Symbol.iterator] === "function") {
+    const bounded = [];
+    for (const event of eventBatch) {
+      bounded.push(event);
+      if (bounded.length >= MAX_EVENTS) {
+        break;
+      }
+    }
+    return bounded;
+  }
+  return [eventBatch];
+}
+
+async function openClient(client, dxlinkUrl) {
   if (typeof client.connect === "function") {
-    await client.connect();
+    await client.connect(dxlinkUrl);
   }
 }
 

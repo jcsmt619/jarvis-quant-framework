@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
+import textwrap
+import uuid
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -23,6 +26,8 @@ from engines.moonshot.deterministic.br30a_secure_local_oauth_runtime_bridge impo
 from engines.moonshot.deterministic.br30b_tastytrade_sandbox_read_only_connectivity_smoke_test import (
     APPROVED_SYMBOLS,
     DEFAULT_REPORT_DIR,
+    DXLINK_CHILD_ENV_ALLOWLIST,
+    DXLINK_CHILD_ENV_DENY_KEY_MARKERS,
     DXLINK_STDOUT_MAX_BYTES,
     JSON_REPORT_NAME,
     MARKDOWN_REPORT_NAME,
@@ -41,6 +46,7 @@ from engines.moonshot.deterministic.br30b_tastytrade_sandbox_read_only_connectiv
     TastytradeSandboxConcreteReadOnlyNetworkClient,
     TastytradeSandboxOAuthRefreshTokenClient,
     USER_AGENT,
+    _dxlink_child_environment,
     build_tastytrade_sandbox_read_only_connectivity_smoke_test,
     render_markdown_tastytrade_sandbox_read_only_connectivity,
     run_tastytrade_sandbox_read_only_connectivity_smoke_test,
@@ -547,17 +553,22 @@ def test_br30b4_dxlink_child_process_uses_fixed_argv_and_stdin_only_secret_trans
 
 def test_br30b4_dxlink_sidecar_source_uses_official_sdk_compact_quote_and_candle_only() -> None:
     sidecar = Path("integrations/tastytrade_dxlink/dxlink_read_only_sidecar.mjs").read_text(encoding="utf-8")
+    preflight = Path("integrations/tastytrade_dxlink/dxlink_runtime_preflight.mjs").read_text(encoding="utf-8")
     package = json.loads(Path("integrations/tastytrade_dxlink/package.json").read_text(encoding="utf-8"))
     lock = json.loads(Path("integrations/tastytrade_dxlink/package-lock.json").read_text(encoding="utf-8"))
 
     assert package["engines"]["node"] == ">=20"
     assert package["dependencies"]["@dxfeed/dxlink-api"] == "0.3.0"
     assert lock["packages"][""]["dependencies"]["@dxfeed/dxlink-api"] == "0.3.0"
+    assert lock["packages"]["node_modules/@dxfeed/dxlink-api"]["version"] == "0.3.0"
     assert "DXLinkWebSocketClient" in sidecar
     assert "setAuthToken" in sidecar
     assert "DXLinkFeed" in sidecar
     assert "FeedContract.AUTO" in sidecar
     assert "FeedDataFormat.COMPACT" in sidecar
+    assert 'packageJson.version !== "0.3.0"' in preflight
+    assert "connection_attempted: false" in preflight
+    assert "credentials_accepted: false" in preflight
     assert '"Quote"' in sidecar
     assert '"Candle"' in sidecar
     assert "bidPrice" in sidecar
@@ -569,6 +580,102 @@ def test_br30b4_dxlink_sidecar_source_uses_official_sdk_compact_quote_and_candle
     assert "volume" in sidecar
     for forbidden in ("Trade", "Greeks", "Summary", "Profile", "Underlying", "Order", "account-streaming"):
         assert f'"{forbidden}"' not in sidecar
+
+
+def test_br30b4a_dxlink_sidecar_source_matches_pinned_sdk_contract() -> None:
+    sidecar = Path("integrations/tastytrade_dxlink/dxlink_read_only_sidecar.mjs").read_text(encoding="utf-8")
+
+    assert "new DXLinkWebSocketClient()" in sidecar
+    assert "new DXLinkWebSocketClient(request.dxlinkUrl)" not in sidecar
+    assert "connect(dxlinkUrl)" in sidecar
+    assert "client.connect()" not in sidecar
+    assert "client.connect(dxlinkUrl)" in sidecar
+    assert "new DXLinkFeed(client, FeedContract.AUTO)" in sidecar
+    assert "new DXLinkFeed(client, FeedContract.AUTO," not in sidecar
+    assert "feed.configure" in sidecar
+    assert "acceptAggregationPeriod" in sidecar
+    assert "acceptEventFields" in sidecar
+    assert "feed.addSubscriptions({ type: eventType, symbol })" in sidecar
+    assert "symbols:" not in sidecar
+    assert "fields:" not in sidecar
+    assert "feed.addEventListener(listener)" in sidecar
+    assert "addEventListener(\"event\"" not in sidecar
+    assert "feed.on(" not in sidecar
+    assert "boundedEventBatch" in sidecar
+
+
+def test_br30b4a_dxlink_node_argv_is_absolute_and_environment_is_scrubbed(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert Path(DXLINK_NODE_ARGV[0]).is_absolute()
+    assert Path(DXLINK_NODE_ARGV[0]).name.lower() in {"node.exe", "node"}
+    assert DXLINK_NODE_ARGV[1] == str(Path("integrations/tastytrade_dxlink/dxlink_read_only_sidecar.mjs"))
+
+    monkeypatch.setenv("PATH", "C:\\Windows\\System32")
+    monkeypatch.setenv("SYSTEMROOT", "C:\\Windows")
+    monkeypatch.setenv("BROKER_TOKEN", "must-not-pass")
+    monkeypatch.setenv("API_KEY", "must-not-pass")
+    monkeypatch.setenv("OAUTH_REFRESH_TOKEN", "must-not-pass")
+    monkeypatch.setenv("CUSTOMER_ACCOUNT", "must-not-pass")
+
+    child_env = _dxlink_child_environment()
+
+    assert child_env["PATH"] == "C:\\Windows\\System32"
+    assert child_env["SYSTEMROOT"] == "C:\\Windows"
+    assert set(key.upper() for key in child_env) <= set(DXLINK_CHILD_ENV_ALLOWLIST)
+    assert not any(marker in key.upper() for key in child_env for marker in DXLINK_CHILD_ENV_DENY_KEY_MARKERS)
+    assert "must-not-pass" not in str(child_env)
+
+
+def test_br30b4a_fake_sdk_harness_runs_actual_sidecar_offline() -> None:
+    node = shutil.which("node.exe") or shutil.which("node")
+    if node is None:
+        pytest.skip("Node is not installed in this environment")
+    tmp_path = Path(".codex_pytest_tmp") / f"br30b4a_fake_sdk_harness_{uuid.uuid4().hex}"
+    sidecar_dir = tmp_path / "integrations" / "tastytrade_dxlink"
+    sidecar_dir.mkdir(parents=True)
+    shutil.copyfile(
+        Path("integrations/tastytrade_dxlink/dxlink_read_only_sidecar.mjs"),
+        sidecar_dir / "dxlink_read_only_sidecar.mjs",
+    )
+    fake_sdk_dir = sidecar_dir / "node_modules" / "@dxfeed" / "dxlink-api"
+    fake_sdk_dir.mkdir(parents=True)
+    (fake_sdk_dir / "package.json").write_text(
+        json.dumps({"name": "@dxfeed/dxlink-api", "version": "0.3.0", "type": "module", "exports": "./index.mjs"}),
+        encoding="utf-8",
+    )
+    (fake_sdk_dir / "index.mjs").write_text(_fake_dxlink_sdk_source(), encoding="utf-8")
+    stdin_payload = json.dumps(
+        {
+            "quoteToken": "stdin-only-quote-token",
+            "dxlinkUrl": "wss://streamer.cert.tastyworks.com/quote",
+            "symbols": ["SPY", "QQQ"],
+            "acquisitionTimestamp": AS_OF.isoformat(),
+            "timeoutMs": 1000,
+        },
+        separators=(",", ":"),
+    )
+
+    completed = subprocess.run(
+        [node, str(sidecar_dir / "dxlink_read_only_sidecar.mjs")],
+        input=stdin_payload,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=5,
+        shell=False,
+        env={"PATH": str(Path(node).parent), "SYSTEMROOT": "C:\\Windows"},
+    )
+    envelope = json.loads(completed.stdout)
+
+    assert completed.returncode == 0
+    assert completed.stderr == ""
+    assert envelope["ok"] is True
+    assert envelope["connected"] is True
+    assert {event["event_type"] for event in envelope["events"]} == {"Quote", "Candle"}
+    assert {event["symbol"] for event in envelope["events"]} == {"SPY", "QQQ"}
+    assert "stdin-only-quote-token" not in completed.stdout
+    assert "streamer.cert.tastyworks.com" not in completed.stdout
+    assert "stdin-only-quote-token" not in completed.stderr
+    assert "streamer.cert.tastyworks.com" not in completed.stderr
 
 
 def test_br30b3_concrete_client_parses_nested_and_direct_account_number_variants() -> None:
@@ -1179,6 +1286,117 @@ def json_message(payload: dict[str, object]) -> str:
     import json
 
     return json.dumps(payload)
+
+
+def _fake_dxlink_sdk_source() -> str:
+    return textwrap.dedent(
+        """
+        export const FeedContract = Object.freeze({ AUTO: "AUTO" });
+        export const FeedDataFormat = Object.freeze({ COMPACT: "COMPACT" });
+
+        export class DXLinkWebSocketClient {
+          constructor() {
+            if (arguments.length !== 0) {
+              throw new Error("url-in-constructor");
+            }
+            globalThis.__client = this;
+            this.closed = false;
+          }
+          setAuthToken(token) {
+            if (typeof token !== "string" || token.length < 1) {
+              throw new Error("auth");
+            }
+            this.tokenWasSet = true;
+          }
+          async connect(url) {
+            if (arguments.length !== 1 || typeof url !== "string" || !url.startsWith("wss://")) {
+              throw new Error("connect-contract");
+            }
+            if (!this.tokenWasSet) {
+              throw new Error("auth");
+            }
+            this.connected = true;
+          }
+          close() {
+            this.closed = true;
+          }
+        }
+
+        export class DXLinkFeed {
+          constructor(client, contract) {
+            if (arguments.length !== 2 || contract !== FeedContract.AUTO || !client) {
+              throw new Error("feed-contract");
+            }
+            this.subscriptions = [];
+          }
+          configure(config) {
+            if (
+              config.acceptAggregationPeriod !== 60 ||
+              config.acceptDataFormat !== FeedDataFormat.COMPACT ||
+              !config.acceptEventFields ||
+              !Array.isArray(config.acceptEventFields.Quote) ||
+              !Array.isArray(config.acceptEventFields.Candle)
+            ) {
+              throw new Error("configure-contract");
+            }
+          }
+          addEventListener(listener) {
+            if (arguments.length !== 1 || typeof listener !== "function") {
+              throw new Error("listener-contract");
+            }
+            this.listener = listener;
+          }
+          addSubscriptions(subscription) {
+            if (
+              arguments.length !== 1 ||
+              subscription.symbols !== undefined ||
+              subscription.fields !== undefined ||
+              typeof subscription.symbol !== "string" ||
+              !["Quote", "Candle"].includes(subscription.type)
+            ) {
+              throw new Error("subscription-contract");
+            }
+            this.subscriptions.push(subscription);
+            if (this.subscriptions.length === 4) {
+              queueMicrotask(() => this.listener(events()));
+            }
+          }
+        }
+
+        function events() {
+          return [
+            quote("SPY"),
+            candle("SPY{=1m}"),
+            quote("QQQ"),
+            candle("QQQ{=1m}"),
+          ];
+        }
+
+        function quote(symbol) {
+          return {
+            type: "Quote",
+            eventSymbol: symbol,
+            time: "2026-07-11T15:50:05.000Z",
+            bidPrice: 624.9,
+            askPrice: 625.1,
+          };
+        }
+
+        function candle(symbol) {
+          return {
+            type: "Candle",
+            eventSymbol: symbol,
+            time: "2026-07-11T15:50:05.000Z",
+            eventTime: "2026-07-11T15:50:00.000Z",
+            open: 620,
+            high: 626,
+            low: 619,
+            close: 625,
+            volume: 1000,
+          };
+        }
+        """
+    )
 
 
 @pytest.mark.parametrize(
