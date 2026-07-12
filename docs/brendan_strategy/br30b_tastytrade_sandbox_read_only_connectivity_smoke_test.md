@@ -6,7 +6,7 @@ LIVE TRADING: DISABLED
 
 ## Purpose
 
-BR-30B defines the tastytrade sandbox read-only connectivity smoke test. BR-30B1 adds the concrete tastytrade sandbox read-only network client and operator smoke runner. BR-30B2 aligns the sandbox OAuth refresh exchange with the official tastytrade SDK token request contract.
+BR-30B defines the tastytrade sandbox read-only connectivity smoke test. BR-30B1 adds the concrete tastytrade sandbox read-only network client and operator smoke runner. BR-30B2 aligns the sandbox OAuth refresh exchange with the official tastytrade SDK token request contract. BR-30B3 aligns the read-only REST response parsers for customer accounts and API quote tokens.
 
 Default execution is fixture-only/offline and fail closed. The separate `sandbox_network` mode is explicit operator-invoked only and requires both `--mode sandbox_network` and the exact confirmation value `I_CONFIRM_BR30B1_SANDBOX_READ_ONLY_NETWORK_SMOKE`.
 
@@ -46,7 +46,17 @@ After authentication, the only approved REST reads are:
 
 The concrete client does not represent or expose order, position, transaction, balance mutation, watchlist mutation, account mutation, or order-management endpoints.
 
-The API quote token and access token remain memory-only. The websocket endpoint must come from the authenticated `/api-quote-tokens` response, must use `wss://`, and cannot be supplied or substituted by the caller. The bounded stream subscribes only to `SPY` and `QQQ`, collects a small delayed sandbox sample, then closes. Strict connect, read, and overall timeouts prevent long-running streams.
+## BR-30B3 REST Response Contract
+
+The customer account parser accepts the provider `data` wrapper and account records whose account number is nested under `account.account-number`. It also preserves direct documented account-number variants when they are present. Raw customer IDs and account numbers are extracted only in process memory; reports and Markdown evidence write deterministic redacted fingerprints only.
+
+The API quote-token parser accepts canonical `token` and `dxlink-url` fields from either the top-level object or its `data` wrapper. Optional `level` is treated as non-secret metadata. The API quote token and access token remain memory-only. The full DXLink URL is not persisted, printed, hashed, or written to evidence. The websocket endpoint must come from the authenticated `/api-quote-tokens` response, must use `wss://`, and cannot be supplied or substituted by the caller. HTTP, HTTPS, WS, missing endpoints, malformed wrappers, missing token values, and unexpected container types fail closed.
+
+Malformed account payloads use the sanitized `account_payload_malformed` rejection reason. Malformed quote-token payloads use the sanitized `quote_token_payload_malformed` rejection reason. These stage-specific reasons prevent account diagnostics and quote-token diagnostics from collapsing into the generic `malformed_payload` result.
+
+BR-30B3 does not open a WebSocket or implement the DXLink streaming protocol. BR-30B4 will handle the official DXLink protocol after the REST-only operator checkpoint passes.
+
+The bounded stream subscribes only to `SPY` and `QQQ`, collects a small delayed sandbox sample, then closes. Strict connect, read, and overall timeouts prevent long-running streams.
 
 ## Evidence Preserved
 
@@ -106,8 +116,18 @@ Mocked tests cover:
 - reconnect boundary
 - rate limit
 - malformed payload
+- account payload malformed
+- quote-token payload malformed
 - missing symbol
 - redaction
+- nested `account.account-number` parsing
+- direct account-number fallbacks
+- quote-token `data` wrappers
+- top-level quote-token responses
+- canonical `token` and `dxlink-url` parsing
+- missing quote-token fields
+- wrong DXLink schemes
+- substituted DXLink URLs
 - exact OAuth JSON body key set
 - exact OAuth JSON headers
 - omitted OAuth `client_id`

@@ -85,6 +85,8 @@ def test_br30b_safety_manifest_blocks_execution_mutation_routing_and_live_tradin
     assert manifest["external_routing_paths_available"] is False
     assert manifest["position_change_methods_available"] is False
     assert manifest["live_trading_authorization_available"] is False
+    assert manifest["real_paper_wrapper_connected"] is False
+    assert manifest["real_paper_wrapper_attempted"] is False
     assert manifest["broker_order_call_performed"] is False
     assert manifest["real_paper_order_submitted"] is False
     assert manifest["live_trading_enabled"] is False
@@ -496,6 +498,160 @@ def test_br30b1_concrete_client_discovers_accounts_and_quote_token_with_redacted
     assert "raw-acct-001" not in str(payload)
 
 
+def test_br30b3_concrete_client_parses_nested_and_direct_account_number_variants() -> None:
+    transport = FakeHttpTransport.valid(
+        account_payload={
+            "data": {
+                "customer-id": "raw-customer",
+                "accounts": [
+                    {"account": {"account-number": "raw-nested-acct"}},
+                    {"account-number": "raw-direct-acct"},
+                    {"account_number": "raw-underscore-acct"},
+                ],
+            }
+        }
+    )
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+        http_transport=transport,
+        websocket_transport=FakeWebSocketTransport(),
+    )
+    token = InMemoryAccessToken("tastytrade", "sandbox", "mock-access-token", AS_OF + timedelta(minutes=15), ("openid", "read"))
+
+    discovery = client.discover_customer_accounts(token, AS_OF)
+    evidence = tastytrade_sandbox_read_only_connectivity_payload(
+        build_tastytrade_sandbox_read_only_connectivity_smoke_test(
+            SandboxSmokeTestRequest(mode="sandbox_network", as_of=AS_OF),
+            oauth_bridge=valid_bridge(),
+            sandbox_client=client,
+        )
+    )["account_evidence"]
+
+    assert discovery.account_ids == ("raw-nested-acct", "raw-direct-acct", "raw-underscore-acct")
+    assert all(value.startswith("fp_") for value in evidence["account_fingerprints"])
+    assert "raw-nested-acct" not in str(evidence)
+    assert "raw-direct-acct" not in str(evidence)
+
+
+def test_br30b3_concrete_client_parses_canonical_quote_token_data_wrapper_and_level() -> None:
+    full_dxlink_url = "wss://streamer.cert.tastyworks.com/quote"
+    transport = FakeHttpTransport.valid(
+        quote_payload={
+            "data": {
+                "token": "mock-quote-token",
+                "dxlink-url": full_dxlink_url,
+                "level": "delayed",
+                "feed_identity": "tastytrade.market-data.read-only",
+            }
+        }
+    )
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+        http_transport=transport,
+        websocket_transport=FakeWebSocketTransport(),
+    )
+    token = InMemoryAccessToken("tastytrade", "sandbox", "mock-access-token", AS_OF + timedelta(minutes=15), ("openid", "read"))
+
+    quote = client.obtain_quote_token(token, AS_OF)
+    payload = tastytrade_sandbox_read_only_connectivity_payload(
+        build_tastytrade_sandbox_read_only_connectivity_smoke_test(
+            SandboxSmokeTestRequest(mode="sandbox_network", as_of=AS_OF),
+            oauth_bridge=valid_bridge(),
+            sandbox_client=client,
+        )
+    )
+
+    assert quote.quote_token == "mock-quote-token"
+    assert quote.websocket_url == full_dxlink_url
+    assert quote.level == "delayed"
+    assert payload["normalized_snapshot"]["provenance"]["source_file_name"] == NORMALIZED_SNAPSHOT_NAME
+    assert payload["market_data_evidence"]["quote_token_level"] == "delayed"
+    assert "mock-quote-token" not in str(payload)
+    assert full_dxlink_url not in str(payload)
+
+
+def test_br30b3_concrete_client_parses_top_level_canonical_quote_token_response() -> None:
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+        http_transport=FakeHttpTransport.valid(
+            quote_payload={
+                "token": "mock-quote-token",
+                "dxlink-url": "wss://streamer.cert.tastyworks.com/quote",
+                "level": "delayed",
+            }
+        ),
+        websocket_transport=FakeWebSocketTransport(),
+    )
+    token = InMemoryAccessToken("tastytrade", "sandbox", "mock-access-token", AS_OF + timedelta(minutes=15), ("openid", "read"))
+
+    quote = client.obtain_quote_token(token, AS_OF)
+
+    assert quote.quote_token == "mock-quote-token"
+    assert quote.websocket_url == "wss://streamer.cert.tastyworks.com/quote"
+    assert quote.level == "delayed"
+
+
+@pytest.mark.parametrize(
+    ("account_payload", "expected_reason"),
+    [
+        ({"data": {"accounts": [{"account": {}}]}}, "account_payload_malformed"),
+        ({"data": {"accounts": "not-a-list"}}, "account_payload_malformed"),
+        ({"data": "not-a-container"}, "account_payload_malformed"),
+    ],
+)
+def test_br30b3_account_payload_malformed_uses_stage_specific_reason(
+    account_payload: object,
+    expected_reason: str,
+) -> None:
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+        http_transport=FakeHttpTransport.valid(account_payload=account_payload),
+        websocket_transport=FakeWebSocketTransport(),
+    )
+
+    assert _blocked_reason_for_client(client) == expected_reason
+
+
+@pytest.mark.parametrize(
+    ("quote_payload", "expected_reason"),
+    [
+        ({"data": {"dxlink-url": "wss://streamer.cert.tastyworks.com/quote"}}, "quote_token_payload_malformed"),
+        ({"data": {"token": "mock-quote-token"}}, "quote_token_payload_malformed"),
+        ({"data": []}, "quote_token_payload_malformed"),
+        (["unexpected-container"], "quote_token_payload_malformed"),
+    ],
+)
+def test_br30b3_quote_token_payload_malformed_uses_stage_specific_reason(
+    quote_payload: object,
+    expected_reason: str,
+) -> None:
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+        http_transport=FakeHttpTransport.valid(quote_payload=quote_payload),
+        websocket_transport=FakeWebSocketTransport(),
+    )
+
+    assert _blocked_reason_for_client(client) == expected_reason
+
+
+@pytest.mark.parametrize(
+    "quote_url",
+    [
+        "http://streamer.cert.tastyworks.com/quote",
+        "https://streamer.cert.tastyworks.com/quote",
+        "ws://streamer.cert.tastyworks.com/quote",
+        "",
+        "not a url",
+    ],
+)
+def test_br30b3_quote_token_rejects_non_wss_missing_and_malformed_dxlink_urls(quote_url: str) -> None:
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+        http_transport=FakeHttpTransport.valid(
+            quote_payload={"data": {"token": "mock-quote-token", "dxlink-url": quote_url}}
+        ),
+        websocket_transport=FakeWebSocketTransport(),
+    )
+
+    reason = _blocked_reason_for_client(client)
+
+    assert reason in {"websocket_endpoint_rejected", "quote_token_payload_malformed"}
+
+
 @pytest.mark.parametrize(
     ("status", "expected_reason"),
     [
@@ -568,7 +724,7 @@ def test_br30b1_rejects_cross_host_redirect_and_websocket_substitution() -> None
     ("case", "expected_reason"),
     [
         ("timeout", "timeout"),
-        ("malformed_json", "malformed_payload"),
+        ("malformed_json", "account_payload_malformed"),
         ("missing_symbols", "missing_symbol"),
         ("disconnect", "market_data_disconnect"),
     ],
@@ -772,25 +928,46 @@ class FakeHttpTransport:
         quote_url: str = "wss://streamer.cert.tastyworks.com/quote",
         timeout: bool = False,
         malformed: bool = False,
+        account_payload: object | None = None,
+        quote_payload: object | None = None,
     ) -> "FakeHttpTransport":
+        resolved_account_payload = (
+            account_payload
+            if account_payload is not None
+            else {
+                "data": {
+                    "customer-id": "raw-customer",
+                    "accounts": [
+                        {"account": {"account-number": "raw-acct-001"}},
+                        {"account": {"account-number": "raw-acct-002"}},
+                    ],
+                }
+            }
+        )
+        resolved_quote_payload = (
+            quote_payload
+            if quote_payload is not None
+            else {
+                "data": {
+                    "token": "mock-quote-token",
+                    "dxlink-url": quote_url,
+                    "level": "delayed",
+                    "feed_identity": "tastytrade.market-data.read-only",
+                }
+            }
+        )
         return cls(
             {
                 ("GET", "https://api.cert.tastyworks.com/customers/me/accounts"): FakeResponse(
                     200,
                     "https://api.cert.tastyworks.com/customers/me/accounts",
-                    {"data": {"customer-id": "raw-customer", "accounts": [{"account-number": "raw-acct-001"}, {"account-number": "raw-acct-002"}]}},
+                    resolved_account_payload,
                     json_error=malformed,
                 ),
                 ("GET", "https://api.cert.tastyworks.com/api-quote-tokens"): FakeResponse(
                     200,
                     "https://api.cert.tastyworks.com/api-quote-tokens",
-                    {
-                        "data": {
-                            "token": "mock-quote-token",
-                            "websocket_url": quote_url,
-                            "feed_identity": "tastytrade.market-data.read-only",
-                        }
-                    },
+                    resolved_quote_payload,
                 ),
             },
             timeout=timeout,
