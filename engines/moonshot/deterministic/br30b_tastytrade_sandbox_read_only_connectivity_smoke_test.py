@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -58,6 +60,19 @@ OPERATOR_CONFIRMATION_VALUE = "I_CONFIRM_BR30B1_SANDBOX_READ_ONLY_NETWORK_SMOKE"
 DEFAULT_CONNECT_TIMEOUT_SECONDS = 5.0
 DEFAULT_READ_TIMEOUT_SECONDS = 5.0
 DEFAULT_OVERALL_TIMEOUT_SECONDS = 20.0
+DXLINK_SIDECAR_DIR = Path("integrations/tastytrade_dxlink")
+DXLINK_SIDECAR_ENTRYPOINT = DXLINK_SIDECAR_DIR / "dxlink_read_only_sidecar.mjs"
+DXLINK_NODE_ARGV = ("node", str(DXLINK_SIDECAR_ENTRYPOINT))
+DXLINK_STDIN_MAX_BYTES = 4096
+DXLINK_STDOUT_MAX_BYTES = 16384
+DXLINK_STDERR_MAX_BYTES = 2048
+DXLINK_ALLOWED_STDERR_CODES = (
+    "dxlink_dependency_unavailable",
+    "dxlink_authentication_failed",
+    "dxlink_subscription_failed",
+    "dxlink_timeout",
+    "dxlink_process_failed",
+)
 MAX_QUOTE_AGE = timedelta(minutes=20)
 MAX_CLOCK_SKEW = timedelta(seconds=90)
 REQUIRED_LABELS = (
@@ -95,6 +110,14 @@ REJECTION_REASONS = (
     "provider_server_error",
     "timeout",
     "websocket_endpoint_rejected",
+    "dxlink_dependency_unavailable",
+    "dxlink_authentication_failed",
+    "dxlink_subscription_failed",
+    "dxlink_timeout",
+    "dxlink_process_failed",
+    "dxlink_output_malformed",
+    "dxlink_secret_leak_detected",
+    "unsupported_event",
 )
 
 
@@ -129,28 +152,6 @@ class HttpTransport(Protocol):
         timeout: tuple[float, float] | float | None = None,
         allow_redirects: bool = False,
     ) -> HttpResponse:
-        ...
-
-
-class WebSocketConnection(Protocol):
-    def send(self, payload: str) -> None:
-        ...
-
-    def recv(self) -> str:
-        ...
-
-    def close(self) -> None:
-        ...
-
-
-class WebSocketTransport(Protocol):
-    def connect(
-        self,
-        url: str,
-        *,
-        headers: dict[str, str],
-        timeout: float,
-    ) -> WebSocketConnection:
         ...
 
 
@@ -228,20 +229,63 @@ class RequestsHttpTransport:
         )
 
 
-class WebSocketClientTransport:
-    def connect(
+class DXLinkSidecarRunner(Protocol):
+    def run(
         self,
-        url: str,
-        *,
-        headers: dict[str, str],
-        timeout: float,
-    ) -> WebSocketConnection:
+        argv: tuple[str, ...],
+        stdin_payload: str,
+        timeout_seconds: float,
+    ) -> "DXLinkSidecarCompleted":
+        ...
+
+
+@dataclass(frozen=True)
+class DXLinkSidecarCompleted:
+    returncode: int
+    stdout: str
+    stderr: str
+    timed_out: bool = False
+
+
+class SubprocessDXLinkSidecarRunner:
+    def run(
+        self,
+        argv: tuple[str, ...],
+        stdin_payload: str,
+        timeout_seconds: float,
+    ) -> DXLinkSidecarCompleted:
         try:
-            import websocket  # type: ignore[import-not-found]
-        except Exception as exc:  # pragma: no cover - optional operator dependency
-            raise SandboxClientError("websocket_endpoint_rejected") from exc
-        header_lines = [f"{key}: {value}" for key, value in headers.items()]
-        return websocket.create_connection(url, timeout=timeout, header=header_lines)
+            process = subprocess.Popen(
+                list(argv),
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                shell=False,
+                env={},
+            )
+        except FileNotFoundError as exc:
+            raise SandboxClientError("dxlink_dependency_unavailable") from exc
+        except Exception as exc:
+            raise SandboxClientError("dxlink_process_failed") from exc
+        try:
+            stdout, stderr = process.communicate(stdin_payload, timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            stdout, stderr = process.communicate()
+            return DXLinkSidecarCompleted(
+                process.returncode if process.returncode is not None else -1,
+                stdout[:DXLINK_STDOUT_MAX_BYTES + 1],
+                stderr[:DXLINK_STDERR_MAX_BYTES + 1],
+                timed_out=True,
+            )
+        return DXLinkSidecarCompleted(
+            process.returncode if process.returncode is not None else -1,
+            stdout[:DXLINK_STDOUT_MAX_BYTES + 1],
+            stderr[:DXLINK_STDERR_MAX_BYTES + 1],
+        )
 
 
 class TastytradeSandboxOAuthRefreshTokenClient:
@@ -323,18 +367,19 @@ class TastytradeSandboxConcreteReadOnlyNetworkClient:
     def __init__(
         self,
         http_transport: HttpTransport | None = None,
-        websocket_transport: WebSocketTransport | None = None,
+        dxlink_runner: DXLinkSidecarRunner | None = None,
         *,
         connect_timeout_seconds: float = DEFAULT_CONNECT_TIMEOUT_SECONDS,
         read_timeout_seconds: float = DEFAULT_READ_TIMEOUT_SECONDS,
         overall_timeout_seconds: float = DEFAULT_OVERALL_TIMEOUT_SECONDS,
     ) -> None:
         self._http = http_transport or RequestsHttpTransport()
-        self._websocket = websocket_transport or WebSocketClientTransport()
+        self._dxlink_runner = dxlink_runner or SubprocessDXLinkSidecarRunner()
         self._connect_timeout_seconds = connect_timeout_seconds
         self._read_timeout_seconds = read_timeout_seconds
         self._overall_timeout_seconds = overall_timeout_seconds
         self.request_evidence: list[dict[str, Any]] = []
+        self.dxlink_request_evidence: list[dict[str, Any]] = []
 
     def discover_customer_accounts(
         self,
@@ -381,42 +426,34 @@ class TastytradeSandboxConcreteReadOnlyNetworkClient:
         if tuple(symbols) != APPROVED_SYMBOLS:
             raise SandboxClientError("missing_symbol")
         _assert_websocket_endpoint_allowed(quote_token.websocket_url)
-        connection: WebSocketConnection | None = None
-        events: list[SandboxMarketDataEvent] = []
-        started_at = datetime.now(timezone.utc)
-        try:
-            connection = self._websocket.connect(
-                quote_token.websocket_url,
-                headers=_headers(with_authorization=None),
-                timeout=self._connect_timeout_seconds,
-            )
-            connection.send(json.dumps({"type": "AUTH", "token": quote_token.quote_token}, separators=(",", ":")))
-            connection.send(json.dumps({"type": "SUBSCRIBE", "symbols": list(APPROVED_SYMBOLS)}, separators=(",", ":")))
-            for _ in range(8):
-                if (datetime.now(timezone.utc) - started_at).total_seconds() > self._overall_timeout_seconds:
-                    raise SandboxTimeoutError()
-                try:
-                    raw = connection.recv()
-                except TimeoutError:
-                    break
-                event = _market_data_event_from_message(raw, as_of)
-                if event is not None:
-                    events.append(event)
-                if {event.symbol for event in events if event.event_type == "bar"} >= set(APPROVED_SYMBOLS):
-                    break
-        except TimeoutError as exc:
-            raise SandboxTimeoutError() from exc
-        except SandboxClientError:
-            raise
-        except Exception as exc:
-            raise SandboxClientError("market_data_disconnect") from exc
-        finally:
-            if connection is not None:
-                try:
-                    connection.close()
-                except Exception:
-                    pass
-        return SandboxMarketDataSample(connected=True, disconnected=False, reconnect_count=0, events=tuple(events))
+        stdin_payload = _dxlink_stdin_payload(quote_token, symbols, as_of, self._overall_timeout_seconds)
+        completed = self._dxlink_runner.run(DXLINK_NODE_ARGV, stdin_payload, self._overall_timeout_seconds)
+        self.dxlink_request_evidence.append(
+            {
+                "argv": DXLINK_NODE_ARGV,
+                "shell": False,
+                "stdin_only_secret_transport": True,
+                "stdin_size_bytes": len(stdin_payload.encode("utf-8")),
+                "stdout_size_bytes": len(completed.stdout.encode("utf-8")),
+                "stderr_size_bytes": len(completed.stderr.encode("utf-8")),
+                "environment_values_written": False,
+                "command_line_secret_values_written": False,
+                "temporary_files_written": False,
+                "process_title_secret_values_written": False,
+            }
+        )
+        if _contains_secret_material_text(completed.stdout, quote_token) or _contains_secret_material_text(completed.stderr, quote_token):
+            raise SandboxClientError("dxlink_secret_leak_detected")
+        if completed.timed_out:
+            raise SandboxClientError("dxlink_timeout")
+        if len(completed.stdout.encode("utf-8")) > DXLINK_STDOUT_MAX_BYTES or len(completed.stderr.encode("utf-8")) > DXLINK_STDERR_MAX_BYTES:
+            raise SandboxClientError("dxlink_output_malformed")
+        stderr_code = completed.stderr.strip()
+        if stderr_code and stderr_code not in DXLINK_ALLOWED_STDERR_CODES:
+            raise SandboxClientError("dxlink_output_malformed")
+        if completed.returncode != 0:
+            raise SandboxClientError(stderr_code if stderr_code in REJECTION_REASONS else "dxlink_process_failed")
+        return _sample_from_dxlink_stdout(completed.stdout, as_of)
 
     def _get(self, path: str, token: InMemoryAccessToken, as_of: datetime) -> HttpResponse:
         url = f"{APPROVED_SANDBOX_ORIGIN}{path}"
@@ -652,8 +689,44 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
         "quote_token_full_dxlink_url_written": False,
         "quote_token_values_written": False,
         "quote_token_level_metadata_supported": True,
+        "dxlink_protocol_phase": "BR-30B4",
+        "dxlink_official_sdk_required": True,
+        "dxlink_sidecar_directory": str(DXLINK_SIDECAR_DIR),
+        "dxlink_sidecar_fixed_argv": DXLINK_NODE_ARGV,
+        "dxlink_sidecar_shell_execution": False,
+        "dxlink_sidecar_stdin_only_secret_transport": True,
+        "dxlink_sidecar_environment_secret_transport": False,
+        "dxlink_sidecar_command_line_secret_transport": False,
+        "dxlink_sidecar_temporary_file_secret_transport": False,
+        "dxlink_sidecar_stdout_machine_readable_only": True,
+        "dxlink_sidecar_stderr_allowlisted_codes_only": True,
+        "dxlink_sidecar_stdout_max_bytes": DXLINK_STDOUT_MAX_BYTES,
+        "dxlink_sidecar_stderr_max_bytes": DXLINK_STDERR_MAX_BYTES,
+        "dxlink_allowed_symbols": APPROVED_SYMBOLS,
+        "dxlink_allowed_event_types": ("Quote", "Candle"),
+        "dxlink_disallowed_event_types": (
+            "Trade",
+            "Greeks",
+            "Summary",
+            "Profile",
+            "Underlying",
+            "Order",
+            "account-streaming",
+        ),
+        "dxlink_feed_contract": "AUTO",
+        "dxlink_feed_data_format": "COMPACT",
+        "dxlink_candle_interval": "1m",
         "account_payload_malformed_reason_supported": True,
         "quote_token_payload_malformed_reason_supported": True,
+        "dxlink_stage_rejection_reasons_supported": (
+            "dxlink_dependency_unavailable",
+            "dxlink_authentication_failed",
+            "dxlink_subscription_failed",
+            "dxlink_timeout",
+            "dxlink_process_failed",
+            "dxlink_output_malformed",
+            "dxlink_secret_leak_detected",
+        ),
         "long_running_stream_permitted": False,
         "access_tokens_memory_only": True,
         "quote_tokens_memory_only": True,
@@ -888,10 +961,13 @@ def _sample_rejection_reasons(
         reasons.append("reconnect_boundary")
     seen: set[tuple[str, str, str]] = set()
     symbols = {event.symbol for event in sample.events if event.event_type in ("bar", "quote")}
+    quote_symbols = {event.symbol for event in sample.events if event.event_type == "quote"}
     bar_symbols = {event.symbol for event in sample.events if event.event_type == "bar"}
-    if set(request.symbols) - symbols or set(request.symbols) - bar_symbols:
+    if set(request.symbols) - symbols or set(request.symbols) - quote_symbols or set(request.symbols) - bar_symbols:
         reasons.append("missing_symbol")
     for event in sample.events:
+        if event.event_type not in ("quote", "bar") or event.symbol not in APPROVED_SYMBOLS:
+            reasons.append("unsupported_event")
         if event.rate_limit_remaining < 0:
             reasons.append("rate_limit")
         key = (event.event_type, event.symbol, event.exchange_timestamp)
@@ -910,6 +986,10 @@ def _sample_rejection_reasons(
             reasons.append("stale_quote")
         if event.connection_state == "reconnect_open":
             reasons.append("reconnect_boundary")
+        if event.delay_minutes != 15:
+            reasons.append("stale_quote")
+        if event.event_type == "quote" and any(value is None for value in (event.bid, event.ask)):
+            reasons.append("malformed_payload")
         if event.event_type == "bar" and any(
             value is None for value in (event.open, event.high, event.low, event.close, event.volume)
         ):
@@ -1038,8 +1118,9 @@ def _market_data_evidence(
 
 def _client_request_evidence(client: TastytradeSandboxReadOnlyClient | None) -> dict[str, Any]:
     records = getattr(client, "request_evidence", None)
+    dxlink_records = getattr(client, "dxlink_request_evidence", None)
     if not isinstance(records, list):
-        return {
+        base = {
             "request_records": (),
             "provider_resource_write_count": 0,
             "order_call_count": 0,
@@ -1047,9 +1128,13 @@ def _client_request_evidence(client: TastytradeSandboxReadOnlyClient | None) -> 
             "routing_call_count": 0,
             "execution_call_count": 0,
         }
+        if isinstance(dxlink_records, list):
+            base["dxlink_sidecar_records"] = tuple(dxlink_records)
+        return base
     sanitized = tuple(redact_sensitive_payload(record) for record in records)
     return {
         "request_records": sanitized,
+        "dxlink_sidecar_records": tuple(dxlink_records) if isinstance(dxlink_records, list) else (),
         "provider_resource_write_count": 0,
         "order_call_count": 0,
         "mutation_call_count": 0,
@@ -1129,6 +1214,131 @@ def _headers(with_authorization: str | None, *, content_type: str = "application
     if with_authorization:
         headers["Authorization"] = with_authorization
     return headers
+
+
+def _dxlink_stdin_payload(
+    quote_token: SandboxQuoteToken,
+    symbols: tuple[str, ...],
+    as_of: datetime,
+    timeout_seconds: float,
+) -> str:
+    if tuple(symbols) != APPROVED_SYMBOLS:
+        raise SandboxClientError("missing_symbol")
+    payload = {
+        "quoteToken": quote_token.quote_token,
+        "dxlinkUrl": quote_token.websocket_url,
+        "symbols": list(symbols),
+        "acquisitionTimestamp": as_of.isoformat(),
+        "timeoutMs": int(max(1.0, timeout_seconds) * 1000),
+    }
+    text = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    if len(text.encode("utf-8")) > DXLINK_STDIN_MAX_BYTES:
+        raise SandboxClientError("dxlink_output_malformed")
+    return text
+
+
+def _sample_from_dxlink_stdout(stdout: str, as_of: datetime) -> SandboxMarketDataSample:
+    try:
+        envelope = json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        raise SandboxClientError("dxlink_output_malformed") from exc
+    if not isinstance(envelope, dict) or envelope.get("ok") is not True:
+        raise SandboxClientError("dxlink_output_malformed")
+    if envelope.get("connected") is not True:
+        raise SandboxClientError("market_data_disconnect")
+    events = envelope.get("events")
+    if not isinstance(events, list) or len(events) > 16:
+        raise SandboxClientError("dxlink_output_malformed")
+    normalized = tuple(_dxlink_event_from_payload(event, as_of) for event in events)
+    return SandboxMarketDataSample(
+        connected=True,
+        disconnected=bool(envelope.get("disconnected", False)),
+        reconnect_count=_required_int(envelope.get("reconnect_count", 0), "dxlink_output_malformed"),
+        events=normalized,
+    )
+
+
+def _dxlink_event_from_payload(payload: Any, as_of: datetime) -> SandboxMarketDataEvent:
+    if not isinstance(payload, dict):
+        raise SandboxClientError("dxlink_output_malformed")
+    raw_type = str(payload.get("event_type") or payload.get("eventType") or "")
+    if raw_type not in ("Quote", "Candle", "quote", "candle"):
+        raise SandboxClientError("unsupported_event")
+    event_type = "quote" if raw_type.lower() == "quote" else "bar"
+    symbol = _normalize_dxlink_symbol(payload.get("symbol") or payload.get("eventSymbol"))
+    if symbol not in APPROVED_SYMBOLS:
+        raise SandboxClientError("missing_symbol")
+    provider_timestamp = _required_timestamp(payload.get("provider_timestamp") or payload.get("providerTimestamp"))
+    exchange_timestamp = _required_timestamp(payload.get("exchange_timestamp") or payload.get("exchangeTimestamp"))
+    acquisition_timestamp = _required_timestamp(payload.get("acquisition_timestamp") or payload.get("acquisitionTimestamp") or as_of.isoformat())
+    if event_type == "quote":
+        bid = _required_float(payload.get("bid") if "bid" in payload else payload.get("bidPrice"), "dxlink_output_malformed")
+        ask = _required_float(payload.get("ask") if "ask" in payload else payload.get("askPrice"), "dxlink_output_malformed")
+        return SandboxMarketDataEvent(
+            event_id=f"{symbol}-quote-{exchange_timestamp}",
+            event_type="quote",
+            symbol=symbol,
+            provider_timestamp=provider_timestamp,
+            exchange_timestamp=exchange_timestamp,
+            acquisition_timestamp=acquisition_timestamp,
+            bid=bid,
+            ask=ask,
+            delay_minutes=15,
+        )
+    return SandboxMarketDataEvent(
+        event_id=f"{symbol}-bar-{exchange_timestamp}",
+        event_type="bar",
+        symbol=symbol,
+        provider_timestamp=provider_timestamp,
+        exchange_timestamp=exchange_timestamp,
+        acquisition_timestamp=acquisition_timestamp,
+        open=_required_float(payload.get("open"), "dxlink_output_malformed"),
+        high=_required_float(payload.get("high"), "dxlink_output_malformed"),
+        low=_required_float(payload.get("low"), "dxlink_output_malformed"),
+        close=_required_float(payload.get("close"), "dxlink_output_malformed"),
+        volume=_required_int(payload.get("volume"), "dxlink_output_malformed"),
+        delay_minutes=15,
+    )
+
+
+def _normalize_dxlink_symbol(value: Any) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise SandboxClientError("dxlink_output_malformed")
+    candidate = value.strip().upper()
+    for symbol in APPROVED_SYMBOLS:
+        if candidate == symbol or candidate.startswith(f"{symbol}{{") or candidate.startswith(f"{symbol}:"):
+            return symbol
+    return candidate
+
+
+def _required_timestamp(value: Any) -> str:
+    if _parse_datetime(value) is None:
+        raise SandboxClientError("dxlink_output_malformed")
+    return str(value)
+
+
+def _required_float(value: Any, reason: str) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise SandboxClientError(reason) from exc
+    if not math.isfinite(parsed):
+        raise SandboxClientError(reason)
+    return parsed
+
+
+def _required_int(value: Any, reason: str) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise SandboxClientError(reason) from exc
+    return parsed
+
+
+def _contains_secret_material_text(text: str, quote_token: SandboxQuoteToken) -> bool:
+    if not text:
+        return False
+    return quote_token.quote_token in text or quote_token.websocket_url in text
 
 
 def _assert_firewall_allowed(method: str, url: str, *, is_oauth_token_refresh: bool = False) -> None:
@@ -1268,59 +1478,6 @@ def _first_string(payload: dict[str, Any], keys: tuple[str, ...], default: str =
             if isinstance(value, str) and value.strip():
                 return value.strip()
     return default
-
-
-def _market_data_event_from_message(raw: str, as_of: datetime) -> SandboxMarketDataEvent | None:
-    try:
-        payload = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise SandboxClientError("malformed_payload") from exc
-    if not isinstance(payload, dict):
-        raise SandboxClientError("malformed_payload")
-    event_type = str(payload.get("event_type") or payload.get("type") or "").lower()
-    if event_type in ("auth_state", "connected", "heartbeat", "subscription"):
-        return None
-    symbol = str(payload.get("symbol") or payload.get("eventSymbol") or "").upper()
-    if symbol not in APPROVED_SYMBOLS:
-        return None
-    provider_timestamp = str(payload.get("provider_timestamp") or payload.get("time") or as_of.isoformat())
-    exchange_timestamp = str(payload.get("exchange_timestamp") or payload.get("eventTime") or provider_timestamp)
-    acquisition_timestamp = as_of.isoformat()
-    normalized_type = "bar" if event_type in ("bar", "candle", "ohlc") else "quote"
-    return SandboxMarketDataEvent(
-        event_id=str(payload.get("event_id") or f"{symbol}-{normalized_type}-{exchange_timestamp}"),
-        event_type=normalized_type,
-        symbol=symbol,
-        provider_timestamp=provider_timestamp,
-        exchange_timestamp=exchange_timestamp,
-        acquisition_timestamp=acquisition_timestamp,
-        bid=_optional_float(payload.get("bid")),
-        ask=_optional_float(payload.get("ask")),
-        open=_optional_float(payload.get("open")),
-        high=_optional_float(payload.get("high")),
-        low=_optional_float(payload.get("low")),
-        close=_optional_float(payload.get("close")),
-        volume=_optional_int(payload.get("volume")),
-        delay_minutes=_optional_int(payload.get("delay_minutes")) or 15,
-    )
-
-
-def _optional_float(value: Any) -> float | None:
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _optional_int(value: Any) -> int | None:
-    if value is None:
-        return None
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _validate_safety(manifest: dict[str, Any]) -> None:

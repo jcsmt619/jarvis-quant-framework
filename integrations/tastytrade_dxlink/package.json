@@ -1,0 +1,13 @@
+{
+  "name": "jarvis-tastytrade-dxlink-read-only-sidecar",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "BR-30B4 read-only Tastytrade sandbox DXLink sidecar.",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@dxfeed/dxlink-api": "0.3.0"
+  }
+}
