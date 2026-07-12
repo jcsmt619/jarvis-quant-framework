@@ -38,6 +38,7 @@ from risk.policies import (
 
 PHASE_ID = "BR-30B"
 PHASE_30B1_ID = "BR-30B1"
+PHASE_30B2_ID = "BR-30B2"
 MODULE_NAME = "Tastytrade Sandbox Read Only Connectivity Smoke Test"
 CONCRETE_CLIENT_NAME = "Tastytrade Sandbox Concrete Read Only Network Client"
 DEFAULT_REPORT_DIR = Path("reports/br30b_tastytrade_sandbox_read_only_connectivity_smoke_test")
@@ -86,6 +87,7 @@ REJECTION_REASONS = (
     "redaction_failed",
     "normalization_failed",
     "unauthorized",
+    "bad_request",
     "forbidden",
     "provider_server_error",
     "timeout",
@@ -120,6 +122,7 @@ class HttpTransport(Protocol):
         *,
         headers: dict[str, str],
         data: dict[str, str] | None = None,
+        json_body: dict[str, str] | None = None,
         timeout: tuple[float, float] | float | None = None,
         allow_redirects: bool = False,
     ) -> HttpResponse:
@@ -207,6 +210,7 @@ class RequestsHttpTransport:
         *,
         headers: dict[str, str],
         data: dict[str, str] | None = None,
+        json_body: dict[str, str] | None = None,
         timeout: tuple[float, float] | float | None = None,
         allow_redirects: bool = False,
     ) -> HttpResponse:
@@ -215,6 +219,7 @@ class RequestsHttpTransport:
             url,
             headers=headers,
             data=data,
+            json=json_body,
             timeout=timeout,
             allow_redirects=allow_redirects,
         )
@@ -261,17 +266,16 @@ class TastytradeSandboxOAuthRefreshTokenClient:
         validate_oauth_scopes(scopes)
         url = f"{APPROVED_SANDBOX_ORIGIN}{OAUTH_TOKEN_PATH}"
         _assert_firewall_allowed("POST", url, is_oauth_token_refresh=True)
-        headers = _headers(with_authorization=None)
+        headers = _headers(with_authorization=None, content_type="application/json")
         try:
             response = self._http.request(
                 "POST",
                 url,
                 headers=headers,
-                data={
+                json_body={
                     "grant_type": "refresh_token",
-                    "client_id": credentials.client_id,
-                    "client_secret": credentials.client_secret,
                     "refresh_token": credentials.refresh_token,
+                    "client_secret": credentials.client_secret,
                     "scope": " ".join(scopes),
                 },
                 timeout=(self._connect_timeout_seconds, self._read_timeout_seconds),
@@ -281,20 +285,28 @@ class TastytradeSandboxOAuthRefreshTokenClient:
             raise SandboxTimeoutError() from exc
         self.request_evidence.append(_request_evidence("POST", url, response, as_of))
         _reject_bad_response("POST", url, response)
-        payload = _json_payload(response)
+        payload = _oauth_token_payload(response)
         access_token = payload.get("access_token")
-        expires_in = payload.get("expires_in", 900)
-        scope_text = payload.get("scope", " ".join(scopes))
+        expires_in = payload.get("expires_in")
+        token_type = payload.get("token_type")
+        scope_text = payload.get("scope")
         if not isinstance(access_token, str) or not access_token.strip():
             raise SandboxClientError("malformed_payload")
         if not isinstance(expires_in, int) or expires_in <= 0:
             raise SandboxClientError("malformed_payload")
-        granted_scopes = tuple(sorted(scope for scope in str(scope_text).replace(",", " ").split() if scope))
+        if not isinstance(token_type, str) or token_type != "Bearer":
+            raise SandboxClientError("malformed_payload")
+        if scope_text is None:
+            granted_scopes = tuple(sorted(scopes))
+        elif isinstance(scope_text, str):
+            granted_scopes = tuple(sorted(scope for scope in scope_text.replace(",", " ").split() if scope))
+        else:
+            raise SandboxClientError("malformed_payload")
         return OAuthTokenResponse(
             access_token=access_token,
             expires_at=as_of + timedelta(seconds=expires_in),
             scopes=granted_scopes,
-            token_type=str(payload.get("token_type", "Bearer")),
+            token_type=token_type,
         )
 
     def revoke_access_token(self, access_token: InMemoryAccessToken) -> None:
@@ -598,6 +610,7 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
     return {
         "phase": PHASE_ID,
         "concrete_client_phase": PHASE_30B1_ID,
+        "oauth_contract_phase": PHASE_30B2_ID,
         "module": MODULE_NAME,
         "concrete_client": CONCRETE_CLIENT_NAME,
         "labels": REQUIRED_LABELS,
@@ -616,6 +629,10 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
         "approved_sandbox_origin": APPROVED_SANDBOX_ORIGIN,
         "approved_http_paths": (ACCOUNT_DISCOVERY_PATH, QUOTE_TOKEN_PATH),
         "approved_oauth_token_path": OAUTH_TOKEN_PATH,
+        "oauth_token_request_body_keys": ("client_secret", "grant_type", "refresh_token", "scope"),
+        "oauth_token_request_uses_json_body": True,
+        "oauth_token_request_omits_client_id": True,
+        "oauth_error_bodies_persisted": False,
         "approved_user_agent": USER_AGENT,
         "production_hosts_rejected": True,
         "alternate_sandbox_hosts_rejected": True,
@@ -1087,10 +1104,10 @@ def _client_reason(exc: SandboxClientError, fallback: str) -> str:
     return exc.reason if exc.reason in REJECTION_REASONS else fallback
 
 
-def _headers(with_authorization: str | None) -> dict[str, str]:
+def _headers(with_authorization: str | None, *, content_type: str = "application/x-www-form-urlencoded") -> dict[str, str]:
     headers = {
         "Accept": "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type": content_type,
         "User-Agent": USER_AGENT,
     }
     if with_authorization:
@@ -1140,6 +1157,9 @@ def _request_evidence(method: str, url: str, response: HttpResponse, as_of: date
         "timestamp": as_of.isoformat(),
         "redacted": True,
         "authorization_header_written": False,
+        "request_body_written": False,
+        "query_string_used": False,
+        "response_body_written": False,
         "token_values_written": False,
     }
 
@@ -1147,6 +1167,8 @@ def _request_evidence(method: str, url: str, response: HttpResponse, as_of: date
 def _reject_bad_response(method: str, url: str, response: HttpResponse) -> None:
     _assert_same_approved_origin(url, response.url)
     status = int(response.status_code)
+    if status == 400:
+        raise SandboxClientError("bad_request")
     if status == 401:
         raise SandboxClientError("unauthorized")
     if status == 403:
@@ -1157,6 +1179,11 @@ def _reject_bad_response(method: str, url: str, response: HttpResponse) -> None:
         raise SandboxClientError("provider_server_error")
     if not 200 <= status < 300:
         raise SandboxClientError("malformed_payload")
+
+
+def _oauth_token_payload(response: HttpResponse) -> dict[str, Any]:
+    payload = _json_payload(response)
+    return {key: payload[key] for key in ("access_token", "expires_in", "token_type", "scope") if key in payload}
 
 
 def _json_payload(response: HttpResponse) -> dict[str, Any]:
