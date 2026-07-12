@@ -39,6 +39,7 @@ from risk.policies import (
 PHASE_ID = "BR-30B"
 PHASE_30B1_ID = "BR-30B1"
 PHASE_30B2_ID = "BR-30B2"
+PHASE_30B3_ID = "BR-30B3"
 MODULE_NAME = "Tastytrade Sandbox Read Only Connectivity Smoke Test"
 CONCRETE_CLIENT_NAME = "Tastytrade Sandbox Concrete Read Only Network Client"
 DEFAULT_REPORT_DIR = Path("reports/br30b_tastytrade_sandbox_read_only_connectivity_smoke_test")
@@ -80,6 +81,8 @@ REJECTION_REASONS = (
     "reconnect_boundary",
     "rate_limit",
     "malformed_payload",
+    "account_payload_malformed",
+    "quote_token_payload_malformed",
     "missing_symbol",
     "duplicate_event",
     "stale_quote",
@@ -339,7 +342,7 @@ class TastytradeSandboxConcreteReadOnlyNetworkClient:
         as_of: datetime,
     ) -> "SandboxCustomerDiscovery":
         response = self._get(ACCOUNT_DISCOVERY_PATH, token, as_of)
-        payload = _json_payload(response)
+        payload = _json_payload(response, malformed_reason="account_payload_malformed")
         accounts = _extract_accounts(payload)
         customer_id = _extract_customer_id(payload)
         return SandboxCustomerDiscovery(
@@ -351,17 +354,20 @@ class TastytradeSandboxConcreteReadOnlyNetworkClient:
 
     def obtain_quote_token(self, token: InMemoryAccessToken, as_of: datetime) -> "SandboxQuoteToken":
         response = self._get(QUOTE_TOKEN_PATH, token, as_of)
-        payload = _json_payload(response)
-        quote_token = _first_string(payload, ("token", "quote_token", "api_quote_token"))
-        websocket_url = _first_string(payload, ("websocket_url", "streamer_url", "dxlink_url", "wss_url"))
-        feed_identity = _first_string(payload, ("feed", "feed_identity", "streamer_identity"), default="tastytrade.market-data.read-only")
+        payload = _json_payload(response, malformed_reason="quote_token_payload_malformed")
+        quote_payload = _quote_token_payload(payload)
+        quote_token = _first_string(quote_payload, ("token", "quote_token", "api_quote_token"))
+        websocket_url = _first_string(quote_payload, ("dxlink-url", "dxlink_url", "websocket_url", "streamer_url", "wss_url"))
+        feed_identity = _first_string(quote_payload, ("feed", "feed_identity", "streamer_identity"), default="tastytrade.market-data.read-only")
+        level = _first_string(quote_payload, ("level",), default="")
         if not quote_token or not websocket_url:
-            raise SandboxClientError("malformed_payload")
+            raise SandboxClientError("quote_token_payload_malformed")
         _assert_websocket_endpoint_allowed(websocket_url)
         return SandboxQuoteToken(
             quote_token=quote_token,
             websocket_url=websocket_url,
             feed_identity=feed_identity,
+            level=level,
             provider_timestamp=_provider_timestamp(payload, as_of),
             acquisition_timestamp=as_of.isoformat(),
         )
@@ -444,6 +450,7 @@ class SandboxQuoteToken:
     feed_identity: str
     provider_timestamp: str
     acquisition_timestamp: str
+    level: str = ""
     websocket_url: str = field(default="", repr=False)
 
 
@@ -611,6 +618,7 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
         "phase": PHASE_ID,
         "concrete_client_phase": PHASE_30B1_ID,
         "oauth_contract_phase": PHASE_30B2_ID,
+        "rest_response_contract_phase": PHASE_30B3_ID,
         "module": MODULE_NAME,
         "concrete_client": CONCRETE_CLIENT_NAME,
         "labels": REQUIRED_LABELS,
@@ -640,6 +648,12 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
         "cross_host_redirects_rejected": True,
         "arbitrary_caller_urls_rejected": True,
         "websocket_endpoint_must_come_from_quote_token_response": True,
+        "quote_token_endpoint_scheme_required": "wss",
+        "quote_token_full_dxlink_url_written": False,
+        "quote_token_values_written": False,
+        "quote_token_level_metadata_supported": True,
+        "account_payload_malformed_reason_supported": True,
+        "quote_token_payload_malformed_reason_supported": True,
         "long_running_stream_permitted": False,
         "access_tokens_memory_only": True,
         "quote_tokens_memory_only": True,
@@ -823,6 +837,7 @@ def _raw_market_data_payload(quote_token: SandboxQuoteToken, sample: SandboxMark
             "snapshot_id": "br30b-sandbox-smoke",
             "environment": "sandbox",
             "feed_identity": quote_token.feed_identity,
+            "quote_token_level": quote_token.level,
             "read_only": True,
         },
         "capabilities": {
@@ -1001,6 +1016,7 @@ def _market_data_evidence(
         "provider": raw_payload.get("provider"),
         "feed_identity": raw_payload.get("feed"),
         "schema_version": raw_payload.get("metadata", {}).get("schema_version"),
+        "quote_token_level": raw_payload.get("metadata", {}).get("quote_token_level"),
         "symbols": tuple(sorted({event.get("symbol") for event in events if isinstance(event, dict) and event.get("symbol")})),
         "provider_timestamps": tuple(event.get("provider_timestamp") for event in events if isinstance(event, dict)),
         "exchange_timestamps": tuple(event.get("exchange_timestamp") for event in events if isinstance(event, dict)),
@@ -1186,13 +1202,13 @@ def _oauth_token_payload(response: HttpResponse) -> dict[str, Any]:
     return {key: payload[key] for key in ("access_token", "expires_in", "token_type", "scope") if key in payload}
 
 
-def _json_payload(response: HttpResponse) -> dict[str, Any]:
+def _json_payload(response: HttpResponse, *, malformed_reason: str = "malformed_payload") -> dict[str, Any]:
     try:
         payload = response.json()
     except Exception as exc:
-        raise SandboxClientError("malformed_payload") from exc
+        raise SandboxClientError(malformed_reason) from exc
     if not isinstance(payload, dict):
-        raise SandboxClientError("malformed_payload")
+        raise SandboxClientError(malformed_reason)
     return payload
 
 
@@ -1201,17 +1217,28 @@ def _extract_accounts(payload: dict[str, Any]) -> tuple[str, ...]:
     if isinstance(candidates, dict):
         candidates = candidates.get("accounts", candidates.get("items", ()))
     if not isinstance(candidates, list):
-        raise SandboxClientError("malformed_payload")
+        raise SandboxClientError("account_payload_malformed")
     account_ids: list[str] = []
     for item in candidates:
         if not isinstance(item, dict):
             continue
-        account_id = item.get("account-number") or item.get("account_number") or item.get("account_id") or item.get("id")
+        nested = item.get("account")
+        account_id = ""
+        if isinstance(nested, dict):
+            account_id = nested.get("account-number") or nested.get("account_number") or nested.get("account_id") or nested.get("id") or ""
+        account_id = account_id or item.get("account-number") or item.get("account_number") or item.get("account_id") or item.get("id")
         if isinstance(account_id, str) and account_id.strip():
             account_ids.append(account_id.strip())
     if not account_ids:
-        raise SandboxClientError("malformed_payload")
+        raise SandboxClientError("account_payload_malformed")
     return tuple(account_ids)
+
+
+def _quote_token_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    wrapped = payload.get("data", payload)
+    if not isinstance(wrapped, dict):
+        raise SandboxClientError("quote_token_payload_malformed")
+    return wrapped
 
 
 def _extract_customer_id(payload: dict[str, Any]) -> str:
