@@ -83,7 +83,13 @@ The sidecar follows the checked-in SDK `0.3.0` contract before any real DXLink c
 
 Subscription objects must not contain plural `symbols` or subscription-level `fields`. The sidecar subscribes only to Quote and one-minute Candle data for exactly `SPY` and `QQQ`. It does not subscribe to Trade, Greeks, Summary, Profile, Underlying, Order, account-streaming, or arbitrary event types. Compact fields are limited to normalized event symbol, timestamps, bid price, ask price, open, high, low, close, and volume.
 
-`dxlink_runtime_preflight.mjs` is a local no-credential preflight. It imports the installed pinned SDK and verifies required constructors and methods without accepting credentials and without calling `connect`.
+## BR-30B4B DXLink Runtime Preflight Package Metadata
+
+`dxlink_runtime_preflight.mjs` is a local no-credential preflight. It resolves the installed SDK entry with `import.meta.resolve("@dxfeed/dxlink-api")`, converts the file URL with `fileURLToPath`, and performs a bounded upward filesystem search for the physical package manifest under `node_modules/@dxfeed/dxlink-api`. It does not import or require the unexported `@dxfeed/dxlink-api/package.json` subpath.
+
+The preflight accepts only a manifest whose `name` is exactly `@dxfeed/dxlink-api` and whose `version` is exactly `0.3.0`. Missing, malformed, ambiguous, escaped, symlinked, wrong-name, or wrong-version metadata fails closed with sanitized stderr. The preflight verifies `DXLinkWebSocketClient`, `DXLinkFeed`, `FeedContract.AUTO`, `FeedDataFormat.COMPACT`, `connect`, `setAuthToken`, `configure`, `addSubscriptions`, and `addEventListener` without accepting credentials and without calling `connect` or `setAuthToken`.
+
+Successful stdout is exactly one bounded JSON object with `ok=true`, `sdk="@dxfeed/dxlink-api"`, `contract="0.3.0"`, `connection_attempted=false`, and `credentials_accepted=false`.
 
 The sidecar stdout is a bounded machine-readable result envelope containing normalized non-secret event fields only. Stderr is restricted to allowlisted sanitized status codes. Raw DXLink protocol messages, authentication states, provider payloads, quote tokens, full WSS URLs, and SDK diagnostics must never be written or printed.
 
@@ -92,6 +98,8 @@ The Python parent enforces stdout and stderr size limits, hard timeout, approved
 Stage-specific DXLink rejection reasons:
 
 - `dxlink_dependency_unavailable`
+- `dxlink_package_metadata_unavailable`
+- `dxlink_contract_mismatch`
 - `dxlink_authentication_failed`
 - `dxlink_subscription_failed`
 - `dxlink_timeout`

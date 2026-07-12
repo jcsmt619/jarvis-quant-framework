@@ -71,6 +71,8 @@ DXLINK_STDOUT_MAX_BYTES = 16384
 DXLINK_STDERR_MAX_BYTES = 2048
 DXLINK_ALLOWED_STDERR_CODES = (
     "dxlink_dependency_unavailable",
+    "dxlink_package_metadata_unavailable",
+    "dxlink_contract_mismatch",
     "dxlink_authentication_failed",
     "dxlink_subscription_failed",
     "dxlink_timeout",
@@ -144,6 +146,8 @@ REJECTION_REASONS = (
     "timeout",
     "websocket_endpoint_rejected",
     "dxlink_dependency_unavailable",
+    "dxlink_package_metadata_unavailable",
+    "dxlink_contract_mismatch",
     "dxlink_authentication_failed",
     "dxlink_subscription_failed",
     "dxlink_timeout",
@@ -481,7 +485,7 @@ class TastytradeSandboxConcreteReadOnlyNetworkClient:
             raise SandboxClientError("dxlink_timeout")
         if len(completed.stdout.encode("utf-8")) > DXLINK_STDOUT_MAX_BYTES or len(completed.stderr.encode("utf-8")) > DXLINK_STDERR_MAX_BYTES:
             raise SandboxClientError("dxlink_output_malformed")
-        stderr_code = completed.stderr.strip()
+        stderr_code = completed.stderr
         if stderr_code and stderr_code not in DXLINK_ALLOWED_STDERR_CODES:
             raise SandboxClientError("dxlink_output_malformed")
         if completed.returncode != 0:
