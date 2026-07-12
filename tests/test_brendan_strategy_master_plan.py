@@ -70,6 +70,8 @@ def test_brendan_master_plan_has_ordered_br_phases() -> None:
         "OPS-05",
         "UI-00",
         "BR-30",
+        "BR-30A",
+        "BR-30B",
     ]
 
 
