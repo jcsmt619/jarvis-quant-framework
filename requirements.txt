@@ -24,6 +24,7 @@ yfinance
 # Config / env
 PyYAML==6.0.1
 python-dotenv==1.2.2
+keyring
 
 # HTTP / scraping
 requests==2.34.2
