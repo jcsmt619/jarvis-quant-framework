@@ -26,8 +26,10 @@ from engines.moonshot.deterministic.br30a_secure_local_oauth_runtime_bridge impo
 from engines.moonshot.deterministic.br30b_tastytrade_sandbox_read_only_connectivity_smoke_test import (
     APPROVED_SYMBOLS,
     DEFAULT_REPORT_DIR,
+    DXLINK_ALLOWED_STDERR_CODES,
     DXLINK_CHILD_ENV_ALLOWLIST,
     DXLINK_CHILD_ENV_DENY_KEY_MARKERS,
+    DXLINK_STDERR_MAX_BYTES,
     DXLINK_STDOUT_MAX_BYTES,
     JSON_REPORT_NAME,
     MARKDOWN_REPORT_NAME,
@@ -566,7 +568,16 @@ def test_br30b4_dxlink_sidecar_source_uses_official_sdk_compact_quote_and_candle
     assert "DXLinkFeed" in sidecar
     assert "FeedContract.AUTO" in sidecar
     assert "FeedDataFormat.COMPACT" in sidecar
-    assert 'packageJson.version !== "0.3.0"' in preflight
+    assert "createRequire" not in preflight
+    assert 'require("@dxfeed/dxlink-api/package.json")' not in preflight
+    assert 'import("@dxfeed/dxlink-api/package.json")' not in preflight
+    assert 'import.meta.resolve("@dxfeed/dxlink-api")' in preflight
+    assert 'const SDK_PACKAGE = "@dxfeed/dxlink-api"' in preflight
+    assert "fileURLToPath" in preflight
+    assert "readFile(manifestPath" in preflight
+    assert "JSON.parse(text)" in preflight
+    assert "dxlink_package_metadata_unavailable" in preflight
+    assert "dxlink_contract_mismatch" in preflight
     assert "connection_attempted: false" in preflight
     assert "credentials_accepted: false" in preflight
     assert '"Quote"' in sidecar
@@ -676,6 +687,84 @@ def test_br30b4a_fake_sdk_harness_runs_actual_sidecar_offline() -> None:
     assert "streamer.cert.tastyworks.com" not in completed.stdout
     assert "stdin-only-quote-token" not in completed.stderr
     assert "streamer.cert.tastyworks.com" not in completed.stderr
+
+
+def test_br30b4b_runtime_preflight_resolves_physical_manifest_without_package_subpath() -> None:
+    completed = _run_fake_runtime_preflight()
+
+    envelope = json.loads(completed.stdout)
+    assert completed.returncode == 0
+    assert completed.stderr == ""
+    assert envelope == {
+        "ok": True,
+        "sdk": "@dxfeed/dxlink-api",
+        "contract": "0.3.0",
+        "connection_attempted": False,
+        "credentials_accepted": False,
+    }
+    assert len(completed.stdout.encode("utf-8")) <= DXLINK_STDOUT_MAX_BYTES
+    assert "quote-token" not in completed.stdout
+    assert "client-secret" not in completed.stdout
+    assert "wss://" not in completed.stdout
+
+
+@pytest.mark.parametrize(
+    ("manifest", "expected_code"),
+    [
+        ({"name": "wrong-package", "version": "0.3.0", "type": "module", "exports": "./index.mjs"}, "dxlink_contract_mismatch"),
+        ({"name": "@dxfeed/dxlink-api", "version": "0.3.1", "type": "module", "exports": "./index.mjs"}, "dxlink_contract_mismatch"),
+    ],
+)
+def test_br30b4b_runtime_preflight_rejects_wrong_package_name_and_version(
+    manifest: dict[str, str],
+    expected_code: str,
+) -> None:
+    completed = _run_fake_runtime_preflight(manifest=manifest)
+
+    assert completed.returncode == 1
+    assert completed.stdout == ""
+    assert completed.stderr == expected_code
+    assert "\\" not in completed.stderr
+    assert "/" not in completed.stderr
+
+
+@pytest.mark.parametrize(
+    ("case", "expected_code"),
+    [
+        ("missing", "dxlink_package_metadata_unavailable"),
+        ("malformed", "dxlink_package_metadata_unavailable"),
+        ("ambiguous", "dxlink_package_metadata_unavailable"),
+    ],
+)
+def test_br30b4b_runtime_preflight_rejects_missing_malformed_and_ambiguous_metadata(
+    case: str,
+    expected_code: str,
+) -> None:
+    completed = _run_fake_runtime_preflight(metadata_case=case)
+
+    assert completed.returncode == 1
+    assert completed.stdout == ""
+    assert completed.stderr == expected_code
+    assert completed.stderr in DXLINK_ALLOWED_STDERR_CODES
+    assert len(completed.stderr.encode("utf-8")) <= DXLINK_STDERR_MAX_BYTES
+
+
+def test_br30b4b_runtime_preflight_rejects_path_escape_when_sdk_entry_leaves_package_root() -> None:
+    completed = _run_fake_runtime_preflight(metadata_case="escape_main")
+
+    assert completed.returncode == 1
+    assert completed.stdout == ""
+    assert completed.stderr == "dxlink_package_metadata_unavailable"
+
+
+def test_br30b4b_python_wrapper_rejects_mixed_or_additional_stderr() -> None:
+    runner = FakeDXLinkRunner(returncode=1, stderr="dxlink_process_failed\nprovider stack")
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+        http_transport=FakeHttpTransport.valid(),
+        dxlink_runner=runner,
+    )
+
+    assert _blocked_reason_for_client(client) == "dxlink_output_malformed"
 
 
 def test_br30b3_concrete_client_parses_nested_and_direct_account_number_variants() -> None:
@@ -1396,6 +1485,113 @@ def _fake_dxlink_sdk_source() -> str:
           };
         }
         """
+    )
+
+
+def _fake_preflight_sdk_source() -> str:
+    return textwrap.dedent(
+        """
+        export const FeedContract = Object.freeze({ AUTO: "AUTO" });
+        export const FeedDataFormat = Object.freeze({ COMPACT: "COMPACT" });
+
+        export class DXLinkWebSocketClient {
+          connect() {
+            throw new Error("network-method-must-not-be-called");
+          }
+          setAuthToken() {
+            throw new Error("credentials-must-not-be-accepted");
+          }
+        }
+
+        export class DXLinkFeed {
+          constructor(client, contract) {
+            if (arguments.length !== 2 || contract !== FeedContract.AUTO || !client) {
+              throw new Error("feed-contract");
+            }
+          }
+          configure() {}
+          addSubscriptions() {}
+          addEventListener() {}
+        }
+        """
+    )
+
+
+def _make_fake_preflight_tree(
+    tmp_path: Path,
+    *,
+    manifest: dict[str, str] | None = None,
+    metadata_case: str = "valid",
+) -> Path:
+    sidecar_dir = tmp_path / "integrations" / "tastytrade_dxlink"
+    sidecar_dir.mkdir(parents=True)
+    shutil.copyfile(
+        Path("integrations/tastytrade_dxlink/dxlink_runtime_preflight.mjs"),
+        sidecar_dir / "dxlink_runtime_preflight.mjs",
+    )
+    fake_sdk_dir = sidecar_dir / "node_modules" / "@dxfeed" / "dxlink-api"
+    fake_sdk_dir.mkdir(parents=True)
+    resolved_manifest = manifest or {
+        "name": "@dxfeed/dxlink-api",
+        "version": "0.3.0",
+        "type": "module",
+        "exports": "./index.mjs",
+    }
+    if metadata_case == "malformed":
+        (fake_sdk_dir / "package.json").write_text("{not-json", encoding="utf-8")
+    elif metadata_case != "missing":
+        (fake_sdk_dir / "package.json").write_text(json.dumps(resolved_manifest), encoding="utf-8")
+    if metadata_case == "ambiguous":
+        dist_dir = fake_sdk_dir / "dist"
+        dist_dir.mkdir()
+        (dist_dir / "index.mjs").write_text(_fake_preflight_sdk_source(), encoding="utf-8")
+        (dist_dir / "package.json").write_text(
+            json.dumps({"name": "@dxfeed/dxlink-api", "version": "0.3.0"}),
+            encoding="utf-8",
+        )
+        package_json = json.loads((fake_sdk_dir / "package.json").read_text(encoding="utf-8"))
+        package_json["exports"] = "./dist/index.mjs"
+        (fake_sdk_dir / "package.json").write_text(json.dumps(package_json), encoding="utf-8")
+    elif metadata_case == "missing":
+        (fake_sdk_dir / "index.js").write_text(_fake_preflight_sdk_source(), encoding="utf-8")
+    elif metadata_case == "escape_main":
+        outside = sidecar_dir / "outside"
+        outside.mkdir(parents=True)
+        (outside / "index.mjs").write_text(_fake_preflight_sdk_source(), encoding="utf-8")
+        package_json = json.loads((fake_sdk_dir / "package.json").read_text(encoding="utf-8"))
+        package_json.pop("exports", None)
+        package_json["main"] = "../../../outside/index.mjs"
+        (fake_sdk_dir / "package.json").write_text(json.dumps(package_json), encoding="utf-8")
+    else:
+        (fake_sdk_dir / "index.mjs").write_text(_fake_preflight_sdk_source(), encoding="utf-8")
+    return sidecar_dir
+
+
+def _run_fake_runtime_preflight(
+    *,
+    manifest: dict[str, str] | None = None,
+    metadata_case: str = "valid",
+) -> subprocess.CompletedProcess[str]:
+    node = shutil.which("node.exe") or shutil.which("node")
+    if node is None:
+        pytest.skip("Node is not installed in this environment")
+    tmp_path = Path(".codex_pytest_tmp") / f"br30b4b_preflight_{uuid.uuid4().hex}"
+    sidecar_dir = _make_fake_preflight_tree(tmp_path, manifest=manifest, metadata_case=metadata_case)
+    completed = _run_node_preflight(node, sidecar_dir)
+    shutil.rmtree(tmp_path)
+    return completed
+
+
+def _run_node_preflight(node: str, sidecar_dir: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [node, str(sidecar_dir / "dxlink_runtime_preflight.mjs")],
+        input="",
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=5,
+        shell=False,
+        env={"PATH": str(Path(node).parent), "SYSTEMROOT": "C:\\Windows"},
     )
 
 
