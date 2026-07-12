@@ -13,6 +13,7 @@ from engines.moonshot.deterministic.br26_read_only_data_snapshot_import_contract
 from engines.moonshot.deterministic.br30a_secure_local_oauth_runtime_bridge import (
     InMemoryAccessToken,
     MissingSecretError,
+    OAuthBridgeRequest,
     OAuthRuntimeCredentials,
     OAuthTokenResponse,
     SecureLocalOAuthRuntimeBridge,
@@ -73,6 +74,10 @@ def test_br30b_safety_manifest_blocks_execution_mutation_routing_and_live_tradin
 
     assert manifest["phase"] == PHASE_ID
     assert manifest["labels"]
+    assert manifest["oauth_contract_phase"] == "BR-30B2"
+    assert manifest["oauth_token_request_uses_json_body"] is True
+    assert manifest["oauth_token_request_omits_client_id"] is True
+    assert manifest["oauth_error_bodies_persisted"] is False
     assert manifest["access_tokens_memory_only"] is True
     assert manifest["raw_account_identifiers_written"] is False
     assert manifest["account_mutation_methods_available"] is False
@@ -316,14 +321,150 @@ def test_br30b1_concrete_token_exchange_uses_only_oauth_post_and_redacts_tokens(
     client = TastytradeSandboxOAuthRefreshTokenClient(http_transport=transport)
 
     response = client.refresh_access_token(FakeVault().credentials, ("openid", "read"), AS_OF)
+    call = transport.calls[0]
 
     assert response.scopes == ("openid", "read", "trade")
-    assert transport.calls[0]["method"] == "POST"
-    assert transport.calls[0]["url"] == "https://api.cert.tastyworks.com/oauth/token"
-    assert transport.calls[0]["allow_redirects"] is False
-    assert transport.calls[0]["headers"]["User-Agent"] == USER_AGENT
-    assert "Authorization" not in transport.calls[0]["headers"]
+    assert call["method"] == "POST"
+    assert call["url"] == "https://api.cert.tastyworks.com/oauth/token"
+    assert call["allow_redirects"] is False
+    assert call["headers"] == {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "User-Agent": USER_AGENT,
+    }
+    assert call["data"] is None
+    assert set(call["json_body"]) == {"grant_type", "refresh_token", "client_secret", "scope"}
+    assert call["json_body"]["grant_type"] == "refresh_token"
+    assert call["json_body"]["scope"] == "openid read"
+    assert "client_id" not in call["json_body"]
+    assert "client_id" not in call["url"]
     assert "mock-access-token" not in str(client.request_evidence)
+    assert "mock-client-secret" not in str(client.request_evidence)
+    assert "mock-refresh-token" not in str(client.request_evidence)
+
+
+def test_br30b2_oauth_token_contract_falls_back_to_requested_scopes_when_scope_absent() -> None:
+    transport = FakeHttpTransport(
+        {
+            ("POST", "https://api.cert.tastyworks.com/oauth/token"): FakeResponse(
+                200,
+                "https://api.cert.tastyworks.com/oauth/token",
+                {"access_token": "mock-access-token", "expires_in": 900, "token_type": "Bearer"},
+            )
+        }
+    )
+    client = TastytradeSandboxOAuthRefreshTokenClient(http_transport=transport)
+
+    response = client.refresh_access_token(FakeVault().credentials, ("openid", "read"), AS_OF)
+
+    assert response.scopes == ("openid", "read")
+    assert response.token_type == "Bearer"
+
+
+def test_br30b2_oauth_token_contract_keeps_provider_trade_scope_isolated_by_bridge() -> None:
+    transport = FakeHttpTransport(
+        {
+            ("POST", "https://api.cert.tastyworks.com/oauth/token"): FakeResponse(
+                200,
+                "https://api.cert.tastyworks.com/oauth/token",
+                {"access_token": "mock-access-token", "expires_in": 900, "scope": "openid read trade", "token_type": "Bearer"},
+            )
+        }
+    )
+    token_client = TastytradeSandboxOAuthRefreshTokenClient(http_transport=transport)
+    bridge = SecureLocalOAuthRuntimeBridge(vault=FakeVault(), token_client=token_client)
+
+    result = bridge.get_access_token_for_read_only_client(
+        request=OAuthBridgeRequest(mode="local_runtime", as_of=AS_OF)
+    )[0]
+
+    assert result.access_token_ready is True
+    assert result.token_summary["provider_scope_contains_trade"] is True
+    assert result.safety["order_create_capability"] is False
+    assert result.safety["broker_order_call_performed"] is False
+    assert result.safety["live_trading_enabled"] is False
+
+
+def test_br30b2_oauth_token_contract_blocks_malformed_success_response() -> None:
+    transport = FakeHttpTransport(
+        {
+            ("POST", "https://api.cert.tastyworks.com/oauth/token"): FakeResponse(
+                200,
+                "https://api.cert.tastyworks.com/oauth/token",
+                {"access_token": "mock-access-token", "expires_in": "900", "scope": "openid read", "token_type": "Bearer"},
+            )
+        }
+    )
+    client = TastytradeSandboxOAuthRefreshTokenClient(http_transport=transport)
+
+    with pytest.raises(SandboxClientError) as exc:
+        client.refresh_access_token(FakeVault().credentials, ("openid", "read"), AS_OF)
+
+    assert exc.value.reason == "malformed_payload"
+
+
+@pytest.mark.parametrize(
+    ("status", "expected_reason"),
+    [
+        (400, "bad_request"),
+        (401, "unauthorized"),
+        (403, "forbidden"),
+        (429, "rate_limit"),
+        (500, "provider_server_error"),
+        (503, "provider_server_error"),
+    ],
+)
+def test_br30b2_oauth_token_contract_classifies_errors_without_response_body(
+    status: int,
+    expected_reason: str,
+) -> None:
+    transport = FakeHttpTransport(
+        {
+            ("POST", "https://api.cert.tastyworks.com/oauth/token"): FakeResponse(
+                status,
+                "https://api.cert.tastyworks.com/oauth/token",
+                {"error": "provider_body_not_persisted"},
+            )
+        }
+    )
+    client = TastytradeSandboxOAuthRefreshTokenClient(http_transport=transport)
+
+    with pytest.raises(SandboxClientError) as exc:
+        client.refresh_access_token(FakeVault().credentials, ("openid", "read"), AS_OF)
+
+    assert exc.value.reason == expected_reason
+    assert "provider_body_not_persisted" not in str(exc.value)
+    assert "provider_body_not_persisted" not in str(client.request_evidence)
+    assert "mock-refresh-token" not in str(exc.value)
+    assert "mock-client-secret" not in str(exc.value)
+    assert "mock-refresh-token" not in str(client.request_evidence)
+    assert "mock-client-secret" not in str(client.request_evidence)
+
+
+def test_br30b2_oauth_token_contract_rejects_redirected_or_non_sandbox_token_response() -> None:
+    redirected = FakeHttpTransport(
+        {
+            ("POST", "https://api.cert.tastyworks.com/oauth/token"): FakeResponse(
+                200,
+                "https://api.tastytrade.com/oauth/token",
+                {"access_token": "mock-access-token", "expires_in": 900, "scope": "openid read", "token_type": "Bearer"},
+            )
+        }
+    )
+    client = TastytradeSandboxOAuthRefreshTokenClient(http_transport=redirected)
+
+    with pytest.raises(SandboxClientError) as exc:
+        client.refresh_access_token(FakeVault().credentials, ("openid", "read"), AS_OF)
+
+    assert exc.value.reason == "wrong_sandbox_host"
+    assert redirected.calls[0]["allow_redirects"] is False
+
+    with pytest.raises(SandboxClientError):
+        FakeHttpTransport({}).force_request_through_firewall(
+            "POST",
+            "https://api.cert.tastytrade.com/oauth/token",
+            is_oauth_token_refresh=True,
+        )
 
 
 def test_br30b1_concrete_client_discovers_accounts_and_quote_token_with_redacted_evidence() -> None:
@@ -662,6 +803,7 @@ class FakeHttpTransport:
         *,
         headers: dict[str, str],
         data: dict[str, str] | None = None,
+        json_body: dict[str, str] | None = None,
         timeout: tuple[float, float] | float | None = None,
         allow_redirects: bool = False,
     ) -> FakeResponse:
@@ -671,6 +813,7 @@ class FakeHttpTransport:
                 "url": url,
                 "headers": headers,
                 "data": data,
+                "json_body": json_body,
                 "timeout": timeout,
                 "allow_redirects": allow_redirects,
             }
@@ -679,10 +822,10 @@ class FakeHttpTransport:
             raise TimeoutError("timeout")
         return self.responses[(method, url)]
 
-    def force_request_through_firewall(self, method: str, url: str) -> None:
+    def force_request_through_firewall(self, method: str, url: str, *, is_oauth_token_refresh: bool = False) -> None:
         from engines.moonshot.deterministic import br30b_tastytrade_sandbox_read_only_connectivity_smoke_test as br30b
 
-        br30b._assert_firewall_allowed(method, url)  # type: ignore[attr-defined]
+        br30b._assert_firewall_allowed(method, url, is_oauth_token_refresh=is_oauth_token_refresh)  # type: ignore[attr-defined]
 
 
 class FakeWebSocketTransport:

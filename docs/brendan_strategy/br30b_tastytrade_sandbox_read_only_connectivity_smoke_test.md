@@ -6,7 +6,7 @@ LIVE TRADING: DISABLED
 
 ## Purpose
 
-BR-30B defines the tastytrade sandbox read-only connectivity smoke test. BR-30B1 adds the concrete tastytrade sandbox read-only network client and operator smoke runner.
+BR-30B defines the tastytrade sandbox read-only connectivity smoke test. BR-30B1 adds the concrete tastytrade sandbox read-only network client and operator smoke runner. BR-30B2 aligns the sandbox OAuth refresh exchange with the official tastytrade SDK token request contract.
 
 Default execution is fixture-only/offline and fail closed. The separate `sandbox_network` mode is explicit operator-invoked only and requires both `--mode sandbox_network` and the exact confirmation value `I_CONFIRM_BR30B1_SANDBOX_READ_ONLY_NETWORK_SMOKE`.
 
@@ -23,6 +23,21 @@ The unverified `api.cert.tastytrade.com` host, production hosts, HTTP downgrade,
 The only approved POST is:
 
 - `POST /oauth/token`
+
+## BR-30B2 OAuth Token Contract
+
+The isolated OAuth refresh POST to `https://api.cert.tastyworks.com/oauth/token` sends a JSON body with exactly these keys:
+
+- `grant_type`
+- `refresh_token`
+- `client_secret`
+- `scope`
+
+`grant_type` is always `refresh_token`. `scope` is the Jarvis-requested scope tuple joined with one ASCII space, currently `openid read`. The token request sends `Content-Type: application/json`, `Accept: application/json`, and the approved Jarvis User-Agent. It does not send `client_id`, query-string credentials, URL credentials, command-line credentials, or credential-bearing request evidence.
+
+The successful token response parser reads only `access_token`, `expires_in`, `token_type`, and optional `scope`. If `scope` is absent, Jarvis retains only the requested `openid` and `read` scope set. If the provider reports `openid read trade`, Jarvis preserves `provider_scope_contains_trade=true` as provider metadata while trade, order, routing, execution, mutation, and live-trading capabilities remain false.
+
+OAuth error handling classifies 400, 401, 403, 429, and 5xx responses into sanitized failure reasons without persisting or printing the provider response body.
 
 After authentication, the only approved REST reads are:
 
@@ -93,6 +108,12 @@ Mocked tests cover:
 - malformed payload
 - missing symbol
 - redaction
+- exact OAuth JSON body key set
+- exact OAuth JSON headers
+- omitted OAuth `client_id`
+- absent OAuth scope fallback
+- provider-granted trade-scope isolation
+- sanitized 400 OAuth error behavior
 - production-host rejection
 - alternate-host rejection
 - HTTP downgrade
