@@ -54,11 +54,11 @@ The API quote-token parser accepts canonical `token` and `dxlink-url` fields fro
 
 Malformed account payloads use the sanitized `account_payload_malformed` rejection reason. Malformed quote-token payloads use the sanitized `quote_token_payload_malformed` rejection reason. These stage-specific reasons prevent account diagnostics and quote-token diagnostics from collapsing into the generic `malformed_payload` result.
 
-## BR-30B4 Official DXLink Sidecar Contract
+## BR-30B4A DXLink SDK Contract Correction And Runtime Preflight
 
-The DXLink adapter lives under `integrations/tastytrade_dxlink`. Its dependency is pinned to `@dxfeed/dxlink-api` `0.3.0` in both `package.json` and `package-lock.json`; floating `latest` dependencies are not allowed. The sidecar requires Node 20 or newer.
+The DXLink adapter lives under `integrations/tastytrade_dxlink`. Its dependency is pinned exactly to `@dxfeed/dxlink-api` `0.3.0` in both `package.json` and `package-lock.json`; floating `latest` dependencies are not allowed. The sidecar requires Node 20 or newer.
 
-The Python runtime launches the sidecar with fixed argv and `shell=False`. The quote token and full provider-returned WSS endpoint are never passed through command-line arguments, environment variables, temporary files, reports, fixtures, logs, process titles, exceptions, or Git history. The child receives one bounded JSON document on stdin containing only:
+The Python runtime resolves `node.exe`/`node` to an absolute executable path, launches the sidecar with fixed argv and `shell=False`, and supplies only an allowlisted non-secret Windows/TLS child environment. Broker, OAuth, token, credential, API-key, account, and customer variables are excluded. The quote token and full provider-returned WSS endpoint are never passed through command-line arguments, environment variables, temporary files, reports, fixtures, logs, process titles, exceptions, or Git history. The child receives one bounded JSON document on stdin containing only:
 
 - ephemeral quote token
 - provider-returned DXLink WSS endpoint
@@ -68,7 +68,22 @@ The Python runtime launches the sidecar with fixed argv and `shell=False`. The q
 
 The sidecar never receives OAuth client ID, client secret, refresh token, account number, customer ID, REST access token, or arbitrary event subscriptions.
 
-The sidecar uses `DXLinkWebSocketClient`, `setAuthToken`, `DXLinkFeed`, `FeedContract.AUTO`, and `FeedDataFormat.COMPACT`. It subscribes only to Quote and one-minute Candle data for exactly `SPY` and `QQQ`. It does not subscribe to Trade, Greeks, Summary, Profile, Underlying, Order, account-streaming, or arbitrary event types. Compact fields are limited to normalized event symbol, timestamps, bid price, ask price, open, high, low, close, and volume.
+The sidecar follows the checked-in SDK `0.3.0` contract before any real DXLink connection:
+
+- construct the client with `new DXLinkWebSocketClient()`
+- call `client.connect(dxlinkUrl)` with the authenticated provider-returned WSS endpoint
+- call `client.setAuthToken(quoteToken)`
+- construct the feed with `new DXLinkFeed(client, FeedContract.AUTO)`
+- configure separately with `feed.configure`, `acceptAggregationPeriod`, `FeedDataFormat.COMPACT`, and `acceptEventFields`
+- add subscriptions as individual objects with `type` and singular `symbol`
+- subscribe to Quote symbols `SPY` and `QQQ`
+- subscribe to one-minute Candle symbols `SPY{=1m}` and `QQQ{=1m}`
+- register data with `feed.addEventListener(listener)` using one listener argument
+- treat the listener callback as a bounded iterable event batch
+
+Subscription objects must not contain plural `symbols` or subscription-level `fields`. The sidecar subscribes only to Quote and one-minute Candle data for exactly `SPY` and `QQQ`. It does not subscribe to Trade, Greeks, Summary, Profile, Underlying, Order, account-streaming, or arbitrary event types. Compact fields are limited to normalized event symbol, timestamps, bid price, ask price, open, high, low, close, and volume.
+
+`dxlink_runtime_preflight.mjs` is a local no-credential preflight. It imports the installed pinned SDK and verifies required constructors and methods without accepting credentials and without calling `connect`.
 
 The sidecar stdout is a bounded machine-readable result envelope containing normalized non-secret event fields only. Stderr is restricted to allowlisted sanitized status codes. Raw DXLink protocol messages, authentication states, provider payloads, quote tokens, full WSS URLs, and SDK diagnostics must never be written or printed.
 
