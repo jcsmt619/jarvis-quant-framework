@@ -8,6 +8,8 @@ import pytest
 
 from engines.moonshot.deterministic.br30a_secure_local_oauth_runtime_bridge import (
     ALLOWED_OAUTH_SCOPES,
+    CAPABILITY_FIREWALL_PHASE_ID,
+    JARVIS_REQUESTED_OAUTH_SCOPES,
     MODULE_NAME,
     PHASE_ID,
     BLOCKED_BY_SAFETY_GATE,
@@ -17,14 +19,19 @@ from engines.moonshot.deterministic.br30a_secure_local_oauth_runtime_bridge impo
     OAuthBridgeRequest,
     OAuthRuntimeCredentials,
     OAuthTokenResponse,
+    ProviderResourceRequest,
     SecureLocalOAuthRuntimeBridge,
+    TASTYTRADE_SANDBOX_PROVIDER_GRANTED_SCOPES,
     TastytradeSandboxOAuthTokenClient,
     VaultUnavailableError,
+    authorize_provider_resource_request,
     build_secure_local_oauth_runtime_bridge_evidence,
+    effective_capability_manifest,
     redact_sensitive_payload,
     safety_manifest,
     secure_local_oauth_runtime_bridge_payload,
     validate_oauth_scopes,
+    validate_provider_granted_scopes,
 )
 
 
@@ -54,11 +61,18 @@ def test_br30a_safety_manifest_blocks_execution_and_mutation_capabilities() -> N
     manifest = safety_manifest()
 
     assert manifest["phase"] == PHASE_ID
+    assert manifest["capability_firewall_phase"] == CAPABILITY_FIREWALL_PHASE_ID
     assert manifest["allowed_oauth_scopes"] == ALLOWED_OAUTH_SCOPES
+    assert manifest["jarvis_requested_oauth_scopes"] == JARVIS_REQUESTED_OAUTH_SCOPES
+    assert manifest["tastytrade_sandbox_provider_granted_scopes_allowed"] == TASTYTRADE_SANDBOX_PROVIDER_GRANTED_SCOPES
     assert manifest["tastytrade_sandbox_implementation"] is True
     assert manifest["secret_values_in_process_output"] is False
     assert manifest["short_lived_access_tokens_memory_only"] is True
     assert manifest["account_capabilities_available"] is False
+    assert manifest["order_read_capability"] is False
+    assert manifest["order_create_capability"] is False
+    assert manifest["order_replace_capability"] is False
+    assert manifest["order_cancel_capability"] is False
     assert manifest["execution_capabilities_available"] is False
     assert manifest["position_mutation_capabilities_available"] is False
     assert manifest["broker_order_call_performed"] is False
@@ -72,6 +86,109 @@ def test_br30a_rejects_unexpected_write_capable_scopes() -> None:
 
     with pytest.raises(ValueError, match="limited to openid and read"):
         OAuthBridgeRequest(scopes=("trade",), mode="local_runtime").validate()
+
+
+def test_br30a1_accepts_tastytrade_sandbox_provider_trade_scope_without_effective_trade_capability() -> None:
+    validate_oauth_scopes(("openid", "read"))
+    validate_provider_granted_scopes("tastytrade", "sandbox", ("openid", "read", "trade"))
+    bridge = SecureLocalOAuthRuntimeBridge(
+        vault=FakeVault(),
+        token_client=FakeTokenClient(
+            OAuthTokenResponse(
+                access_token="mock-access-token",
+                expires_at=AS_OF + timedelta(minutes=15),
+                scopes=("openid", "read", "trade"),
+            )
+        ),
+    )
+
+    result = bridge.get_access_token(OAuthBridgeRequest(mode="local_runtime", as_of=AS_OF))
+    payload = secure_local_oauth_runtime_bridge_payload(result)
+    effective = payload["provider_granted_scope_policy"]["effective_capabilities"]
+
+    assert payload["label"] == HUMAN_REVIEW_REQUIRED
+    assert payload["access_token_ready"] is True
+    assert payload["token_summary"]["jarvis_requested_scopes"] == ("openid", "read")
+    assert payload["token_summary"]["provider_granted_scopes"] == ("openid", "read", "trade")
+    assert payload["token_summary"]["provider_scope_contains_trade"] is True
+    assert payload["safety"]["provider_scope_contains_trade"] is True
+    assert effective["provider_scope_contains_trade"] is True
+    assert effective["order_read_capability"] is False
+    assert effective["order_create_capability"] is False
+    assert effective["order_replace_capability"] is False
+    assert effective["order_cancel_capability"] is False
+    assert effective["account_mutation_capability"] is False
+    assert effective["position_mutation_capability"] is False
+    assert effective["execution_capability"] is False
+    assert effective["external_routing_capability"] is False
+    assert effective["live_trading_capability"] is False
+    assert payload["readiness_state"]["ready_for_live_trading"] is False
+
+
+def test_br30a1_rejects_unknown_provider_granted_scopes() -> None:
+    bridge = SecureLocalOAuthRuntimeBridge(
+        vault=FakeVault(),
+        token_client=FakeTokenClient(
+            OAuthTokenResponse(
+                access_token="mock-access-token",
+                expires_at=AS_OF + timedelta(minutes=15),
+                scopes=("openid", "read", "trade", "write"),
+            )
+        ),
+    )
+
+    result = bridge.get_access_token(OAuthBridgeRequest(mode="local_runtime", as_of=AS_OF))
+
+    assert result.access_token_ready is False
+    assert "provider_scope_not_allowed" in result.rejection_reasons
+
+
+def test_br30a1_provider_resource_firewall_allows_only_sandbox_read_only_requests_and_token_refresh() -> None:
+    read_allowed = authorize_provider_resource_request(
+        ProviderResourceRequest("GET", "https://api.cert.tastytrade.com/customers/me")
+    )
+    refresh_allowed = authorize_provider_resource_request(
+        ProviderResourceRequest(
+            "POST",
+            "https://api.cert.tastytrade.com/oauth/token",
+            is_oauth_token_refresh=True,
+        )
+    )
+    write_blocked = authorize_provider_resource_request(
+        ProviderResourceRequest("POST", "https://api.cert.tastytrade.com/customers/me/accounts")
+    )
+    mutation_path_blocked = authorize_provider_resource_request(
+        ProviderResourceRequest("GET", "https://api.cert.tastytrade.com/accounts/123/orders")
+    )
+    production_blocked = authorize_provider_resource_request(
+        ProviderResourceRequest("GET", "https://api.tastytrade.com/customers/me")
+    )
+
+    assert read_allowed.allowed is True
+    assert refresh_allowed.allowed is True
+    assert write_blocked.allowed is False
+    assert "provider_http_method_not_allowed" in write_blocked.rejection_reasons
+    assert mutation_path_blocked.allowed is False
+    assert "provider_mutation_path_blocked" in mutation_path_blocked.rejection_reasons
+    assert production_blocked.allowed is False
+    assert "provider_host_not_sandbox" in production_blocked.rejection_reasons
+
+
+def test_br30a1_effective_capability_manifest_stays_read_only_when_provider_scope_has_trade() -> None:
+    manifest = effective_capability_manifest(("openid", "read", "trade"))
+
+    assert manifest["provider_scope_contains_trade"] is True
+    assert manifest["jarvis_requested_scopes"] == ("openid", "read")
+    assert manifest["jarvis_effective_scopes"] == ("read",)
+    assert manifest["order_read_capability"] is False
+    assert manifest["order_create_capability"] is False
+    assert manifest["order_replace_capability"] is False
+    assert manifest["order_cancel_capability"] is False
+    assert manifest["account_mutation_capability"] is False
+    assert manifest["position_mutation_capability"] is False
+    assert manifest["execution_capability"] is False
+    assert manifest["external_routing_capability"] is False
+    assert manifest["live_trading_capability"] is False
 
 
 def test_br30a_uses_mocked_vault_and_token_client_for_refresh_only() -> None:
@@ -158,7 +275,7 @@ def test_br30a_reuses_valid_memory_token_and_refreshes_after_expiration() -> Non
         ),
         (
             OAuthTokenResponse(access_token="mock-token", expires_at=AS_OF + timedelta(minutes=15), scopes=("openid", "read", "write")),
-            "unexpected_scope",
+            "provider_scope_not_allowed",
         ),
         (
             OAuthTokenResponse(access_token="mock-token", expires_at=AS_OF + timedelta(minutes=15), scopes=("openid", "read"), revoked=True),
@@ -262,6 +379,8 @@ def test_br30a_source_script_and_doc_preserve_secret_boundaries() -> None:
     assert "os.environ" not in source
     assert ".env" in doc
     assert "write-capable scopes are rejected" in doc
+    assert "provider-granted sandbox `trade` scope is reported" in doc
+    assert "POST, PUT, PATCH, and DELETE provider-resource operations are blocked" in doc
     assert "Windows Credential Manager" in doc
     assert "LIVE TRADING: DISABLED" in doc
     assert "does not submit broker orders" in doc

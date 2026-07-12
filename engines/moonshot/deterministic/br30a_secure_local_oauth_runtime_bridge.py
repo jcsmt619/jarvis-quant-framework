@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
+from urllib.parse import urlparse
 
 from risk.policies import (
     BLOCKED_BY_SAFETY_GATE,
@@ -14,12 +15,37 @@ from risk.policies import (
 
 
 PHASE_ID = "BR-30A"
+CAPABILITY_FIREWALL_PHASE_ID = "BR-30A1"
 MODULE_NAME = "Secure Local OAuth Runtime Bridge"
 PROVIDER_TASTYTRADE_SANDBOX = "tastytrade"
 ENVIRONMENT_SANDBOX = "sandbox"
 SUPPORTED_PROVIDERS = (PROVIDER_TASTYTRADE_SANDBOX,)
 SUPPORTED_ENVIRONMENTS = (ENVIRONMENT_SANDBOX,)
 ALLOWED_OAUTH_SCOPES = ("openid", "read")
+JARVIS_REQUESTED_OAUTH_SCOPES = ALLOWED_OAUTH_SCOPES
+TASTYTRADE_SANDBOX_PROVIDER_GRANTED_SCOPES = ("openid", "read", "trade")
+SANDBOX_PROVIDER_HOSTS = ("api.cert.tastytrade.com", "api.cert.tastyworks.com")
+READ_ONLY_PROVIDER_METHODS = ("GET", "HEAD")
+OAUTH_TOKEN_REFRESH_METHOD = "POST"
+OAUTH_TOKEN_REFRESH_PATHS = ("/oauth/token", "/oauth2/token")
+READ_ONLY_PROVIDER_PATH_PREFIXES = (
+    "/customers/me",
+    "/customers/me/accounts",
+    "/instruments",
+    "/market-data",
+    "/quote-streamer-tokens",
+    "/sessions/validate",
+)
+MUTATION_PATH_MARKERS = (
+    "/orders",
+    "/positions",
+    "/transactions",
+    "/withdrawals",
+    "/deposits",
+    "/transfers",
+    "/ach",
+    "/wire",
+)
 DEFAULT_SERVICE_NAME = "jarvis-quant.br30a.oauth"
 DEFAULT_TOKEN_SKEW = timedelta(seconds=60)
 REQUIRED_LABELS = (
@@ -55,6 +81,12 @@ REJECTION_REASONS = (
     "clock_skew_exceeded",
     "token_expired",
     "token_revoked",
+    "unsafe_effective_capability",
+    "provider_scope_not_allowed",
+    "provider_host_not_sandbox",
+    "provider_http_method_not_allowed",
+    "provider_endpoint_not_allowed",
+    "provider_mutation_path_blocked",
 )
 
 
@@ -152,7 +184,11 @@ class InMemoryAccessToken:
             "token_present": bool(self.access_token),
             "expires_at": self.expires_at.isoformat(),
             "seconds_until_expiry": int((self.expires_at - as_of).total_seconds()),
+            "jarvis_requested_scopes": JARVIS_REQUESTED_OAUTH_SCOPES,
+            "jarvis_effective_scopes": ("read",),
+            "provider_granted_scopes": self.scopes,
             "scopes": self.scopes,
+            "provider_scope_contains_trade": "trade" in self.scopes,
             "token_type": self.token_type,
             "revoked": self.revoked,
             "redacted": True,
@@ -206,6 +242,42 @@ class OAuthBridgeResult:
         _validate_redacted(self.credential_summary)
         _validate_redacted(self.token_summary)
         _validate_safety(self.safety)
+
+
+@dataclass(frozen=True)
+class ProviderResourceRequest:
+    method: str
+    url: str
+    provider: str = PROVIDER_TASTYTRADE_SANDBOX
+    environment: str = ENVIRONMENT_SANDBOX
+    is_oauth_token_refresh: bool = False
+
+    def validate(self) -> None:
+        if self.provider not in SUPPORTED_PROVIDERS:
+            raise ValueError("BR-30A1 unsupported OAuth provider")
+        if self.environment not in SUPPORTED_ENVIRONMENTS:
+            raise ValueError("BR-30A1 OAuth environment is not allowed")
+
+
+@dataclass(frozen=True)
+class ProviderResourceFirewallDecision:
+    allowed: bool
+    rejection_reasons: tuple[str, ...]
+    provider: str
+    environment: str
+    method: str
+    host: str
+    path: str
+    is_oauth_token_refresh: bool
+
+    def validate(self) -> None:
+        for reason in self.rejection_reasons:
+            if reason not in REJECTION_REASONS:
+                raise ValueError("BR-30A1 rejection reason is not recognized")
+        if self.allowed and self.rejection_reasons:
+            raise ValueError("BR-30A1 allowed request cannot have rejection reasons")
+        if not self.allowed and not self.rejection_reasons:
+            raise ValueError("BR-30A1 blocked request requires a rejection reason")
 
 
 class KeyringCredentialVault:
@@ -348,13 +420,83 @@ class SecureLocalOAuthRuntimeBridge:
 
 def validate_oauth_scopes(scopes: tuple[str, ...]) -> None:
     normalized = tuple(sorted({scope.strip() for scope in scopes if scope.strip()}))
-    if not normalized or set(normalized) - set(ALLOWED_OAUTH_SCOPES):
+    if set(normalized) != set(JARVIS_REQUESTED_OAUTH_SCOPES):
         raise ValueError("BR-30A OAuth scopes must be limited to openid and read")
 
 
-def safety_manifest(mode: str = "offline", vault_read_attempted: bool = False) -> dict[str, Any]:
+def validate_provider_granted_scopes(provider: str, environment: str, scopes: tuple[str, ...]) -> None:
+    normalized = tuple(sorted({scope.strip() for scope in scopes if scope.strip()}))
+    allowed = set(TASTYTRADE_SANDBOX_PROVIDER_GRANTED_SCOPES)
+    if provider != PROVIDER_TASTYTRADE_SANDBOX or environment != ENVIRONMENT_SANDBOX:
+        raise ValueError("BR-30A1 provider-granted trade scope is sandbox-only")
+    if not set(JARVIS_REQUESTED_OAUTH_SCOPES).issubset(set(normalized)) or set(normalized) - allowed:
+        raise ValueError("BR-30A1 provider-granted OAuth scopes are not allowed")
+
+
+def effective_capability_manifest(provider_scopes: tuple[str, ...] = ()) -> dict[str, Any]:
+    normalized = tuple(sorted({scope.strip() for scope in provider_scopes if scope.strip()}))
+    return {
+        "jarvis_requested_scopes": JARVIS_REQUESTED_OAUTH_SCOPES,
+        "provider_granted_scopes": normalized,
+        "provider_scope_contains_trade": "trade" in normalized,
+        "jarvis_effective_scopes": ("read",),
+        "order_read_capability": False,
+        "order_create_capability": False,
+        "order_replace_capability": False,
+        "order_cancel_capability": False,
+        "account_mutation_capability": False,
+        "position_mutation_capability": False,
+        "execution_capability": False,
+        "external_routing_capability": False,
+        "live_trading_capability": False,
+    }
+
+
+def authorize_provider_resource_request(request: ProviderResourceRequest) -> ProviderResourceFirewallDecision:
+    request.validate()
+    parsed = urlparse(request.url)
+    host = (parsed.hostname or "").lower()
+    path = parsed.path or "/"
+    method = request.method.strip().upper()
+    reasons: list[str] = []
+
+    if host not in SANDBOX_PROVIDER_HOSTS:
+        reasons.append("provider_host_not_sandbox")
+    if _is_mutation_path(path):
+        reasons.append("provider_mutation_path_blocked")
+
+    if request.is_oauth_token_refresh:
+        if method != OAUTH_TOKEN_REFRESH_METHOD or path not in OAUTH_TOKEN_REFRESH_PATHS:
+            reasons.append("provider_endpoint_not_allowed")
+    else:
+        if method not in READ_ONLY_PROVIDER_METHODS:
+            reasons.append("provider_http_method_not_allowed")
+        if not _is_read_only_allowed_path(path):
+            reasons.append("provider_endpoint_not_allowed")
+
+    decision = ProviderResourceFirewallDecision(
+        allowed=not reasons,
+        rejection_reasons=tuple(dict.fromkeys(reasons)),
+        provider=request.provider,
+        environment=request.environment,
+        method=method,
+        host=host,
+        path=path,
+        is_oauth_token_refresh=request.is_oauth_token_refresh,
+    )
+    decision.validate()
+    return decision
+
+
+def safety_manifest(
+    mode: str = "offline",
+    vault_read_attempted: bool = False,
+    provider_scopes: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    capabilities = effective_capability_manifest(provider_scopes)
     return {
         "phase": PHASE_ID,
+        "capability_firewall_phase": CAPABILITY_FIREWALL_PHASE_ID,
         "module": MODULE_NAME,
         "labels": REQUIRED_LABELS,
         "research_only": True,
@@ -365,6 +507,12 @@ def safety_manifest(mode: str = "offline", vault_read_attempted: bool = False) -
         "provider_neutral_runtime_interface": True,
         "tastytrade_sandbox_implementation": True,
         "allowed_oauth_scopes": ALLOWED_OAUTH_SCOPES,
+        "jarvis_requested_oauth_scopes": JARVIS_REQUESTED_OAUTH_SCOPES,
+        "tastytrade_sandbox_provider_granted_scopes_allowed": TASTYTRADE_SANDBOX_PROVIDER_GRANTED_SCOPES,
+        "sandbox_provider_hosts": SANDBOX_PROVIDER_HOSTS,
+        "read_only_provider_methods": READ_ONLY_PROVIDER_METHODS,
+        "read_only_provider_path_prefixes": READ_ONLY_PROVIDER_PATH_PREFIXES,
+        "oauth_token_refresh_exchange_isolated": True,
         "default_runtime_mode": "offline",
         "current_runtime_mode": mode,
         "offline_by_default": True,
@@ -380,6 +528,12 @@ def safety_manifest(mode: str = "offline", vault_read_attempted: bool = False) -
         "vault_read_attempted": vault_read_attempted,
         "env_file_read_attempted": False,
         "provider_call_attempted_in_tests": False,
+        "caller_trade_scope_request_allowed": False,
+        "provider_scope_contains_trade": capabilities["provider_scope_contains_trade"],
+        "order_read_capability": False,
+        "order_create_capability": False,
+        "order_replace_capability": False,
+        "order_cancel_capability": False,
         "account_capabilities_available": False,
         "execution_capabilities_available": False,
         "position_mutation_capabilities_available": False,
@@ -424,6 +578,21 @@ def secure_local_oauth_runtime_bridge_payload(result: OAuthBridgeResult) -> dict
         "request_mode": result.request_mode,
         "access_token_ready": result.access_token_ready,
         "allowed_oauth_scopes": ALLOWED_OAUTH_SCOPES,
+        "jarvis_requested_oauth_scopes": JARVIS_REQUESTED_OAUTH_SCOPES,
+        "provider_granted_scope_policy": {
+            "tastytrade_sandbox_allowed": TASTYTRADE_SANDBOX_PROVIDER_GRANTED_SCOPES,
+            "provider_scope_contains_trade": bool(result.token_summary.get("provider_scope_contains_trade", False)),
+            "effective_capabilities": effective_capability_manifest(
+                tuple(result.token_summary.get("provider_granted_scopes", ()))
+            ),
+        },
+        "provider_resource_firewall": {
+            "sandbox_provider_hosts": SANDBOX_PROVIDER_HOSTS,
+            "read_only_provider_methods": READ_ONLY_PROVIDER_METHODS,
+            "read_only_provider_path_prefixes": READ_ONLY_PROVIDER_PATH_PREFIXES,
+            "mutation_path_markers_blocked": MUTATION_PATH_MARKERS,
+            "oauth_token_refresh_exchange_isolated": True,
+        },
         "supported_providers": SUPPORTED_PROVIDERS,
         "supported_environments": SUPPORTED_ENVIRONMENTS,
         "rejection_reasons": result.rejection_reasons,
@@ -435,6 +604,10 @@ def secure_local_oauth_runtime_bridge_payload(result: OAuthBridgeResult) -> dict
             "state": "LOCAL_OAUTH_RUNTIME_BRIDGE_ONLY",
             "manual_review_required": True,
             "ready_for_live_trading": False,
+            "order_read_capability": False,
+            "order_create_capability": False,
+            "order_replace_capability": False,
+            "order_cancel_capability": False,
             "account_mutation_allowed": False,
             "execution_methods_available": False,
             "external_routing_paths_allowed": False,
@@ -478,7 +651,7 @@ def _accepted_result(
         credential_summary=_credential_summary(credentials),
         token_summary=token.redacted_summary(as_of),
         redaction=_redaction_manifest(),
-        safety=safety_manifest(request.mode, vault_read_attempted),
+        safety=safety_manifest(request.mode, vault_read_attempted, token.scopes),
     )
     result.validate()
     return result
@@ -503,7 +676,7 @@ def _blocked_result(
         credential_summary=_credential_summary(credentials),
         token_summary=token.redacted_summary(as_of) if token else {"token_present": False, "redacted": True},
         redaction=_redaction_manifest(),
-        safety=safety_manifest(request.mode, vault_read_attempted),
+        safety=safety_manifest(request.mode, vault_read_attempted, token.scopes if token else ()),
     )
     result.validate()
     return result
@@ -535,9 +708,15 @@ def _token_response_rejection_reasons(
         reasons.append("malformed_response")
     if response.revoked:
         reasons.append("token_revoked")
-    response_scopes = tuple(sorted(response.scopes))
-    if set(response_scopes) != set(request.scopes) or set(response_scopes) - set(ALLOWED_OAUTH_SCOPES):
+    response_scopes = tuple(sorted({scope.strip() for scope in response.scopes if scope.strip()}))
+    if set(response_scopes) - set(TASTYTRADE_SANDBOX_PROVIDER_GRANTED_SCOPES):
+        reasons.append("provider_scope_not_allowed")
+    if not set(JARVIS_REQUESTED_OAUTH_SCOPES).issubset(set(response_scopes)):
         reasons.append("unexpected_scope")
+    if "trade" in response_scopes and (
+        request.provider != PROVIDER_TASTYTRADE_SANDBOX or request.environment != ENVIRONMENT_SANDBOX
+    ):
+        reasons.append("provider_scope_not_allowed")
     expires_at = response.expires_at
     if expires_at.tzinfo is None:
         reasons.append("malformed_response")
@@ -583,6 +762,11 @@ def _contains_unredacted_sensitive_value(value: Any) -> bool:
 
 def _validate_safety(manifest: dict[str, Any]) -> None:
     for field_name in (
+        "caller_trade_scope_request_allowed",
+        "order_read_capability",
+        "order_create_capability",
+        "order_replace_capability",
+        "order_cancel_capability",
         "account_capabilities_available",
         "execution_capabilities_available",
         "position_mutation_capabilities_available",
@@ -610,3 +794,13 @@ def _validate_safety(manifest: dict[str, Any]) -> None:
             raise ValueError(f"BR-30A OAuth bridge cannot allow {field_name}")
     if manifest.get("LIVE TRADING") != "DISABLED":
         raise ValueError("BR-30A OAuth bridge must keep LIVE TRADING disabled")
+
+
+def _is_read_only_allowed_path(path: str) -> bool:
+    normalized = path if path.startswith("/") else f"/{path}"
+    return any(normalized == prefix or normalized.startswith(f"{prefix}/") for prefix in READ_ONLY_PROVIDER_PATH_PREFIXES)
+
+
+def _is_mutation_path(path: str) -> bool:
+    lowered = path.lower()
+    return any(marker in lowered for marker in MUTATION_PATH_MARKERS)
