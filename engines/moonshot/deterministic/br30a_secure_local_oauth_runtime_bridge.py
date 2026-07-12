@@ -397,6 +397,20 @@ class SecureLocalOAuthRuntimeBridge:
         )
         return _accepted_result(resolved, as_of, credentials, self._memory_token, vault_read_attempted=True)
 
+    def get_access_token_for_read_only_client(
+        self,
+        request: OAuthBridgeRequest | None = None,
+    ) -> tuple[OAuthBridgeResult, InMemoryAccessToken | None]:
+        """Return the memory-only token to an in-process read-only client.
+
+        The token is intentionally not included in reports or summaries. This
+        method exists for the BR-30B sandbox smoke-test handoff only.
+        """
+        result = self.get_access_token(request)
+        if not result.access_token_ready:
+            return result, None
+        return result, self._memory_token
+
     def revoke_access_token(self, request: OAuthBridgeRequest | None = None) -> OAuthBridgeResult:
         resolved = request or OAuthBridgeRequest(mode="local_runtime")
         resolved.validate()
