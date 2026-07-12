@@ -1,4 +1,4 @@
-# BR-30A Secure Local OAuth Runtime Bridge
+# BR-30A / BR-30A1 Secure Local OAuth Runtime Bridge
 
 Research labels: RESEARCH_ONLY, MONITOR_ONLY, PAPER_ONLY, HUMAN_REVIEW_REQUIRED, BLOCKED_BY_SAFETY_GATE
 
@@ -9,6 +9,14 @@ LIVE TRADING: DISABLED
 BR-30A defines a provider-neutral runtime credential interface for short-lived OAuth access tokens.
 
 The initial provider profile is tastytrade sandbox only. The bridge is offline and fail-closed by default. It does not call the provider unless a caller injects an explicit token client at runtime, and automated tests use mocked vault and token clients only.
+
+BR-30A1 adds the Sandbox OAuth Capability Firewall. It distinguishes:
+
+- Jarvis-requested OAuth scopes
+- provider-granted OAuth scopes
+- Jarvis-effective runtime capabilities
+
+The exposed credentials are sandbox-only and must never be reused for production.
 
 ## Credential Storage
 
@@ -30,12 +38,40 @@ Client secret and refresh token input is collected with `getpass` and is not ech
 
 ## OAuth Scope Policy
 
-Allowed OAuth scopes are exactly:
+Jarvis-requested OAuth scopes are exactly:
 
 - `openid`
 - `read`
 
-Unexpected write-capable scopes are rejected by the runtime bridge.
+A caller cannot request `trade` capability. Unexpected Jarvis-requested write-capable scopes are rejected by the runtime bridge.
+
+For tastytrade sandbox only, the provider-granted token response may include:
+
+- `openid`
+- `read`
+- `trade`
+
+The provider-granted sandbox `trade` scope is reported as `provider_scope_contains_trade=true` when present, but it does not become a Jarvis-effective capability. Effective Jarvis capabilities remain read-only.
+
+Unknown provider-granted scopes are rejected. Provider-granted `trade` is accepted only when the provider is `tastytrade`, the environment is `sandbox`, and all Jarvis-effective order, mutation, execution, external routing, and live-trading capabilities are false.
+
+## Provider Resource Firewall
+
+BR-30A1 adds a strict read-only HTTP method and endpoint allowlist for the later BR-30B sandbox smoke test.
+
+Allowed provider-resource methods are:
+
+- `GET`
+- `HEAD`
+
+POST, PUT, PATCH, and DELETE provider-resource operations are blocked, except for the isolated OAuth token refresh exchange on the configured token endpoint. The token refresh exchange is not a provider-resource operation and must not expose order, mutation, routing, execution, or live-trading capability.
+
+Allowed sandbox hosts are:
+
+- `api.cert.tastytrade.com`
+- `api.cert.tastyworks.com`
+
+Production hosts are rejected. Unknown endpoints are rejected. Mutation paths containing order, position, transfer, deposit, withdrawal, ACH, wire, or transaction markers are rejected even for read methods.
 
 ## Runtime Boundaries
 
@@ -59,6 +95,20 @@ BR-30A does not expose position mutation.
 BR-30A does not authorize live trading.
 BR-30A does not submit broker orders.
 BR-30A does not add broker order routing.
+
+BR-30A1 reports these effective capabilities as false:
+
+- order-read
+- order-create
+- order-replace
+- order-cancel
+- account mutation
+- position mutation
+- execution
+- external routing
+- live trading
+
+BR-30A1 does not import or expose execution or order-management modules.
 
 ## Required Disabled State
 
