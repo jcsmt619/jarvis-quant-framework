@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
@@ -22,6 +23,7 @@ from engines.moonshot.deterministic.br30a_secure_local_oauth_runtime_bridge impo
 from engines.moonshot.deterministic.br30b_tastytrade_sandbox_read_only_connectivity_smoke_test import (
     APPROVED_SYMBOLS,
     DEFAULT_REPORT_DIR,
+    DXLINK_STDOUT_MAX_BYTES,
     JSON_REPORT_NAME,
     MARKDOWN_REPORT_NAME,
     MODULE_NAME,
@@ -30,6 +32,8 @@ from engines.moonshot.deterministic.br30b_tastytrade_sandbox_read_only_connectiv
     PHASE_ID,
     SandboxCustomerDiscovery,
     SandboxClientError,
+    DXLinkSidecarCompleted,
+    DXLINK_NODE_ARGV,
     SandboxMarketDataEvent,
     SandboxMarketDataSample,
     SandboxQuoteToken,
@@ -90,6 +94,12 @@ def test_br30b_safety_manifest_blocks_execution_mutation_routing_and_live_tradin
     assert manifest["broker_order_call_performed"] is False
     assert manifest["real_paper_order_submitted"] is False
     assert manifest["live_trading_enabled"] is False
+    assert manifest["dxlink_protocol_phase"] == "BR-30B4"
+    assert manifest["dxlink_sidecar_shell_execution"] is False
+    assert manifest["dxlink_allowed_symbols"] == APPROVED_SYMBOLS
+    assert manifest["dxlink_allowed_event_types"] == ("Quote", "Candle")
+    assert manifest["dxlink_feed_contract"] == "AUTO"
+    assert manifest["dxlink_feed_data_format"] == "COMPACT"
 
 
 def test_br30b_sandbox_network_accepts_mocked_read_only_delayed_sample_and_normalizes_to_br26() -> None:
@@ -471,8 +481,8 @@ def test_br30b2_oauth_token_contract_rejects_redirected_or_non_sandbox_token_res
 
 def test_br30b1_concrete_client_discovers_accounts_and_quote_token_with_redacted_evidence() -> None:
     transport = FakeHttpTransport.valid()
-    websocket = FakeWebSocketTransport()
-    client = TastytradeSandboxConcreteReadOnlyNetworkClient(http_transport=transport, websocket_transport=websocket)
+    dxlink = FakeDXLinkRunner()
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(http_transport=transport, dxlink_runner=dxlink)
     token = InMemoryAccessToken("tastytrade", "sandbox", "mock-access-token", AS_OF + timedelta(minutes=15), ("openid", "read"))
 
     result = build_tastytrade_sandbox_read_only_connectivity_smoke_test(
@@ -492,10 +502,73 @@ def test_br30b1_concrete_client_discovers_accounts_and_quote_token_with_redacted
     assert payload["market_data_evidence"]["mutation_call_count"] == 0
     assert payload["market_data_evidence"]["routing_call_count"] == 0
     assert payload["market_data_evidence"]["execution_call_count"] == 0
-    assert websocket.connected_url == "wss://streamer.cert.tastyworks.com/quote"
+    assert dxlink.calls[0]["argv"] == DXLINK_NODE_ARGV
+    assert dxlink.calls[0]["shell"] is False
+    assert "mock-quote-token" in dxlink.calls[0]["stdin"]
+    assert "wss://streamer.cert.tastyworks.com/quote" in dxlink.calls[0]["stdin"]
+    assert "mock-quote-token" not in str(dxlink.calls[0]["argv"])
+    assert "wss://streamer.cert.tastyworks.com/quote" not in str(dxlink.calls[0]["argv"])
     assert "mock-access-token" not in str(payload)
     assert "mock-quote-token" not in str(payload)
     assert "raw-acct-001" not in str(payload)
+
+
+def test_br30b4_dxlink_child_process_uses_fixed_argv_and_stdin_only_secret_transport() -> None:
+    runner = FakeDXLinkRunner()
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+        http_transport=FakeHttpTransport.valid(),
+        dxlink_runner=runner,
+    )
+
+    result = build_tastytrade_sandbox_read_only_connectivity_smoke_test(
+        SandboxSmokeTestRequest(mode="sandbox_network", as_of=AS_OF),
+        oauth_bridge=valid_bridge(),
+        sandbox_client=client,
+    )
+    stdin_payload = json.loads(runner.calls[0]["stdin"])
+    dxlink_record = result.market_data_evidence["dxlink_sidecar_records"][0]
+
+    assert runner.calls[0]["argv"] == DXLINK_NODE_ARGV
+    assert runner.calls[0]["shell"] is False
+    assert stdin_payload == {
+        "acquisitionTimestamp": AS_OF.isoformat(),
+        "dxlinkUrl": "wss://streamer.cert.tastyworks.com/quote",
+        "quoteToken": "mock-quote-token",
+        "symbols": ["SPY", "QQQ"],
+        "timeoutMs": 20000,
+    }
+    assert dxlink_record["stdin_only_secret_transport"] is True
+    assert dxlink_record["environment_values_written"] is False
+    assert dxlink_record["command_line_secret_values_written"] is False
+    assert dxlink_record["temporary_files_written"] is False
+    assert "mock-quote-token" not in str(result)
+    assert "wss://streamer.cert.tastyworks.com/quote" not in str(result)
+
+
+def test_br30b4_dxlink_sidecar_source_uses_official_sdk_compact_quote_and_candle_only() -> None:
+    sidecar = Path("integrations/tastytrade_dxlink/dxlink_read_only_sidecar.mjs").read_text(encoding="utf-8")
+    package = json.loads(Path("integrations/tastytrade_dxlink/package.json").read_text(encoding="utf-8"))
+    lock = json.loads(Path("integrations/tastytrade_dxlink/package-lock.json").read_text(encoding="utf-8"))
+
+    assert package["engines"]["node"] == ">=20"
+    assert package["dependencies"]["@dxfeed/dxlink-api"] == "0.3.0"
+    assert lock["packages"][""]["dependencies"]["@dxfeed/dxlink-api"] == "0.3.0"
+    assert "DXLinkWebSocketClient" in sidecar
+    assert "setAuthToken" in sidecar
+    assert "DXLinkFeed" in sidecar
+    assert "FeedContract.AUTO" in sidecar
+    assert "FeedDataFormat.COMPACT" in sidecar
+    assert '"Quote"' in sidecar
+    assert '"Candle"' in sidecar
+    assert "bidPrice" in sidecar
+    assert "askPrice" in sidecar
+    assert "open" in sidecar
+    assert "high" in sidecar
+    assert "low" in sidecar
+    assert "close" in sidecar
+    assert "volume" in sidecar
+    for forbidden in ("Trade", "Greeks", "Summary", "Profile", "Underlying", "Order", "account-streaming"):
+        assert f'"{forbidden}"' not in sidecar
 
 
 def test_br30b3_concrete_client_parses_nested_and_direct_account_number_variants() -> None:
@@ -513,7 +586,7 @@ def test_br30b3_concrete_client_parses_nested_and_direct_account_number_variants
     )
     client = TastytradeSandboxConcreteReadOnlyNetworkClient(
         http_transport=transport,
-        websocket_transport=FakeWebSocketTransport(),
+        dxlink_runner=FakeDXLinkRunner(),
     )
     token = InMemoryAccessToken("tastytrade", "sandbox", "mock-access-token", AS_OF + timedelta(minutes=15), ("openid", "read"))
 
@@ -546,7 +619,7 @@ def test_br30b3_concrete_client_parses_canonical_quote_token_data_wrapper_and_le
     )
     client = TastytradeSandboxConcreteReadOnlyNetworkClient(
         http_transport=transport,
-        websocket_transport=FakeWebSocketTransport(),
+        dxlink_runner=FakeDXLinkRunner(),
     )
     token = InMemoryAccessToken("tastytrade", "sandbox", "mock-access-token", AS_OF + timedelta(minutes=15), ("openid", "read"))
 
@@ -577,7 +650,7 @@ def test_br30b3_concrete_client_parses_top_level_canonical_quote_token_response(
                 "level": "delayed",
             }
         ),
-        websocket_transport=FakeWebSocketTransport(),
+        dxlink_runner=FakeDXLinkRunner(),
     )
     token = InMemoryAccessToken("tastytrade", "sandbox", "mock-access-token", AS_OF + timedelta(minutes=15), ("openid", "read"))
 
@@ -602,7 +675,7 @@ def test_br30b3_account_payload_malformed_uses_stage_specific_reason(
 ) -> None:
     client = TastytradeSandboxConcreteReadOnlyNetworkClient(
         http_transport=FakeHttpTransport.valid(account_payload=account_payload),
-        websocket_transport=FakeWebSocketTransport(),
+        dxlink_runner=FakeDXLinkRunner(),
     )
 
     assert _blocked_reason_for_client(client) == expected_reason
@@ -623,7 +696,7 @@ def test_br30b3_quote_token_payload_malformed_uses_stage_specific_reason(
 ) -> None:
     client = TastytradeSandboxConcreteReadOnlyNetworkClient(
         http_transport=FakeHttpTransport.valid(quote_payload=quote_payload),
-        websocket_transport=FakeWebSocketTransport(),
+        dxlink_runner=FakeDXLinkRunner(),
     )
 
     assert _blocked_reason_for_client(client) == expected_reason
@@ -644,7 +717,7 @@ def test_br30b3_quote_token_rejects_non_wss_missing_and_malformed_dxlink_urls(qu
         http_transport=FakeHttpTransport.valid(
             quote_payload={"data": {"token": "mock-quote-token", "dxlink-url": quote_url}}
         ),
-        websocket_transport=FakeWebSocketTransport(),
+        dxlink_runner=FakeDXLinkRunner(),
     )
 
     reason = _blocked_reason_for_client(client)
@@ -671,7 +744,7 @@ def test_br30b1_concrete_client_maps_http_failures_to_sanitized_reasons(status: 
             )
         }
     )
-    client = TastytradeSandboxConcreteReadOnlyNetworkClient(http_transport=transport, websocket_transport=FakeWebSocketTransport())
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(http_transport=transport, dxlink_runner=FakeDXLinkRunner())
 
     result = build_tastytrade_sandbox_read_only_connectivity_smoke_test(
         SandboxSmokeTestRequest(mode="sandbox_network", as_of=AS_OF),
@@ -710,12 +783,12 @@ def test_br30b1_rejects_cross_host_redirect_and_websocket_substitution() -> None
             )
         }
     )
-    client = TastytradeSandboxConcreteReadOnlyNetworkClient(http_transport=redirected, websocket_transport=FakeWebSocketTransport())
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(http_transport=redirected, dxlink_runner=FakeDXLinkRunner())
 
     assert _blocked_reason_for_client(client) == "wrong_sandbox_host"
 
     substituted = FakeHttpTransport.valid(quote_url="https://streamer.cert.tastyworks.com/quote")
-    client = TastytradeSandboxConcreteReadOnlyNetworkClient(http_transport=substituted, websocket_transport=FakeWebSocketTransport())
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(http_transport=substituted, dxlink_runner=FakeDXLinkRunner())
 
     assert _blocked_reason_for_client(client) == "websocket_endpoint_rejected"
 
@@ -726,7 +799,7 @@ def test_br30b1_rejects_cross_host_redirect_and_websocket_substitution() -> None
         ("timeout", "timeout"),
         ("malformed_json", "account_payload_malformed"),
         ("missing_symbols", "missing_symbol"),
-        ("disconnect", "market_data_disconnect"),
+        ("disconnect", "dxlink_process_failed"),
     ],
 )
 def test_br30b1_concrete_client_rejects_timeout_malformed_json_missing_symbols_and_disconnect(
@@ -736,22 +809,22 @@ def test_br30b1_concrete_client_rejects_timeout_malformed_json_missing_symbols_a
     if case == "timeout":
         client = TastytradeSandboxConcreteReadOnlyNetworkClient(
             http_transport=FakeHttpTransport.valid(timeout=True),
-            websocket_transport=FakeWebSocketTransport(),
+            dxlink_runner=FakeDXLinkRunner(),
         )
     elif case == "malformed_json":
         client = TastytradeSandboxConcreteReadOnlyNetworkClient(
             http_transport=FakeHttpTransport.valid(malformed=True),
-            websocket_transport=FakeWebSocketTransport(),
+            dxlink_runner=FakeDXLinkRunner(),
         )
     elif case == "missing_symbols":
         client = TastytradeSandboxConcreteReadOnlyNetworkClient(
             http_transport=FakeHttpTransport.valid(),
-            websocket_transport=FakeWebSocketTransport(messages_for=("SPY",)),
+            dxlink_runner=FakeDXLinkRunner(messages_for=("SPY",)),
         )
     else:
         client = TastytradeSandboxConcreteReadOnlyNetworkClient(
             http_transport=FakeHttpTransport.valid(),
-            websocket_transport=FakeWebSocketTransport(disconnect=True),
+            dxlink_runner=FakeDXLinkRunner(stderr="dxlink_process_failed", returncode=1),
         )
 
     assert _blocked_reason_for_client(client) == expected_reason
@@ -1005,68 +1078,133 @@ class FakeHttpTransport:
         br30b._assert_firewall_allowed(method, url, is_oauth_token_refresh=is_oauth_token_refresh)  # type: ignore[attr-defined]
 
 
-class FakeWebSocketTransport:
+class FakeDXLinkRunner:
     def __init__(
         self,
         *,
         messages_for: tuple[str, ...] = APPROVED_SYMBOLS,
-        disconnect: bool = False,
+        returncode: int = 0,
+        stderr: str = "",
+        stdout: str | None = None,
+        timed_out: bool = False,
     ) -> None:
         self.messages_for = messages_for
-        self.disconnect = disconnect
-        self.connected_url: str | None = None
+        self.returncode = returncode
+        self.stderr = stderr
+        self.stdout = stdout
+        self.timed_out = timed_out
+        self.calls: list[dict[str, object]] = []
 
-    def connect(
+    def run(
         self,
-        url: str,
-        *,
-        headers: dict[str, str],
-        timeout: float,
-    ) -> "FakeWebSocketConnection":
-        self.connected_url = url
-        if self.disconnect:
-            raise RuntimeError("disconnect")
-        return FakeWebSocketConnection(self.messages_for)
+        argv: tuple[str, ...],
+        stdin_payload: str,
+        timeout_seconds: float,
+    ) -> DXLinkSidecarCompleted:
+        self.calls.append({"argv": argv, "stdin": stdin_payload, "timeout_seconds": timeout_seconds, "shell": False})
+        return DXLinkSidecarCompleted(
+            returncode=self.returncode,
+            stdout=self.stdout if self.stdout is not None else dxlink_stdout(self.messages_for),
+            stderr=self.stderr,
+            timed_out=self.timed_out,
+        )
 
 
-class FakeWebSocketConnection:
-    def __init__(self, messages_for: tuple[str, ...]) -> None:
-        exchange_time = AS_OF - timedelta(minutes=15)
-        self.messages = [
-            json_message(
-                {
-                    "event_type": "bar",
-                    "symbol": symbol,
-                    "provider_timestamp": (exchange_time + timedelta(seconds=5)).isoformat(),
-                    "exchange_timestamp": exchange_time.isoformat(),
-                    "open": 620.0,
-                    "high": 626.0,
-                    "low": 619.0,
-                    "close": 625.0,
-                    "volume": 1000,
-                }
-            )
-            for symbol in messages_for
-        ]
-        self.sent: list[str] = []
-        self.closed = False
+def dxlink_stdout(symbols: tuple[str, ...] = APPROVED_SYMBOLS) -> str:
+    exchange_time = AS_OF - timedelta(minutes=15)
+    provider_time = exchange_time + timedelta(seconds=5)
+    events: list[dict[str, object]] = []
+    for symbol in symbols:
+        events.append(
+            {
+                "event_type": "Quote",
+                "symbol": symbol,
+                "provider_timestamp": provider_time.isoformat(),
+                "exchange_timestamp": exchange_time.isoformat(),
+                "acquisition_timestamp": AS_OF.isoformat(),
+                "bidPrice": 624.9,
+                "askPrice": 625.1,
+            }
+        )
+        events.append(
+            {
+                "event_type": "Candle",
+                "symbol": f"{symbol}{{=1m}}",
+                "provider_timestamp": provider_time.isoformat(),
+                "exchange_timestamp": exchange_time.isoformat(),
+                "acquisition_timestamp": AS_OF.isoformat(),
+                "open": 620.0,
+                "high": 626.0,
+                "low": 619.0,
+                "close": 625.0,
+                "volume": 1000,
+            }
+        )
+    return json_message({"ok": True, "connected": True, "disconnected": False, "reconnect_count": 0, "events": events})
 
-    def send(self, payload: str) -> None:
-        self.sent.append(payload)
 
-    def recv(self) -> str:
-        if not self.messages:
-            raise TimeoutError("bounded sample exhausted")
-        return self.messages.pop(0)
+def dxlink_stdout_without_candle() -> str:
+    exchange_time = AS_OF - timedelta(minutes=15)
+    provider_time = exchange_time + timedelta(seconds=5)
+    events = [
+        {
+            "event_type": "Quote",
+            "symbol": symbol,
+            "provider_timestamp": provider_time.isoformat(),
+            "exchange_timestamp": exchange_time.isoformat(),
+            "acquisition_timestamp": AS_OF.isoformat(),
+            "bidPrice": 624.9,
+            "askPrice": 625.1,
+        }
+        for symbol in APPROVED_SYMBOLS
+    ]
+    return json_message({"ok": True, "connected": True, "disconnected": False, "reconnect_count": 0, "events": events})
 
-    def close(self) -> None:
-        self.closed = True
+
+def dxlink_stdout_with_event(event_type: str) -> str:
+    exchange_time = AS_OF - timedelta(minutes=15)
+    event = {
+        "event_type": event_type,
+        "symbol": "SPY",
+        "provider_timestamp": exchange_time.isoformat(),
+        "exchange_timestamp": exchange_time.isoformat(),
+        "acquisition_timestamp": AS_OF.isoformat(),
+        "bidPrice": 624.9,
+        "askPrice": 625.1,
+    }
+    return json_message({"ok": True, "connected": True, "disconnected": False, "reconnect_count": 0, "events": [event]})
 
 
 def json_message(payload: dict[str, object]) -> str:
     import json
 
     return json.dumps(payload)
+
+
+@pytest.mark.parametrize(
+    ("runner", "expected_reason"),
+    [
+        (FakeDXLinkRunner(messages_for=("SPY",)), "missing_symbol"),
+        (FakeDXLinkRunner(stdout=dxlink_stdout_without_candle()), "missing_symbol"),
+        (FakeDXLinkRunner(stdout=dxlink_stdout_with_event("Trade")), "unsupported_event"),
+        (FakeDXLinkRunner(stdout="{not-json"), "dxlink_output_malformed"),
+        (FakeDXLinkRunner(stdout="x" * (DXLINK_STDOUT_MAX_BYTES + 1)), "dxlink_output_malformed"),
+        (FakeDXLinkRunner(timed_out=True), "dxlink_timeout"),
+        (FakeDXLinkRunner(returncode=1, stderr="dxlink_dependency_unavailable"), "dxlink_dependency_unavailable"),
+        (FakeDXLinkRunner(returncode=1, stderr="provider raw failure"), "dxlink_output_malformed"),
+        (FakeDXLinkRunner(stdout=json_message({"ok": True, "connected": True, "events": [], "leak": "mock-quote-token"})), "dxlink_secret_leak_detected"),
+    ],
+)
+def test_br30b4_dxlink_rejects_child_process_and_output_boundary_failures(
+    runner: FakeDXLinkRunner,
+    expected_reason: str,
+) -> None:
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+        http_transport=FakeHttpTransport.valid(),
+        dxlink_runner=runner,
+    )
+
+    assert _blocked_reason_for_client(client) == expected_reason
 
 
 def _blocked_reason_for_client(client: TastytradeSandboxConcreteReadOnlyNetworkClient) -> str:

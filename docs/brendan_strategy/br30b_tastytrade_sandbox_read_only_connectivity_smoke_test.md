@@ -6,7 +6,7 @@ LIVE TRADING: DISABLED
 
 ## Purpose
 
-BR-30B defines the tastytrade sandbox read-only connectivity smoke test. BR-30B1 adds the concrete tastytrade sandbox read-only network client and operator smoke runner. BR-30B2 aligns the sandbox OAuth refresh exchange with the official tastytrade SDK token request contract. BR-30B3 aligns the read-only REST response parsers for customer accounts and API quote tokens.
+BR-30B defines the tastytrade sandbox read-only connectivity smoke test. BR-30B1 adds the concrete tastytrade sandbox read-only network client and operator smoke runner. BR-30B2 aligns the sandbox OAuth refresh exchange with the official tastytrade SDK token request contract. BR-30B3 aligns the read-only REST response parsers for customer accounts and API quote tokens. BR-30B4 replaces the earlier handwritten generic WebSocket market-data messages with a repository-owned Node 20+ DXLink sidecar that follows the official `@dxfeed/dxlink-api` SDK pattern used by tastytrade.
 
 Default execution is fixture-only/offline and fail closed. The separate `sandbox_network` mode is explicit operator-invoked only and requires both `--mode sandbox_network` and the exact confirmation value `I_CONFIRM_BR30B1_SANDBOX_READ_ONLY_NETWORK_SMOKE`.
 
@@ -54,7 +54,35 @@ The API quote-token parser accepts canonical `token` and `dxlink-url` fields fro
 
 Malformed account payloads use the sanitized `account_payload_malformed` rejection reason. Malformed quote-token payloads use the sanitized `quote_token_payload_malformed` rejection reason. These stage-specific reasons prevent account diagnostics and quote-token diagnostics from collapsing into the generic `malformed_payload` result.
 
-BR-30B3 does not open a WebSocket or implement the DXLink streaming protocol. BR-30B4 will handle the official DXLink protocol after the REST-only operator checkpoint passes.
+## BR-30B4 Official DXLink Sidecar Contract
+
+The DXLink adapter lives under `integrations/tastytrade_dxlink`. Its dependency is pinned to `@dxfeed/dxlink-api` `0.3.0` in both `package.json` and `package-lock.json`; floating `latest` dependencies are not allowed. The sidecar requires Node 20 or newer.
+
+The Python runtime launches the sidecar with fixed argv and `shell=False`. The quote token and full provider-returned WSS endpoint are never passed through command-line arguments, environment variables, temporary files, reports, fixtures, logs, process titles, exceptions, or Git history. The child receives one bounded JSON document on stdin containing only:
+
+- ephemeral quote token
+- provider-returned DXLink WSS endpoint
+- approved symbols `SPY` and `QQQ`
+- acquisition timestamp
+- bounded timeout
+
+The sidecar never receives OAuth client ID, client secret, refresh token, account number, customer ID, REST access token, or arbitrary event subscriptions.
+
+The sidecar uses `DXLinkWebSocketClient`, `setAuthToken`, `DXLinkFeed`, `FeedContract.AUTO`, and `FeedDataFormat.COMPACT`. It subscribes only to Quote and one-minute Candle data for exactly `SPY` and `QQQ`. It does not subscribe to Trade, Greeks, Summary, Profile, Underlying, Order, account-streaming, or arbitrary event types. Compact fields are limited to normalized event symbol, timestamps, bid price, ask price, open, high, low, close, and volume.
+
+The sidecar stdout is a bounded machine-readable result envelope containing normalized non-secret event fields only. Stderr is restricted to allowlisted sanitized status codes. Raw DXLink protocol messages, authentication states, provider payloads, quote tokens, full WSS URLs, and SDK diagnostics must never be written or printed.
+
+The Python parent enforces stdout and stderr size limits, hard timeout, approved-symbol validation, event-type validation, finite numeric validation, duplicate detection, timestamp parsing, 15-minute sandbox-delay classification, malformed output rejection, secret-leak detection, and deterministic process cleanup. The DXLink client is closed after each bounded sample. No orphan Node process may remain.
+
+Stage-specific DXLink rejection reasons:
+
+- `dxlink_dependency_unavailable`
+- `dxlink_authentication_failed`
+- `dxlink_subscription_failed`
+- `dxlink_timeout`
+- `dxlink_process_failed`
+- `dxlink_output_malformed`
+- `dxlink_secret_leak_detected`
 
 The bounded stream subscribes only to `SPY` and `QQQ`, collects a small delayed sandbox sample, then closes. Strict connect, read, and overall timeouts prevent long-running streams.
 
@@ -128,6 +156,22 @@ Mocked tests cover:
 - missing quote-token fields
 - wrong DXLink schemes
 - substituted DXLink URLs
+- fixed DXLink child-process argv
+- stdin-only quote-token and endpoint transport
+- absence of secrets from argv and environment
+- exact SPY and QQQ DXLink allowlist
+- Quote and Candle subscription source configuration
+- compact field configuration
+- successful Quote and Candle normalization
+- missing candle rejection
+- unsupported event rejection
+- malformed sidecar output
+- oversized sidecar output
+- sidecar timeout
+- sidecar crash
+- cleanup boundary evidence
+- raw-message blocking
+- sidecar secret-leak detection
 - exact OAuth JSON body key set
 - exact OAuth JSON headers
 - omitted OAuth `client_id`
