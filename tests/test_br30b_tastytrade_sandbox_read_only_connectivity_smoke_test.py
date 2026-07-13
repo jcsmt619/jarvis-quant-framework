@@ -29,6 +29,9 @@ from engines.moonshot.deterministic.br30b_tastytrade_sandbox_read_only_connectiv
     DXLINK_ALLOWED_STDERR_CODES,
     DXLINK_CHILD_ENV_ALLOWLIST,
     DXLINK_CHILD_ENV_DENY_KEY_MARKERS,
+    DXLINK_CHILD_ENV_FORBIDDEN_NAMES,
+    DXLINK_RUNTIME_PREFLIGHT_ARGV,
+    DXLINK_RUNTIME_PREFLIGHT_TIMEOUT_SECONDS,
     DXLINK_STDERR_MAX_BYTES,
     DXLINK_STDOUT_MAX_BYTES,
     JSON_REPORT_NAME,
@@ -45,12 +48,15 @@ from engines.moonshot.deterministic.br30b_tastytrade_sandbox_read_only_connectiv
     SandboxMarketDataSample,
     SandboxQuoteToken,
     SandboxSmokeTestRequest,
+    SubprocessDXLinkRuntimePreflightRunner,
     TastytradeSandboxConcreteReadOnlyNetworkClient,
     TastytradeSandboxOAuthRefreshTokenClient,
     USER_AGENT,
+    dxlink_child_environment_audit_keys,
     _dxlink_child_environment,
     build_tastytrade_sandbox_read_only_connectivity_smoke_test,
     render_markdown_tastytrade_sandbox_read_only_connectivity,
+    run_dxlink_runtime_preflight,
     run_tastytrade_sandbox_read_only_connectivity_smoke_test,
     safety_manifest,
     tastytrade_sandbox_read_only_connectivity_payload,
@@ -62,6 +68,7 @@ AS_OF = datetime(2026, 7, 11, 16, 5, tzinfo=timezone.utc)
 MODULE_PATH = Path("engines/moonshot/deterministic/br30b_tastytrade_sandbox_read_only_connectivity_smoke_test.py")
 SCRIPT_PATH = Path("scripts/run_br30b_tastytrade_sandbox_read_only_connectivity_smoke_test.py")
 DOC_PATH = Path("docs/brendan_strategy/br30b_tastytrade_sandbox_read_only_connectivity_smoke_test.md")
+PREFLIGHT_SCRIPT_PATH = Path("scripts/run_br30b4c_dxlink_runtime_preflight.py")
 
 
 def test_br30b_default_runtime_is_offline_and_fail_closed() -> None:
@@ -103,7 +110,14 @@ def test_br30b_safety_manifest_blocks_execution_mutation_routing_and_live_tradin
     assert manifest["real_paper_order_submitted"] is False
     assert manifest["live_trading_enabled"] is False
     assert manifest["dxlink_protocol_phase"] == "BR-30B4"
+    assert manifest["dxlink_runtime_environment_phase"] == "BR-30B4C"
     assert manifest["dxlink_sidecar_shell_execution"] is False
+    assert manifest["dxlink_sidecar_child_environment_explicit"] is True
+    assert manifest["dxlink_sidecar_child_environment_case_insensitive"] is True
+    assert manifest["dxlink_sidecar_child_environment_deny_filtered"] is True
+    assert manifest["dxlink_sidecar_child_environment_non_secret"] is True
+    assert manifest["dxlink_sidecar_child_environment_not_credential_transport"] is True
+    assert manifest["dxlink_sidecar_node_no_warnings_fixed"] == "1"
     assert manifest["dxlink_allowed_symbols"] == APPROVED_SYMBOLS
     assert manifest["dxlink_allowed_event_types"] == ("Quote", "Candle")
     assert manifest["dxlink_feed_contract"] == "AUTO"
@@ -619,21 +633,263 @@ def test_br30b4a_dxlink_node_argv_is_absolute_and_environment_is_scrubbed(monkey
     assert Path(DXLINK_NODE_ARGV[0]).is_absolute()
     assert Path(DXLINK_NODE_ARGV[0]).name.lower() in {"node.exe", "node"}
     assert DXLINK_NODE_ARGV[1] == str(Path("integrations/tastytrade_dxlink/dxlink_read_only_sidecar.mjs"))
+    assert Path(DXLINK_RUNTIME_PREFLIGHT_ARGV[0]).is_absolute()
+    assert Path(DXLINK_RUNTIME_PREFLIGHT_ARGV[0]).name.lower() in {"node.exe", "node"}
+    assert DXLINK_RUNTIME_PREFLIGHT_ARGV[1] == str(Path("integrations/tastytrade_dxlink/dxlink_runtime_preflight.mjs"))
 
-    monkeypatch.setenv("PATH", "C:\\Windows\\System32")
-    monkeypatch.setenv("SYSTEMROOT", "C:\\Windows")
-    monkeypatch.setenv("BROKER_TOKEN", "must-not-pass")
-    monkeypatch.setenv("API_KEY", "must-not-pass")
-    monkeypatch.setenv("OAUTH_REFRESH_TOKEN", "must-not-pass")
-    monkeypatch.setenv("CUSTOMER_ACCOUNT", "must-not-pass")
+    source_env = {
+        "Path": "C:\\Windows\\System32",
+        "SystemRoot": "C:\\Windows",
+        "windir": "C:\\Windows",
+        "SSL_CERT_FILE": "C:\\certs\\ca.pem",
+        "BROKER_TOKEN": "must-not-pass",
+        "API_KEY": "must-not-pass",
+        "OAUTH_REFRESH_TOKEN": "must-not-pass",
+        "CUSTOMER_ACCOUNT": "must-not-pass",
+        "NODE_NO_WARNINGS": "0",
+    }
 
-    child_env = _dxlink_child_environment()
+    child_env = _dxlink_child_environment(source_env)
 
-    assert child_env["PATH"] == "C:\\Windows\\System32"
-    assert child_env["SYSTEMROOT"] == "C:\\Windows"
-    assert set(key.upper() for key in child_env) <= set(DXLINK_CHILD_ENV_ALLOWLIST)
+    assert child_env["Path"] == "C:\\Windows\\System32"
+    assert child_env["SystemRoot"] == "C:\\Windows"
+    assert child_env["windir"] == "C:\\Windows"
+    assert child_env["SSL_CERT_FILE"] == "C:\\certs\\ca.pem"
+    assert child_env["NODE_NO_WARNINGS"] == "1"
+    assert set(key.upper() for key in child_env) <= set(DXLINK_CHILD_ENV_ALLOWLIST) | {"NODE_NO_WARNINGS"}
     assert not any(marker in key.upper() for key in child_env for marker in DXLINK_CHILD_ENV_DENY_KEY_MARKERS)
     assert "must-not-pass" not in str(child_env)
+    assert dxlink_child_environment_audit_keys(source_env) == tuple(
+        sorted(child_env.keys(), key=lambda key: key.upper())
+    )
+
+
+def test_br30b4c_dxlink_child_environment_uses_exact_windows_runtime_allowlist() -> None:
+    assert DXLINK_CHILD_ENV_ALLOWLIST == (
+        "ALLUSERSPROFILE",
+        "APPDATA",
+        "COMMONPROGRAMFILES",
+        "COMMONPROGRAMFILES(X86)",
+        "COMMONPROGRAMW6432",
+        "COMPUTERNAME",
+        "COMSPEC",
+        "DRIVERDATA",
+        "HOMEDRIVE",
+        "HOMEPATH",
+        "LOCALAPPDATA",
+        "LOGONSERVER",
+        "NUMBER_OF_PROCESSORS",
+        "OS",
+        "PATH",
+        "PATHEXT",
+        "PROCESSOR_ARCHITECTURE",
+        "PROCESSOR_IDENTIFIER",
+        "PROCESSOR_LEVEL",
+        "PROCESSOR_REVISION",
+        "PROGRAMDATA",
+        "PROGRAMFILES",
+        "PROGRAMFILES(X86)",
+        "PROGRAMW6432",
+        "PSMODULEPATH",
+        "PUBLIC",
+        "SESSIONNAME",
+        "SSL_CERT_DIR",
+        "SSL_CERT_FILE",
+        "SYSTEMDRIVE",
+        "SYSTEMROOT",
+        "TEMP",
+        "TMP",
+        "USERDOMAIN",
+        "USERDOMAIN_ROAMINGPROFILE",
+        "USERNAME",
+        "USERPROFILE",
+        "WINDIR",
+    )
+
+
+@pytest.mark.parametrize(
+    "source_env",
+    [
+        {"Path": "C:\\Windows\\System32", "SystemRoot": "C:\\Windows"},
+        {"PATH": "C:\\Windows\\System32", "SYSTEMROOT": "C:\\Windows"},
+        {"path": "C:\\Windows\\System32", "systemroot": "C:\\Windows"},
+    ],
+)
+def test_br30b4c_dxlink_child_environment_matches_windows_names_case_insensitively(
+    source_env: dict[str, str],
+) -> None:
+    child_env = _dxlink_child_environment(source_env)
+
+    assert next(key for key in child_env if key.upper() == "PATH") in source_env
+    assert next(key for key in child_env if key.upper() == "SYSTEMROOT") in source_env
+    assert child_env["NODE_NO_WARNINGS"] == "1"
+
+
+@pytest.mark.parametrize(
+    "source_env",
+    [
+        {"Path": "one", "PATH": "two"},
+        {"SystemRoot": "one", "SYSTEMROOT": "two"},
+        {"windir": "one", "WINDIR": "two"},
+    ],
+)
+def test_br30b4c_dxlink_child_environment_rejects_duplicate_case_folded_names(
+    source_env: dict[str, str],
+) -> None:
+    with pytest.raises(SandboxClientError) as excinfo:
+        _dxlink_child_environment(source_env)
+
+    assert excinfo.value.reason == "dxlink_runtime_environment_unavailable"
+
+
+@pytest.mark.parametrize("marker", DXLINK_CHILD_ENV_DENY_KEY_MARKERS)
+def test_br30b4c_dxlink_child_environment_enforces_deny_markers(marker: str) -> None:
+    child_env = _dxlink_child_environment({"PATH": "ok", f"JARVIS_{marker}": "must-not-pass"})
+
+    assert child_env == {"PATH": "ok", "NODE_NO_WARNINGS": "1"}
+    assert "must-not-pass" not in str(child_env)
+
+
+@pytest.mark.parametrize("name", DXLINK_CHILD_ENV_FORBIDDEN_NAMES)
+def test_br30b4c_dxlink_child_environment_blocks_node_injection_variables(name: str) -> None:
+    with pytest.raises(SandboxClientError) as excinfo:
+        _dxlink_child_environment({"PATH": "ok", name.lower(): "must-not-pass"})
+
+    assert excinfo.value.reason == "dxlink_runtime_environment_unavailable"
+
+
+def test_br30b4c_dxlink_child_environment_does_not_invent_optional_tls_paths() -> None:
+    assert _dxlink_child_environment({"PATH": "ok"}) == {"PATH": "ok", "NODE_NO_WARNINGS": "1"}
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "wss://streamer.cert.tastyworks.com/quote",
+        "client-secret=value",
+        "refresh-token=value",
+        "cookie=session",
+        "database=jarvis",
+    ],
+)
+def test_br30b4c_dxlink_child_environment_rejects_sensitive_allowlisted_values(value: str) -> None:
+    with pytest.raises(SandboxClientError) as excinfo:
+        _dxlink_child_environment({"PATH": value})
+
+    assert excinfo.value.reason == "dxlink_runtime_environment_unavailable"
+
+
+def test_br30b4c_dxlink_runtime_preflight_runner_reuses_production_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict[str, object]] = []
+
+    class FakePopen:
+        returncode = 0
+
+        def __init__(self, argv: list[str], **kwargs: object) -> None:
+            calls.append({"argv": tuple(argv), **kwargs})
+
+        def communicate(self, stdin_payload: str, timeout: float | None = None) -> tuple[str, str]:
+            return (
+                json_message(
+                    {
+                        "ok": True,
+                        "sdk": "@dxfeed/dxlink-api",
+                        "contract": "0.3.0",
+                        "connection_attempted": False,
+                        "credentials_accepted": False,
+                    }
+                ),
+                "",
+            )
+
+        def kill(self) -> None:
+            raise AssertionError("preflight should not time out")
+
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    monkeypatch.delenv("PATH", raising=False)
+    monkeypatch.delenv("SYSTEMROOT", raising=False)
+    monkeypatch.setenv("Path", "C:\\Windows\\System32")
+    monkeypatch.setenv("SystemRoot", "C:\\Windows")
+    monkeypatch.setenv("TASTYTRADE_TOKEN", "must-not-load")
+
+    completed = run_dxlink_runtime_preflight()
+
+    assert completed.returncode == 0
+    assert completed.stderr == ""
+    assert calls[0]["argv"] == DXLINK_RUNTIME_PREFLIGHT_ARGV
+    assert calls[0]["shell"] is False
+    assert calls[0]["env"] == _dxlink_child_environment()
+    assert calls[0]["stdin"] is subprocess.PIPE
+    assert DXLINK_RUNTIME_PREFLIGHT_TIMEOUT_SECONDS == 8.0
+    assert "must-not-load" not in str(calls[0]["env"])
+
+
+class _StaticPreflightRunner:
+    def __init__(
+        self,
+        *,
+        returncode: int = 0,
+        stdout: str = "",
+        stderr: str = "",
+        timed_out: bool = False,
+    ) -> None:
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+        self.timed_out = timed_out
+
+    def run(
+        self,
+        argv: tuple[str, ...],
+        stdin_payload: str,
+        timeout_seconds: float,
+    ) -> DXLinkSidecarCompleted:
+        assert argv == DXLINK_RUNTIME_PREFLIGHT_ARGV
+        assert stdin_payload == ""
+        assert timeout_seconds == DXLINK_RUNTIME_PREFLIGHT_TIMEOUT_SECONDS
+        return DXLinkSidecarCompleted(
+            returncode=self.returncode,
+            stdout=self.stdout,
+            stderr=self.stderr,
+            timed_out=self.timed_out,
+        )
+
+
+def test_br30b4c_dxlink_runtime_preflight_sanitizes_timeout_returncode_and_bounded_output() -> None:
+    cases = [
+        (_StaticPreflightRunner(timed_out=True, stdout="raw assertion text"), "dxlink_timeout"),
+        (_StaticPreflightRunner(returncode=134, stderr="node assertion stack"), "dxlink_output_malformed"),
+        (_StaticPreflightRunner(stdout="x" * (DXLINK_STDOUT_MAX_BYTES + 1)), "dxlink_output_malformed"),
+        (_StaticPreflightRunner(stderr="x" * (DXLINK_STDERR_MAX_BYTES + 1)), "dxlink_output_malformed"),
+        (_StaticPreflightRunner(returncode=1, stderr="dxlink_contract_mismatch"), "dxlink_contract_mismatch"),
+    ]
+
+    for runner, expected_stderr in cases:
+        completed = run_dxlink_runtime_preflight(runner=runner)
+
+        assert completed.stdout == ""
+        assert completed.stderr == expected_stderr
+        assert "assertion" not in completed.stderr
+        assert "stack" not in completed.stderr
+
+
+def test_br30b4c_dxlink_runtime_preflight_rejects_stdin_and_secret_inputs() -> None:
+    with pytest.raises(SandboxClientError) as excinfo:
+        SubprocessDXLinkRuntimePreflightRunner().run(DXLINK_RUNTIME_PREFLIGHT_ARGV, "secret", 1.0)
+
+    assert excinfo.value.reason == "dxlink_runtime_environment_unavailable"
+
+
+def test_br30b4c_local_preflight_script_does_not_load_credentials_or_network_clients() -> None:
+    source = PREFLIGHT_SCRIPT_PATH.read_text(encoding="utf-8")
+
+    assert "run_dxlink_runtime_preflight" in source
+    assert "SecureLocalOAuthRuntimeBridge" not in source
+    assert "RequestsHttpTransport" not in source
+    assert "TastytradeSandboxConcreteReadOnlyNetworkClient" not in source
+    assert "connect(" not in source
+    assert "setAuthToken" not in source
+    assert ".env" not in source
 
 
 def test_br30b4a_fake_sdk_harness_runs_actual_sidecar_offline() -> None:

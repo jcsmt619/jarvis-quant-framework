@@ -64,11 +64,14 @@ DEFAULT_READ_TIMEOUT_SECONDS = 5.0
 DEFAULT_OVERALL_TIMEOUT_SECONDS = 20.0
 DXLINK_SIDECAR_DIR = Path("integrations/tastytrade_dxlink")
 DXLINK_SIDECAR_ENTRYPOINT = DXLINK_SIDECAR_DIR / "dxlink_read_only_sidecar.mjs"
+DXLINK_RUNTIME_PREFLIGHT_ENTRYPOINT = DXLINK_SIDECAR_DIR / "dxlink_runtime_preflight.mjs"
 DXLINK_NODE_EXECUTABLE = str(Path(shutil.which("node.exe") or shutil.which("node") or "node").resolve())
 DXLINK_NODE_ARGV = (DXLINK_NODE_EXECUTABLE, str(DXLINK_SIDECAR_ENTRYPOINT))
+DXLINK_RUNTIME_PREFLIGHT_ARGV = (DXLINK_NODE_EXECUTABLE, str(DXLINK_RUNTIME_PREFLIGHT_ENTRYPOINT))
 DXLINK_STDIN_MAX_BYTES = 4096
 DXLINK_STDOUT_MAX_BYTES = 16384
 DXLINK_STDERR_MAX_BYTES = 2048
+DXLINK_RUNTIME_PREFLIGHT_TIMEOUT_SECONDS = 8.0
 DXLINK_ALLOWED_STDERR_CODES = (
     "dxlink_dependency_unavailable",
     "dxlink_package_metadata_unavailable",
@@ -77,24 +80,54 @@ DXLINK_ALLOWED_STDERR_CODES = (
     "dxlink_subscription_failed",
     "dxlink_timeout",
     "dxlink_process_failed",
+    "dxlink_runtime_environment_unavailable",
 )
 DXLINK_CHILD_ENV_ALLOWLIST = (
+    "ALLUSERSPROFILE",
+    "APPDATA",
+    "COMMONPROGRAMFILES",
+    "COMMONPROGRAMFILES(X86)",
+    "COMMONPROGRAMW6432",
+    "COMPUTERNAME",
     "COMSPEC",
+    "DRIVERDATA",
+    "HOMEDRIVE",
+    "HOMEPATH",
+    "LOCALAPPDATA",
+    "LOGONSERVER",
+    "NUMBER_OF_PROCESSORS",
+    "OS",
     "PATH",
     "PATHEXT",
+    "PROCESSOR_ARCHITECTURE",
+    "PROCESSOR_IDENTIFIER",
+    "PROCESSOR_LEVEL",
+    "PROCESSOR_REVISION",
+    "PROGRAMDATA",
+    "PROGRAMFILES",
+    "PROGRAMFILES(X86)",
+    "PROGRAMW6432",
+    "PSMODULEPATH",
+    "PUBLIC",
+    "SESSIONNAME",
     "SSL_CERT_DIR",
     "SSL_CERT_FILE",
     "SYSTEMDRIVE",
     "SYSTEMROOT",
     "TEMP",
     "TMP",
+    "USERDOMAIN",
+    "USERDOMAIN_ROAMINGPROFILE",
+    "USERNAME",
     "USERPROFILE",
     "WINDIR",
 )
 DXLINK_CHILD_ENV_DENY_KEY_MARKERS = (
     "ACCOUNT",
     "API_KEY",
+    "APIKEY",
     "AUTH",
+    "AUTHORIZATION",
     "BROKER",
     "CLIENT_ID",
     "CLIENT_SECRET",
@@ -103,10 +136,19 @@ DXLINK_CHILD_ENV_DENY_KEY_MARKERS = (
     "KEY",
     "OAUTH",
     "PASSWORD",
+    "PASSWD",
     "PRIVATE",
     "REFRESH",
     "SECRET",
+    "TASTYTRADE",
     "TOKEN",
+)
+DXLINK_CHILD_ENV_FORBIDDEN_NAMES = (
+    "NODE_DEBUG",
+    "NODE_EXTRA_CA_CERTS",
+    "NODE_OPTIONS",
+    "NODE_PATH",
+    "SSLKEYLOGFILE",
 )
 MAX_QUOTE_AGE = timedelta(minutes=20)
 MAX_CLOCK_SKEW = timedelta(seconds=90)
@@ -152,6 +194,7 @@ REJECTION_REASONS = (
     "dxlink_subscription_failed",
     "dxlink_timeout",
     "dxlink_process_failed",
+    "dxlink_runtime_environment_unavailable",
     "dxlink_output_malformed",
     "dxlink_secret_leak_detected",
     "unsupported_event",
@@ -292,6 +335,12 @@ class SubprocessDXLinkSidecarRunner:
         timeout_seconds: float,
     ) -> DXLinkSidecarCompleted:
         try:
+            child_env = _dxlink_child_environment()
+        except SandboxClientError:
+            raise
+        except Exception as exc:
+            raise SandboxClientError("dxlink_runtime_environment_unavailable") from exc
+        try:
             process = subprocess.Popen(
                 list(argv),
                 stdin=subprocess.PIPE,
@@ -301,7 +350,7 @@ class SubprocessDXLinkSidecarRunner:
                 encoding="utf-8",
                 errors="replace",
                 shell=False,
-                env=_dxlink_child_environment(),
+                env=child_env,
             )
         except FileNotFoundError as exc:
             raise SandboxClientError("dxlink_dependency_unavailable") from exc
@@ -323,6 +372,71 @@ class SubprocessDXLinkSidecarRunner:
             stdout[:DXLINK_STDOUT_MAX_BYTES + 1],
             stderr[:DXLINK_STDERR_MAX_BYTES + 1],
         )
+
+
+class DXLinkRuntimePreflightRunner(Protocol):
+    def run(
+        self,
+        argv: tuple[str, ...],
+        stdin_payload: str,
+        timeout_seconds: float,
+    ) -> DXLinkSidecarCompleted:
+        ...
+
+
+class SubprocessDXLinkRuntimePreflightRunner:
+    def run(
+        self,
+        argv: tuple[str, ...],
+        stdin_payload: str,
+        timeout_seconds: float,
+    ) -> DXLinkSidecarCompleted:
+        if stdin_payload:
+            raise SandboxClientError("dxlink_runtime_environment_unavailable")
+        return SubprocessDXLinkSidecarRunner().run(argv, "", timeout_seconds)
+
+
+def run_dxlink_runtime_preflight(
+    runner: DXLinkRuntimePreflightRunner | None = None,
+    *,
+    timeout_seconds: float = DXLINK_RUNTIME_PREFLIGHT_TIMEOUT_SECONDS,
+) -> DXLinkSidecarCompleted:
+    completed = (runner or SubprocessDXLinkRuntimePreflightRunner()).run(
+        DXLINK_RUNTIME_PREFLIGHT_ARGV,
+        "",
+        timeout_seconds,
+    )
+    if completed.timed_out:
+        return DXLinkSidecarCompleted(
+            completed.returncode,
+            "",
+            "dxlink_timeout",
+            timed_out=True,
+        )
+    if len(completed.stdout.encode("utf-8")) > DXLINK_STDOUT_MAX_BYTES:
+        return DXLinkSidecarCompleted(completed.returncode, "", "dxlink_output_malformed")
+    if len(completed.stderr.encode("utf-8")) > DXLINK_STDERR_MAX_BYTES:
+        return DXLinkSidecarCompleted(completed.returncode, "", "dxlink_output_malformed")
+    if completed.stderr and completed.stderr not in DXLINK_ALLOWED_STDERR_CODES:
+        return DXLinkSidecarCompleted(completed.returncode, "", "dxlink_output_malformed")
+    if completed.returncode != 0:
+        code = completed.stderr if completed.stderr in DXLINK_ALLOWED_STDERR_CODES else "dxlink_process_failed"
+        return DXLinkSidecarCompleted(completed.returncode, "", code)
+    if completed.stderr:
+        return DXLinkSidecarCompleted(completed.returncode, "", "dxlink_output_malformed")
+    try:
+        envelope = json.loads(completed.stdout)
+    except json.JSONDecodeError:
+        return DXLinkSidecarCompleted(completed.returncode, "", "dxlink_output_malformed")
+    if envelope != {
+        "ok": True,
+        "sdk": "@dxfeed/dxlink-api",
+        "contract": "0.3.0",
+        "connection_attempted": False,
+        "credentials_accepted": False,
+    }:
+        return DXLinkSidecarCompleted(completed.returncode, "", "dxlink_output_malformed")
+    return DXLinkSidecarCompleted(0, completed.stdout, "")
 
 
 class TastytradeSandboxOAuthRefreshTokenClient:
@@ -727,14 +841,23 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
         "quote_token_values_written": False,
         "quote_token_level_metadata_supported": True,
         "dxlink_protocol_phase": "BR-30B4",
+        "dxlink_runtime_environment_phase": "BR-30B4C",
         "dxlink_official_sdk_required": True,
         "dxlink_sidecar_directory": str(DXLINK_SIDECAR_DIR),
         "dxlink_sidecar_fixed_argv": DXLINK_NODE_ARGV,
+        "dxlink_runtime_preflight_fixed_argv": DXLINK_RUNTIME_PREFLIGHT_ARGV,
         "dxlink_sidecar_shell_execution": False,
         "dxlink_sidecar_stdin_only_secret_transport": True,
         "dxlink_sidecar_environment_secret_transport": False,
+        "dxlink_sidecar_child_environment_explicit": True,
+        "dxlink_sidecar_child_environment_case_insensitive": True,
+        "dxlink_sidecar_child_environment_deny_filtered": True,
+        "dxlink_sidecar_child_environment_non_secret": True,
+        "dxlink_sidecar_child_environment_not_credential_transport": True,
         "dxlink_sidecar_child_environment_allowlist": DXLINK_CHILD_ENV_ALLOWLIST,
         "dxlink_sidecar_child_environment_secret_key_markers_blocked": DXLINK_CHILD_ENV_DENY_KEY_MARKERS,
+        "dxlink_sidecar_child_environment_forbidden_names": DXLINK_CHILD_ENV_FORBIDDEN_NAMES,
+        "dxlink_sidecar_node_no_warnings_fixed": "1",
         "dxlink_sidecar_command_line_secret_transport": False,
         "dxlink_sidecar_temporary_file_secret_transport": False,
         "dxlink_sidecar_stdout_machine_readable_only": True,
@@ -763,6 +886,7 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
             "dxlink_subscription_failed",
             "dxlink_timeout",
             "dxlink_process_failed",
+            "dxlink_runtime_environment_unavailable",
             "dxlink_output_malformed",
             "dxlink_secret_leak_detected",
         ),
@@ -1276,17 +1400,66 @@ def _dxlink_stdin_payload(
     return text
 
 
-def _dxlink_child_environment() -> dict[str, str]:
+def _dxlink_child_environment(source_env: dict[str, str] | None = None) -> dict[str, str]:
     child_env: dict[str, str] = {}
-    allowed = set(DXLINK_CHILD_ENV_ALLOWLIST)
-    for key, value in os.environ.items():
-        upper_key = key.upper()
+    seen_folded: set[str] = set()
+    allowed = {name.upper() for name in DXLINK_CHILD_ENV_ALLOWLIST}
+    forbidden = {name.upper() for name in DXLINK_CHILD_ENV_FORBIDDEN_NAMES}
+    environ = dict(os.environ) if source_env is None else source_env
+    for key, value in environ.items():
+        upper_key = _env_key_fold(key)
+        if upper_key in forbidden:
+            raise SandboxClientError("dxlink_runtime_environment_unavailable")
         if upper_key not in allowed:
             continue
-        if any(marker in upper_key for marker in DXLINK_CHILD_ENV_DENY_KEY_MARKERS):
-            continue
+        if upper_key in seen_folded:
+            raise SandboxClientError("dxlink_runtime_environment_unavailable")
+        seen_folded.add(upper_key)
+        if _dxlink_env_key_is_denied(upper_key):
+            raise SandboxClientError("dxlink_runtime_environment_unavailable")
+        if _dxlink_env_value_is_sensitive(value):
+            raise SandboxClientError("dxlink_runtime_environment_unavailable")
         child_env[key] = value
+    child_env["NODE_NO_WARNINGS"] = "1"
     return child_env
+
+
+def dxlink_child_environment_audit_keys(source_env: dict[str, str] | None = None) -> tuple[str, ...]:
+    return tuple(sorted(_dxlink_child_environment(source_env).keys(), key=lambda key: key.upper()))
+
+
+def _env_key_fold(key: str) -> str:
+    return key.upper()
+
+
+def _dxlink_env_key_is_denied(upper_key: str) -> bool:
+    if upper_key in {name.upper() for name in DXLINK_CHILD_ENV_FORBIDDEN_NAMES}:
+        return True
+    return any(marker in upper_key for marker in DXLINK_CHILD_ENV_DENY_KEY_MARKERS)
+
+
+def _dxlink_env_value_is_sensitive(value: str) -> bool:
+    lowered = value.lower()
+    return any(
+        marker in lowered
+        for marker in (
+            "wss://",
+            "https://api.cert.tasty",
+            "https://api.tasty",
+            "tastytrade",
+            "tastyworks",
+            "quote-token",
+            "access-token",
+            "refresh-token",
+            "client-secret",
+            "api-key",
+            "oauth",
+            "password",
+            "private key",
+            "cookie=",
+            "database=",
+        )
+    )
 
 
 def _sample_from_dxlink_stdout(stdout: str, as_of: datetime) -> SandboxMarketDataSample:
