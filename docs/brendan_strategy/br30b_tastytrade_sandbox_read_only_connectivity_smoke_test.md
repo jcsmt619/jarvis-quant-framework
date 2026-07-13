@@ -91,6 +91,16 @@ The preflight accepts only a manifest whose `name` is exactly `@dxfeed/dxlink-ap
 
 Successful stdout is exactly one bounded JSON object with `ok=true`, `sdk="@dxfeed/dxlink-api"`, `contract="0.3.0"`, `connection_attempted=false`, and `credentials_accepted=false`.
 
+## BR-30B4C Windows Node Runtime Environment Boundary
+
+BR-30B4C corrects the Python-to-Node subprocess environment boundary for Windows Node runtimes. The parent still resolves `node.exe`/`node` to an absolute executable path, uses fixed argv, and launches with `shell=False`. It never inherits the full parent environment.
+
+The child environment is an explicit case-insensitive Windows runtime allowlist containing ordinary non-secret operating-system variables only. `SSL_CERT_DIR` and `SSL_CERT_FILE` are retained only when already present. `NODE_NO_WARNINGS` is injected with the fixed value `1`; inherited `NODE_NO_WARNINGS` is ignored. Environment-name matching is case-insensitive, the original safe source name is preserved, and duplicate case-folded names such as `Path` plus `PATH` fail closed with `dxlink_runtime_environment_unavailable`.
+
+Broker, OAuth, token, credential, API-key, account, customer, password, private-key, tastytrade, and secret-bearing names are denied. `NODE_OPTIONS`, `NODE_PATH`, `NODE_EXTRA_CA_CERTS`, `NODE_DEBUG`, and `SSLKEYLOGFILE` are explicitly rejected as Node injection/debugging variables even if they are accidentally added later. The child environment is not a credential transport; quote tokens and provider-returned WSS endpoints remain stdin-only and memory-only.
+
+The repository-owned local preflight runner invokes `dxlink_runtime_preflight.mjs` through the exact production environment builder, absolute Node argv, `shell=False`, empty stdin, hard timeout, bounded stdout/stderr, and allowlisted sanitized error codes. It does not load the vault, accept credentials, call `connect`, call `setAuthToken`, or contact tastytrade or DXLink.
+
 The sidecar stdout is a bounded machine-readable result envelope containing normalized non-secret event fields only. Stderr is restricted to allowlisted sanitized status codes. Raw DXLink protocol messages, authentication states, provider payloads, quote tokens, full WSS URLs, and SDK diagnostics must never be written or printed.
 
 The Python parent enforces stdout and stderr size limits, hard timeout, approved-symbol validation, event-type validation, finite numeric validation, duplicate detection, timestamp parsing, 15-minute sandbox-delay classification, malformed output rejection, secret-leak detection, and deterministic process cleanup. The DXLink client is closed after each bounded sample. No orphan Node process may remain.
@@ -104,6 +114,7 @@ Stage-specific DXLink rejection reasons:
 - `dxlink_subscription_failed`
 - `dxlink_timeout`
 - `dxlink_process_failed`
+- `dxlink_runtime_environment_unavailable`
 - `dxlink_output_malformed`
 - `dxlink_secret_leak_detected`
 
@@ -192,6 +203,12 @@ Mocked tests cover:
 - oversized sidecar output
 - sidecar timeout
 - sidecar crash
+- explicit Windows runtime child environment allowlist
+- case-insensitive `Path`/`PATH` and `SystemRoot`/`SYSTEMROOT` handling
+- duplicate case-folded environment-name rejection
+- Node injection/debugging environment-variable blocking
+- fixed `NODE_NO_WARNINGS=1`
+- local runtime preflight subprocess contract
 - cleanup boundary evidence
 - raw-message blocking
 - sidecar secret-leak detection
@@ -237,6 +254,12 @@ Explicit sandbox-network mode from the repository runner:
 
 ```powershell
 python scripts/run_br30b_tastytrade_sandbox_read_only_connectivity_smoke_test.py --mode sandbox_network --confirm I_CONFIRM_BR30B1_SANDBOX_READ_ONLY_NETWORK_SMOKE
+```
+
+Credential-free local DXLink runtime preflight:
+
+```powershell
+python scripts/run_br30b4c_dxlink_runtime_preflight.py
 ```
 
 Run tests:
