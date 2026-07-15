@@ -105,6 +105,24 @@ The sidecar stdout is a bounded machine-readable result envelope containing norm
 
 The Python parent enforces stdout and stderr size limits, hard timeout, approved-symbol validation, event-type validation, finite numeric validation, duplicate detection, timestamp parsing, 15-minute sandbox-delay classification, malformed output rejection, secret-leak detection, and deterministic process cleanup. The DXLink client is closed after each bounded sample. No orphan Node process may remain.
 
+## BR-30B4D DXLink Dependency Lock Graph
+
+BR-30B4D completes the reproducible runtime dependency closure for the Node DXLink sidecar. `integrations/tastytrade_dxlink/package.json` remains byte-for-byte unchanged and continues to request exactly `@dxfeed/dxlink-api` `0.3.0`. `package-lock.json` is regenerated only from that manifest with:
+
+```powershell
+npm install --package-lock-only --offline --ignore-scripts --no-audit --no-fund
+```
+
+The lock graph must contain exactly the root package plus the SDK runtime closure pinned to `0.3.0`: `@dxfeed/dxlink-api`, `@dxfeed/dxlink-core`, `@dxfeed/dxlink-dom`, `@dxfeed/dxlink-feed`, and `@dxfeed/dxlink-websocket-client`. Each locked runtime package must use an HTTPS npm registry artifact and npm-provided `sha512` integrity metadata. Floating versions, local file dependencies, Git dependencies, non-HTTPS artifacts, unexpected package names, missing records, malformed metadata, package/lock disagreement, and sensitive metadata fail closed.
+
+The repository validator is `tools/dxlink_lock_graph_validator.py`, exposed through `scripts/check_br30b4d_dxlink_lock_graph.py`. Its default mode validates package immutability, lockfile format, exact package versions, direct transitive dependencies, recursive closure, resolved artifact class, integrity metadata, sensitive-field rejection, and sanitized reporting. Its runtime mode also runs the deterministic reconstruction and no-credential probes:
+
+```powershell
+python scripts/check_br30b4d_dxlink_lock_graph.py --runtime
+```
+
+Runtime mode uses `npm ci --offline --ignore-scripts --no-audit --no-fund --omit=dev`, verifies installed package manifests for the five required DXLink packages, runs ESM and CommonJS dynamic import-only probes, and reuses `scripts/run_br30b4c_dxlink_runtime_preflight.py`. It discards raw npm and Node output and reports only sanitized pass/fail codes and counts. It must not create or modify `.npmrc`, run lifecycle scripts, use registry access, accept credentials, contact tastytrade, contact DXLink, or open WebSocket connections.
+
 Stage-specific DXLink rejection reasons:
 
 - `dxlink_dependency_unavailable`
@@ -262,8 +280,16 @@ Credential-free local DXLink runtime preflight:
 python scripts/run_br30b4c_dxlink_runtime_preflight.py
 ```
 
+DXLink lock graph validator:
+
+```powershell
+python scripts/check_br30b4d_dxlink_lock_graph.py
+python scripts/check_br30b4d_dxlink_lock_graph.py --runtime
+```
+
 Run tests:
 
 ```powershell
 pytest tests/test_br30b_tastytrade_sandbox_read_only_connectivity_smoke_test.py
+pytest tests/test_br30b4d_dxlink_lock_graph.py
 ```
