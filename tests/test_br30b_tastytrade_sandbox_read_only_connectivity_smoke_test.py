@@ -27,11 +27,13 @@ from engines.moonshot.deterministic.br30b_tastytrade_sandbox_read_only_connectiv
     APPROVED_SYMBOLS,
     DEFAULT_REPORT_DIR,
     DXLINK_ALLOWED_STDERR_CODES,
+    DXLINK_CHILD_SAMPLE_TIMEOUT_SECONDS,
     DXLINK_CHILD_ENV_ALLOWLIST,
     DXLINK_CHILD_ENV_DENY_KEY_MARKERS,
     DXLINK_CHILD_ENV_FORBIDDEN_NAMES,
     DXLINK_RUNTIME_PREFLIGHT_ARGV,
     DXLINK_RUNTIME_PREFLIGHT_TIMEOUT_SECONDS,
+    DXLINK_PARENT_CLEANUP_GRACE_SECONDS,
     DXLINK_STDERR_MAX_BYTES,
     DXLINK_STDOUT_MAX_BYTES,
     JSON_REPORT_NAME,
@@ -557,7 +559,19 @@ def test_br30b4_dxlink_child_process_uses_fixed_argv_and_stdin_only_secret_trans
         "dxlinkUrl": "wss://streamer.cert.tastyworks.com/quote",
         "quoteToken": "mock-quote-token",
         "symbols": ["SPY", "QQQ"],
-        "timeoutMs": 20000,
+        "timeoutMs": 30000,
+    }
+    assert runner.calls[0]["timeout_seconds"] == 35.0
+    assert dxlink_record["child_timeout_seconds"] == DXLINK_CHILD_SAMPLE_TIMEOUT_SECONDS
+    assert dxlink_record["parent_timeout_seconds"] == 35.0
+    assert dxlink_record["parent_cleanup_grace_seconds"] >= DXLINK_PARENT_CLEANUP_GRACE_SECONDS
+    assert dxlink_record["sanitized_terminal_stage"] == "cleanup"
+    assert dxlink_record["sanitized_stage_counts"] == {
+        "quote_records": 2,
+        "candle_records": 2,
+        "logical_records": 4,
+        "raw_batches_processed": 1,
+        "raw_records_processed": 4,
     }
     assert dxlink_record["stdin_only_secret_transport"] is True
     assert dxlink_record["environment_values_written"] is False
@@ -565,6 +579,27 @@ def test_br30b4_dxlink_child_process_uses_fixed_argv_and_stdin_only_secret_trans
     assert dxlink_record["temporary_files_written"] is False
     assert "mock-quote-token" not in str(result)
     assert "wss://streamer.cert.tastyworks.com/quote" not in str(result)
+
+
+def test_br30b4e_safety_manifest_records_bounded_dxlink_timing_and_reasons() -> None:
+    manifest = safety_manifest()
+
+    assert manifest["dxlink_parent_timeout_seconds"] == 35.0
+    assert manifest["dxlink_child_sample_timeout_seconds"] == 30.0
+    assert manifest["dxlink_parent_cleanup_grace_seconds"] == 5.0
+    assert manifest["dxlink_child_timeout_shorter_than_parent"] is True
+    assert manifest["dxlink_feed_aggregation_period_seconds"] == 1
+    assert manifest["dxlink_historical_candle_lookback_minutes"] == 30
+    assert "dxlink_timeout" not in manifest["dxlink_stage_rejection_reasons_supported"]
+    for reason in (
+        "dxlink_connect_timeout",
+        "dxlink_auth_timeout",
+        "dxlink_feed_open_timeout",
+        "dxlink_quote_timeout",
+        "dxlink_candle_timeout",
+        "dxlink_sample_timeout",
+    ):
+        assert reason in manifest["dxlink_stage_rejection_reasons_supported"]
 
 
 def test_br30b4_dxlink_sidecar_source_uses_official_sdk_compact_quote_and_candle_only() -> None:
@@ -619,8 +654,21 @@ def test_br30b4a_dxlink_sidecar_source_matches_pinned_sdk_contract() -> None:
     assert "new DXLinkFeed(client, FeedContract.AUTO," not in sidecar
     assert "feed.configure" in sidecar
     assert "acceptAggregationPeriod" in sidecar
+    assert "FEED_AGGREGATION_PERIOD_SECONDS = 1" in sidecar
+    assert "HISTORICAL_LOOKBACK_MS = 30 * 60 * 1000" in sidecar
+    assert "fromTime" in sidecar
+    assert "await client.connect" not in sidecar
+    assert "MAX_RAW_RECORDS" in sidecar
+    assert "latest.set(key, normalized)" in sidecar
+    assert "terminal_stage" in sidecar
+    assert "dxlink_connect_timeout" in sidecar
+    assert "dxlink_auth_timeout" in sidecar
+    assert "dxlink_feed_open_timeout" in sidecar
+    assert "dxlink_quote_timeout" in sidecar
+    assert "dxlink_candle_timeout" in sidecar
+    assert "dxlink_sample_timeout" in sidecar
     assert "acceptEventFields" in sidecar
-    assert "feed.addSubscriptions({ type: eventType, symbol })" in sidecar
+    assert "feed.addSubscriptions(subscription)" in sidecar
     assert "symbols:" not in sidecar
     assert "fields:" not in sidecar
     assert "feed.addEventListener(listener)" in sidecar
@@ -857,7 +905,7 @@ class _StaticPreflightRunner:
 
 def test_br30b4c_dxlink_runtime_preflight_sanitizes_timeout_returncode_and_bounded_output() -> None:
     cases = [
-        (_StaticPreflightRunner(timed_out=True, stdout="raw assertion text"), "dxlink_timeout"),
+        (_StaticPreflightRunner(timed_out=True, stdout="raw assertion text"), "dxlink_sample_timeout"),
         (_StaticPreflightRunner(returncode=134, stderr="node assertion stack"), "dxlink_output_malformed"),
         (_StaticPreflightRunner(stdout="x" * (DXLINK_STDOUT_MAX_BYTES + 1)), "dxlink_output_malformed"),
         (_StaticPreflightRunner(stderr="x" * (DXLINK_STDERR_MAX_BYTES + 1)), "dxlink_output_malformed"),
@@ -916,7 +964,7 @@ def test_br30b4a_fake_sdk_harness_runs_actual_sidecar_offline() -> None:
             "dxlinkUrl": "wss://streamer.cert.tastyworks.com/quote",
             "symbols": ["SPY", "QQQ"],
             "acquisitionTimestamp": AS_OF.isoformat(),
-            "timeoutMs": 1000,
+            "timeoutMs": 30000,
         },
         separators=(",", ":"),
     )
@@ -939,6 +987,8 @@ def test_br30b4a_fake_sdk_harness_runs_actual_sidecar_offline() -> None:
     assert envelope["connected"] is True
     assert {event["event_type"] for event in envelope["events"]} == {"Quote", "Candle"}
     assert {event["symbol"] for event in envelope["events"]} == {"SPY", "QQQ"}
+    assert envelope["terminal_stage"] == "cleanup"
+    assert envelope["counts"]["logical_records"] == 4
     assert "stdin-only-quote-token" not in completed.stdout
     assert "streamer.cert.tastyworks.com" not in completed.stdout
     assert "stdin-only-quote-token" not in completed.stderr
@@ -1592,7 +1642,23 @@ def dxlink_stdout(symbols: tuple[str, ...] = APPROVED_SYMBOLS) -> str:
                 "volume": 1000,
             }
         )
-    return json_message({"ok": True, "connected": True, "disconnected": False, "reconnect_count": 0, "events": events})
+    return json_message(
+        {
+            "ok": True,
+            "connected": True,
+            "disconnected": False,
+            "reconnect_count": 0,
+            "terminal_stage": "cleanup",
+            "counts": {
+                "quote_records": len(symbols),
+                "candle_records": len(symbols),
+                "logical_records": len(symbols) * 2,
+                "raw_batches_processed": 1,
+                "raw_records_processed": len(events),
+            },
+            "events": events,
+        }
+    )
 
 
 def dxlink_stdout_without_candle() -> str:
@@ -1611,6 +1677,16 @@ def dxlink_stdout_without_candle() -> str:
         for symbol in APPROVED_SYMBOLS
     ]
     return json_message({"ok": True, "connected": True, "disconnected": False, "reconnect_count": 0, "events": events})
+
+
+def dxlink_stdout_with_extra_quote() -> str:
+    envelope = json.loads(dxlink_stdout())
+    extra = dict(envelope["events"][0])
+    extra["exchange_timestamp"] = (AS_OF - timedelta(minutes=14, seconds=30)).isoformat()
+    envelope["events"].append(extra)
+    envelope["counts"]["logical_records"] = 5
+    envelope["counts"]["raw_records_processed"] = 5
+    return json_message(envelope)
 
 
 def dxlink_stdout_with_event(event_type: str) -> str:
@@ -1676,7 +1752,7 @@ def _fake_dxlink_sdk_source() -> str:
           }
           configure(config) {
             if (
-              config.acceptAggregationPeriod !== 60 ||
+              config.acceptAggregationPeriod !== 1 ||
               config.acceptDataFormat !== FeedDataFormat.COMPACT ||
               !config.acceptEventFields ||
               !Array.isArray(config.acceptEventFields.Quote) ||
@@ -1697,7 +1773,9 @@ def _fake_dxlink_sdk_source() -> str:
               subscription.symbols !== undefined ||
               subscription.fields !== undefined ||
               typeof subscription.symbol !== "string" ||
-              !["Quote", "Candle"].includes(subscription.type)
+              !["Quote", "Candle"].includes(subscription.type) ||
+              (subscription.type === "Quote" && subscription.fromTime !== undefined) ||
+              (subscription.type === "Candle" && subscription.fromTime !== 1783784100000)
             ) {
               throw new Error("subscription-contract");
             }
@@ -1856,10 +1934,11 @@ def _run_node_preflight(node: str, sidecar_dir: Path) -> subprocess.CompletedPro
     [
         (FakeDXLinkRunner(messages_for=("SPY",)), "missing_symbol"),
         (FakeDXLinkRunner(stdout=dxlink_stdout_without_candle()), "missing_symbol"),
+        (FakeDXLinkRunner(stdout=dxlink_stdout_with_extra_quote()), "missing_symbol"),
         (FakeDXLinkRunner(stdout=dxlink_stdout_with_event("Trade")), "unsupported_event"),
         (FakeDXLinkRunner(stdout="{not-json"), "dxlink_output_malformed"),
         (FakeDXLinkRunner(stdout="x" * (DXLINK_STDOUT_MAX_BYTES + 1)), "dxlink_output_malformed"),
-        (FakeDXLinkRunner(timed_out=True), "dxlink_timeout"),
+        (FakeDXLinkRunner(timed_out=True), "dxlink_sample_timeout"),
         (FakeDXLinkRunner(returncode=1, stderr="dxlink_dependency_unavailable"), "dxlink_dependency_unavailable"),
         (FakeDXLinkRunner(returncode=1, stderr="provider raw failure"), "dxlink_output_malformed"),
         (FakeDXLinkRunner(stdout=json_message({"ok": True, "connected": True, "events": [], "leak": "mock-quote-token"})), "dxlink_secret_leak_detected"),

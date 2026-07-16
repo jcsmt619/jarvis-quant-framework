@@ -6,7 +6,7 @@ LIVE TRADING: DISABLED
 
 ## Purpose
 
-BR-30B defines the tastytrade sandbox read-only connectivity smoke test. BR-30B1 adds the concrete tastytrade sandbox read-only network client and operator smoke runner. BR-30B2 aligns the sandbox OAuth refresh exchange with the official tastytrade SDK token request contract. BR-30B3 aligns the read-only REST response parsers for customer accounts and API quote tokens. BR-30B4 replaces the earlier handwritten generic WebSocket market-data messages with a repository-owned Node 20+ DXLink sidecar that follows the official `@dxfeed/dxlink-api` SDK pattern used by tastytrade.
+BR-30B defines the tastytrade sandbox read-only connectivity smoke test. BR-30B1 adds the concrete tastytrade sandbox read-only network client and operator smoke runner. BR-30B2 aligns the sandbox OAuth refresh exchange with the official tastytrade SDK token request contract. BR-30B3 aligns the read-only REST response parsers for customer accounts and API quote tokens. BR-30B4 replaces the earlier handwritten generic WebSocket market-data messages with a repository-owned Node 20+ DXLink sidecar that follows the official `@dxfeed/dxlink-api` SDK pattern used by tastytrade. BR-30B4E corrects the bounded DXLink sample timing and one-minute historical Candle contract.
 
 Default execution is fixture-only/offline and fail closed. The separate `sandbox_network` mode is explicit operator-invoked only and requires both `--mode sandbox_network` and the exact confirmation value `I_CONFIRM_BR30B1_SANDBOX_READ_ONLY_NETWORK_SMOKE`.
 
@@ -64,24 +64,33 @@ The Python runtime resolves `node.exe`/`node` to an absolute executable path, la
 - provider-returned DXLink WSS endpoint
 - approved symbols `SPY` and `QQQ`
 - acquisition timestamp
-- bounded timeout
+- bounded child timeout
 
 The sidecar never receives OAuth client ID, client secret, refresh token, account number, customer ID, REST access token, or arbitrary event subscriptions.
 
 The sidecar follows the checked-in SDK `0.3.0` contract before any real DXLink connection:
 
 - construct the client with `new DXLinkWebSocketClient()`
-- call `client.connect(dxlinkUrl)` with the authenticated provider-returned WSS endpoint
 - call `client.setAuthToken(quoteToken)`
 - construct the feed with `new DXLinkFeed(client, FeedContract.AUTO)`
-- configure separately with `feed.configure`, `acceptAggregationPeriod`, `FeedDataFormat.COMPACT`, and `acceptEventFields`
+- configure separately with `feed.configure`, `acceptAggregationPeriod=1`, `FeedDataFormat.COMPACT`, and `acceptEventFields`
+- register connection, authentication, feed-state, error, and data listeners before opening the network connection or before data can be emitted
+- call `client.connect(dxlinkUrl)` with the authenticated provider-returned WSS endpoint without awaiting it because the pinned SDK contract returns void
 - add subscriptions as individual objects with `type` and singular `symbol`
 - subscribe to Quote symbols `SPY` and `QQQ`
-- subscribe to one-minute Candle symbols `SPY{=1m}` and `QQQ{=1m}`
-- register data with `feed.addEventListener(listener)` using one listener argument
+- subscribe to one-minute Candle symbols `SPY{=1m}` and `QQQ{=1m}` with numeric `fromTime`
+- derive Candle `fromTime` only from the validated acquisition timestamp using epoch milliseconds and an exact bounded 30-minute historical lookback
+- reject invalid acquisition timestamps, non-finite values, future provider records, and lookbacks outside the approved window
+- register data with `feed.addEventListener(listener)` using one listener argument before subscriptions are queued
 - treat the listener callback as a bounded iterable event batch
 
 Subscription objects must not contain plural `symbols` or subscription-level `fields`. The sidecar subscribes only to Quote and one-minute Candle data for exactly `SPY` and `QQQ`. It does not subscribe to Trade, Greeks, Summary, Profile, Underlying, Order, account-streaming, or arbitrary event types. Compact fields are limited to normalized event symbol, timestamps, bid price, ask price, open, high, low, close, and volume.
+
+The feed aggregation period is fixed at one second. It must remain positive, bounded, and strictly shorter than every connection and sample timeout. The Python parent subprocess timeout is 35 seconds. The child sampling window is at most 30 seconds, leaving at least five seconds of parent cleanup grace. The child timeout and parent timeout are intentionally not identical, and the child sidecar is expected to terminate before the parent timeout whenever its own timer functions normally.
+
+The sidecar keeps bounded in-memory latest-record state keyed by event type and normalized approved symbol. It retains at most one validated latest Quote and one validated latest Candle for each of `SPY` and `QQQ`. Historical Candle batches may contain multiple records; the sidecar processes them within strict batch and total-record limits and selects the newest valid non-future record per symbol. It never synthesizes Candles from Quotes and never exits successfully merely because a raw event count was reached. Success requires exactly four logical records: Quote SPY, Quote QQQ, Candle SPY, and Candle QQQ.
+
+Sanitized in-memory stage tracking is limited to `client_created`, `connect_called`, `transport_connected`, `authentication_authorized`, `feed_opened`, `subscriptions_queued`, `quote_received`, `candle_received`, `sample_complete`, and `cleanup`. Reports may record only the sanitized terminal stage and aggregate non-secret counts.
 
 ## BR-30B4B DXLink Runtime Preflight Package Metadata
 
@@ -101,7 +110,7 @@ Broker, OAuth, token, credential, API-key, account, customer, password, private-
 
 The repository-owned local preflight runner invokes `dxlink_runtime_preflight.mjs` through the exact production environment builder, absolute Node argv, `shell=False`, empty stdin, hard timeout, bounded stdout/stderr, and allowlisted sanitized error codes. It does not load the vault, accept credentials, call `connect`, call `setAuthToken`, or contact tastytrade or DXLink.
 
-The sidecar stdout is a bounded machine-readable result envelope containing normalized non-secret event fields only. Stderr is restricted to allowlisted sanitized status codes. Raw DXLink protocol messages, authentication states, provider payloads, quote tokens, full WSS URLs, and SDK diagnostics must never be written or printed.
+The sidecar stdout is a bounded machine-readable result envelope containing normalized non-secret event fields, sanitized terminal stage, and aggregate counts only. Stderr is restricted to exactly one allowlisted sanitized status code. Raw DXLink protocol messages, authentication states, provider payloads, quote tokens, full WSS URLs, paths, stacks, payloads, and SDK diagnostics must never be written or printed.
 
 The Python parent enforces stdout and stderr size limits, hard timeout, approved-symbol validation, event-type validation, finite numeric validation, duplicate detection, timestamp parsing, 15-minute sandbox-delay classification, malformed output rejection, secret-leak detection, and deterministic process cleanup. The DXLink client is closed after each bounded sample. No orphan Node process may remain.
 
@@ -130,7 +139,12 @@ Stage-specific DXLink rejection reasons:
 - `dxlink_contract_mismatch`
 - `dxlink_authentication_failed`
 - `dxlink_subscription_failed`
-- `dxlink_timeout`
+- `dxlink_connect_timeout`
+- `dxlink_auth_timeout`
+- `dxlink_feed_open_timeout`
+- `dxlink_quote_timeout`
+- `dxlink_candle_timeout`
+- `dxlink_sample_timeout`
 - `dxlink_process_failed`
 - `dxlink_runtime_environment_unavailable`
 - `dxlink_output_malformed`
@@ -219,8 +233,26 @@ Mocked tests cover:
 - unsupported event rejection
 - malformed sidecar output
 - oversized sidecar output
-- sidecar timeout
+- connection timeout
+- authentication timeout
+- feed-open timeout
+- Quote-only timeout
+- Candle-only timeout
+- sample timeout
+- one-second aggregation period
+- 30-minute Candle `fromTime` in epoch milliseconds
+- parent cleanup grace
 - sidecar crash
+- listener installation before connection
+- void `connect` handling
+- exact Quote and Candle subscriptions
+- historical Candle batch deduplication and newest-record selection
+- incomplete-batch non-success
+- exact four-record success
+- bounded memory
+- deterministic cleanup
+- one-output rule
+- sanitized stage evidence
 - explicit Windows runtime child environment allowlist
 - case-insensitive `Path`/`PATH` and `SystemRoot`/`SYSTEMROOT` handling
 - duplicate case-folded environment-name rejection
