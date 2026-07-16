@@ -61,7 +61,9 @@ USER_AGENT = "JarvisQuant/BR-30B1 read-only-sandbox-smoke"
 OPERATOR_CONFIRMATION_VALUE = "I_CONFIRM_BR30B1_SANDBOX_READ_ONLY_NETWORK_SMOKE"
 DEFAULT_CONNECT_TIMEOUT_SECONDS = 5.0
 DEFAULT_READ_TIMEOUT_SECONDS = 5.0
-DEFAULT_OVERALL_TIMEOUT_SECONDS = 20.0
+DEFAULT_OVERALL_TIMEOUT_SECONDS = 35.0
+DXLINK_CHILD_SAMPLE_TIMEOUT_SECONDS = 30.0
+DXLINK_PARENT_CLEANUP_GRACE_SECONDS = 5.0
 DXLINK_SIDECAR_DIR = Path("integrations/tastytrade_dxlink")
 DXLINK_SIDECAR_ENTRYPOINT = DXLINK_SIDECAR_DIR / "dxlink_read_only_sidecar.mjs"
 DXLINK_RUNTIME_PREFLIGHT_ENTRYPOINT = DXLINK_SIDECAR_DIR / "dxlink_runtime_preflight.mjs"
@@ -72,13 +74,30 @@ DXLINK_STDIN_MAX_BYTES = 4096
 DXLINK_STDOUT_MAX_BYTES = 16384
 DXLINK_STDERR_MAX_BYTES = 2048
 DXLINK_RUNTIME_PREFLIGHT_TIMEOUT_SECONDS = 8.0
+DXLINK_ALLOWED_STAGES = (
+    "client_created",
+    "connect_called",
+    "transport_connected",
+    "authentication_authorized",
+    "feed_opened",
+    "subscriptions_queued",
+    "quote_received",
+    "candle_received",
+    "sample_complete",
+    "cleanup",
+)
 DXLINK_ALLOWED_STDERR_CODES = (
     "dxlink_dependency_unavailable",
     "dxlink_package_metadata_unavailable",
     "dxlink_contract_mismatch",
     "dxlink_authentication_failed",
     "dxlink_subscription_failed",
-    "dxlink_timeout",
+    "dxlink_connect_timeout",
+    "dxlink_auth_timeout",
+    "dxlink_feed_open_timeout",
+    "dxlink_quote_timeout",
+    "dxlink_candle_timeout",
+    "dxlink_sample_timeout",
     "dxlink_process_failed",
     "dxlink_runtime_environment_unavailable",
 )
@@ -192,7 +211,12 @@ REJECTION_REASONS = (
     "dxlink_contract_mismatch",
     "dxlink_authentication_failed",
     "dxlink_subscription_failed",
-    "dxlink_timeout",
+    "dxlink_connect_timeout",
+    "dxlink_auth_timeout",
+    "dxlink_feed_open_timeout",
+    "dxlink_quote_timeout",
+    "dxlink_candle_timeout",
+    "dxlink_sample_timeout",
     "dxlink_process_failed",
     "dxlink_runtime_environment_unavailable",
     "dxlink_output_malformed",
@@ -410,7 +434,7 @@ def run_dxlink_runtime_preflight(
         return DXLinkSidecarCompleted(
             completed.returncode,
             "",
-            "dxlink_timeout",
+            "dxlink_sample_timeout",
             timed_out=True,
         )
     if len(completed.stdout.encode("utf-8")) > DXLINK_STDOUT_MAX_BYTES:
@@ -577,16 +601,26 @@ class TastytradeSandboxConcreteReadOnlyNetworkClient:
         if tuple(symbols) != APPROVED_SYMBOLS:
             raise SandboxClientError("missing_symbol")
         _assert_websocket_endpoint_allowed(quote_token.websocket_url)
-        stdin_payload = _dxlink_stdin_payload(quote_token, symbols, as_of, self._overall_timeout_seconds)
+        if self._overall_timeout_seconds <= DXLINK_CHILD_SAMPLE_TIMEOUT_SECONDS:
+            raise SandboxClientError("dxlink_process_failed")
+        if self._overall_timeout_seconds - DXLINK_CHILD_SAMPLE_TIMEOUT_SECONDS < DXLINK_PARENT_CLEANUP_GRACE_SECONDS:
+            raise SandboxClientError("dxlink_process_failed")
+        stdin_payload = _dxlink_stdin_payload(quote_token, symbols, as_of, DXLINK_CHILD_SAMPLE_TIMEOUT_SECONDS)
         completed = self._dxlink_runner.run(DXLINK_NODE_ARGV, stdin_payload, self._overall_timeout_seconds)
+        terminal_stage, stage_counts = _dxlink_sanitized_stage_evidence(completed.stdout)
         self.dxlink_request_evidence.append(
             {
                 "argv": DXLINK_NODE_ARGV,
                 "shell": False,
+                "parent_timeout_seconds": self._overall_timeout_seconds,
+                "child_timeout_seconds": DXLINK_CHILD_SAMPLE_TIMEOUT_SECONDS,
+                "parent_cleanup_grace_seconds": self._overall_timeout_seconds - DXLINK_CHILD_SAMPLE_TIMEOUT_SECONDS,
                 "stdin_only_secret_transport": True,
                 "stdin_size_bytes": len(stdin_payload.encode("utf-8")),
                 "stdout_size_bytes": len(completed.stdout.encode("utf-8")),
                 "stderr_size_bytes": len(completed.stderr.encode("utf-8")),
+                "sanitized_terminal_stage": terminal_stage,
+                "sanitized_stage_counts": stage_counts,
                 "environment_values_written": False,
                 "command_line_secret_values_written": False,
                 "temporary_files_written": False,
@@ -596,7 +630,7 @@ class TastytradeSandboxConcreteReadOnlyNetworkClient:
         if _contains_secret_material_text(completed.stdout, quote_token) or _contains_secret_material_text(completed.stderr, quote_token):
             raise SandboxClientError("dxlink_secret_leak_detected")
         if completed.timed_out:
-            raise SandboxClientError("dxlink_timeout")
+            raise SandboxClientError("dxlink_sample_timeout")
         if len(completed.stdout.encode("utf-8")) > DXLINK_STDOUT_MAX_BYTES or len(completed.stderr.encode("utf-8")) > DXLINK_STDERR_MAX_BYTES:
             raise SandboxClientError("dxlink_output_malformed")
         stderr_code = completed.stderr
@@ -864,6 +898,12 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
         "dxlink_sidecar_stderr_allowlisted_codes_only": True,
         "dxlink_sidecar_stdout_max_bytes": DXLINK_STDOUT_MAX_BYTES,
         "dxlink_sidecar_stderr_max_bytes": DXLINK_STDERR_MAX_BYTES,
+        "dxlink_parent_timeout_seconds": DEFAULT_OVERALL_TIMEOUT_SECONDS,
+        "dxlink_child_sample_timeout_seconds": DXLINK_CHILD_SAMPLE_TIMEOUT_SECONDS,
+        "dxlink_parent_cleanup_grace_seconds": DXLINK_PARENT_CLEANUP_GRACE_SECONDS,
+        "dxlink_feed_aggregation_period_seconds": 1,
+        "dxlink_historical_candle_lookback_minutes": 30,
+        "dxlink_child_timeout_shorter_than_parent": DXLINK_CHILD_SAMPLE_TIMEOUT_SECONDS < DEFAULT_OVERALL_TIMEOUT_SECONDS,
         "dxlink_allowed_symbols": APPROVED_SYMBOLS,
         "dxlink_allowed_event_types": ("Quote", "Candle"),
         "dxlink_disallowed_event_types": (
@@ -884,7 +924,12 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
             "dxlink_dependency_unavailable",
             "dxlink_authentication_failed",
             "dxlink_subscription_failed",
-            "dxlink_timeout",
+            "dxlink_connect_timeout",
+            "dxlink_auth_timeout",
+            "dxlink_feed_open_timeout",
+            "dxlink_quote_timeout",
+            "dxlink_candle_timeout",
+            "dxlink_sample_timeout",
             "dxlink_process_failed",
             "dxlink_runtime_environment_unavailable",
             "dxlink_output_malformed",
@@ -1400,6 +1445,26 @@ def _dxlink_stdin_payload(
     return text
 
 
+def _dxlink_sanitized_stage_evidence(stdout: str) -> tuple[str | None, dict[str, int]]:
+    if not stdout or len(stdout.encode("utf-8")) > DXLINK_STDOUT_MAX_BYTES:
+        return None, {}
+    try:
+        envelope = json.loads(stdout)
+    except json.JSONDecodeError:
+        return None, {}
+    if not isinstance(envelope, dict):
+        return None, {}
+    stage = envelope.get("terminal_stage")
+    counts = envelope.get("counts")
+    clean_counts: dict[str, int] = {}
+    if isinstance(counts, dict):
+        for key in ("quote_records", "candle_records", "logical_records", "raw_batches_processed", "raw_records_processed"):
+            value = counts.get(key)
+            if isinstance(value, int) and value >= 0:
+                clean_counts[key] = value
+    return (stage if stage in DXLINK_ALLOWED_STAGES else None), clean_counts
+
+
 def _dxlink_child_environment(source_env: dict[str, str] | None = None) -> dict[str, str]:
     child_env: dict[str, str] = {}
     seen_folded: set[str] = set()
@@ -1475,6 +1540,11 @@ def _sample_from_dxlink_stdout(stdout: str, as_of: datetime) -> SandboxMarketDat
     if not isinstance(events, list) or len(events) > 16:
         raise SandboxClientError("dxlink_output_malformed")
     normalized = tuple(_dxlink_event_from_payload(event, as_of) for event in events)
+    if len(normalized) != 4:
+        raise SandboxClientError("missing_symbol")
+    logical_keys = {(event.event_type, event.symbol) for event in normalized}
+    if logical_keys != {("quote", "SPY"), ("quote", "QQQ"), ("bar", "SPY"), ("bar", "QQQ")}:
+        raise SandboxClientError("missing_symbol")
     return SandboxMarketDataSample(
         connected=True,
         disconnected=bool(envelope.get("disconnected", False)),
