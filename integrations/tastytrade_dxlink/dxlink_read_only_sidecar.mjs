@@ -1,3 +1,12 @@
+import {
+  AtomicOutputFailure,
+  quarantineConsole,
+  writeFinalStderrCode,
+  writeFinalStdoutJson,
+} from "./atomic_output.mjs";
+
+quarantineConsole();
+
 const APPROVED_SYMBOLS = Object.freeze(["SPY", "QQQ"]);
 const EVENT_TYPES = Object.freeze(["Quote", "Candle"]);
 const MAX_STDIN_BYTES = 4096;
@@ -240,7 +249,7 @@ function writeResult(latest, stage, counts) {
       }
     }
   }
-  process.stdout.write(JSON.stringify({
+  writeFinalStdoutJson({
     ok: true,
     connected: true,
     disconnected: false,
@@ -248,7 +257,7 @@ function writeResult(latest, stage, counts) {
     terminal_stage: stage.current,
     counts,
     events: sample,
-  }));
+  });
   process.exit(0);
 }
 
@@ -414,7 +423,16 @@ function safeExit(code, client = null, feed = null, stage = createStageTracker()
   cleanup(client, feed, stage);
   if (!outputWritten) {
     outputWritten = true;
-    process.stderr.write(code);
+    try {
+      writeFinalStderrCode(code);
+    } catch (error) {
+      if (error instanceof AtomicOutputFailure && error.code !== code) {
+        try {
+          writeFinalStderrCode(error.code);
+        } catch {
+        }
+      }
+    }
   }
   process.exit(1);
 }
