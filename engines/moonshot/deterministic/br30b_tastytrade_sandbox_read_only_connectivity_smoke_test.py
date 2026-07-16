@@ -100,6 +100,22 @@ DXLINK_ALLOWED_STDERR_CODES = (
     "dxlink_sample_timeout",
     "dxlink_process_failed",
     "dxlink_runtime_environment_unavailable",
+    "dxlink_stdout_empty",
+    "dxlink_stdout_truncated",
+    "dxlink_stdout_not_json",
+    "dxlink_stdout_schema_mismatch",
+    "dxlink_stdout_oversized",
+    "dxlink_stderr_oversized",
+    "dxlink_stderr_unexpected",
+)
+DXLINK_OUTPUT_FAILURE_CODES = (
+    "dxlink_stdout_empty",
+    "dxlink_stdout_truncated",
+    "dxlink_stdout_not_json",
+    "dxlink_stdout_schema_mismatch",
+    "dxlink_stdout_oversized",
+    "dxlink_stderr_oversized",
+    "dxlink_stderr_unexpected",
 )
 DXLINK_CHILD_ENV_ALLOWLIST = (
     "ALLUSERSPROFILE",
@@ -219,6 +235,13 @@ REJECTION_REASONS = (
     "dxlink_sample_timeout",
     "dxlink_process_failed",
     "dxlink_runtime_environment_unavailable",
+    "dxlink_stdout_empty",
+    "dxlink_stdout_truncated",
+    "dxlink_stdout_not_json",
+    "dxlink_stdout_schema_mismatch",
+    "dxlink_stdout_oversized",
+    "dxlink_stderr_oversized",
+    "dxlink_stderr_unexpected",
     "dxlink_output_malformed",
     "dxlink_secret_leak_detected",
     "unsupported_event",
@@ -437,21 +460,13 @@ def run_dxlink_runtime_preflight(
             "dxlink_sample_timeout",
             timed_out=True,
         )
-    if len(completed.stdout.encode("utf-8")) > DXLINK_STDOUT_MAX_BYTES:
-        return DXLinkSidecarCompleted(completed.returncode, "", "dxlink_output_malformed")
-    if len(completed.stderr.encode("utf-8")) > DXLINK_STDERR_MAX_BYTES:
-        return DXLinkSidecarCompleted(completed.returncode, "", "dxlink_output_malformed")
-    if completed.stderr and completed.stderr not in DXLINK_ALLOWED_STDERR_CODES:
-        return DXLinkSidecarCompleted(completed.returncode, "", "dxlink_output_malformed")
+    output_failure = _dxlink_output_failure_code(completed, preflight=True)
+    if output_failure:
+        return DXLinkSidecarCompleted(completed.returncode, "", output_failure)
     if completed.returncode != 0:
         code = completed.stderr if completed.stderr in DXLINK_ALLOWED_STDERR_CODES else "dxlink_process_failed"
         return DXLinkSidecarCompleted(completed.returncode, "", code)
-    if completed.stderr:
-        return DXLinkSidecarCompleted(completed.returncode, "", "dxlink_output_malformed")
-    try:
-        envelope = json.loads(completed.stdout)
-    except json.JSONDecodeError:
-        return DXLinkSidecarCompleted(completed.returncode, "", "dxlink_output_malformed")
+    envelope = json.loads(completed.stdout)
     if envelope != {
         "ok": True,
         "sdk": "@dxfeed/dxlink-api",
@@ -459,7 +474,7 @@ def run_dxlink_runtime_preflight(
         "connection_attempted": False,
         "credentials_accepted": False,
     }:
-        return DXLinkSidecarCompleted(completed.returncode, "", "dxlink_output_malformed")
+        return DXLinkSidecarCompleted(completed.returncode, "", "dxlink_stdout_schema_mismatch")
     return DXLinkSidecarCompleted(0, completed.stdout, "")
 
 
@@ -608,6 +623,7 @@ class TastytradeSandboxConcreteReadOnlyNetworkClient:
         stdin_payload = _dxlink_stdin_payload(quote_token, symbols, as_of, DXLINK_CHILD_SAMPLE_TIMEOUT_SECONDS)
         completed = self._dxlink_runner.run(DXLINK_NODE_ARGV, stdin_payload, self._overall_timeout_seconds)
         terminal_stage, stage_counts = _dxlink_sanitized_stage_evidence(completed.stdout)
+        output_failure = _dxlink_output_failure_code(completed)
         self.dxlink_request_evidence.append(
             {
                 "argv": DXLINK_NODE_ARGV,
@@ -619,8 +635,11 @@ class TastytradeSandboxConcreteReadOnlyNetworkClient:
                 "stdin_size_bytes": len(stdin_payload.encode("utf-8")),
                 "stdout_size_bytes": len(completed.stdout.encode("utf-8")),
                 "stderr_size_bytes": len(completed.stderr.encode("utf-8")),
+                "return_code": completed.returncode,
+                "timed_out": completed.timed_out,
                 "sanitized_terminal_stage": terminal_stage,
                 "sanitized_stage_counts": stage_counts,
+                "output_classification": output_failure,
                 "environment_values_written": False,
                 "command_line_secret_values_written": False,
                 "temporary_files_written": False,
@@ -631,11 +650,9 @@ class TastytradeSandboxConcreteReadOnlyNetworkClient:
             raise SandboxClientError("dxlink_secret_leak_detected")
         if completed.timed_out:
             raise SandboxClientError("dxlink_sample_timeout")
-        if len(completed.stdout.encode("utf-8")) > DXLINK_STDOUT_MAX_BYTES or len(completed.stderr.encode("utf-8")) > DXLINK_STDERR_MAX_BYTES:
-            raise SandboxClientError("dxlink_output_malformed")
+        if output_failure:
+            raise SandboxClientError(output_failure)
         stderr_code = completed.stderr
-        if stderr_code and stderr_code not in DXLINK_ALLOWED_STDERR_CODES:
-            raise SandboxClientError("dxlink_output_malformed")
         if completed.returncode != 0:
             raise SandboxClientError(stderr_code if stderr_code in REJECTION_REASONS else "dxlink_process_failed")
         return _sample_from_dxlink_stdout(completed.stdout, as_of)
@@ -800,20 +817,47 @@ def build_tastytrade_sandbox_read_only_connectivity_smoke_test(
     try:
         sample = sandbox_client.stream_delayed_market_data(quote_token, resolved.symbols, as_of)
     except SandboxClientError as exc:
-        return _blocked_result(resolved, as_of, (_client_reason(exc, "market_data_disconnect"),), account_evidence, None, None, None)
+        return _blocked_result(
+            resolved,
+            as_of,
+            (_client_reason(exc, "market_data_disconnect"),),
+            account_evidence,
+            None,
+            None,
+            None,
+            sandbox_client,
+        )
     except Exception:
-        return _blocked_result(resolved, as_of, ("market_data_disconnect",), account_evidence, None, None, None)
+        return _blocked_result(
+            resolved,
+            as_of,
+            ("market_data_disconnect",),
+            account_evidence,
+            None,
+            None,
+            None,
+            sandbox_client,
+        )
 
     raw_payload = _raw_market_data_payload(quote_token, sample)
     reasons = _sample_rejection_reasons(sample, resolved, as_of)
     if reasons:
-        return _blocked_result(resolved, as_of, reasons, account_evidence, raw_payload, None, sample)
+        return _blocked_result(resolved, as_of, reasons, account_evidence, raw_payload, None, sample, sandbox_client)
 
     # Reuse the BR-30 normalizer without file IO by invoking its provider through
     # the same validation path on an in-memory payload.
     adapter_result = _normalize_in_memory_br30(raw_payload, resolved, as_of)
     if not adapter_result.accepted_for_shadow_research or adapter_result.normalized_snapshot is None:
-        return _blocked_result(resolved, as_of, ("normalization_failed",), account_evidence, raw_payload, None, sample)
+        return _blocked_result(
+            resolved,
+            as_of,
+            ("normalization_failed",),
+            account_evidence,
+            raw_payload,
+            None,
+            sample,
+            sandbox_client,
+        )
     normalized_snapshot = _restamp_br30b_snapshot_artifact(adapter_result.normalized_snapshot)
 
     result = SandboxSmokeTestResult(
@@ -932,6 +976,13 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
             "dxlink_sample_timeout",
             "dxlink_process_failed",
             "dxlink_runtime_environment_unavailable",
+            "dxlink_stdout_empty",
+            "dxlink_stdout_truncated",
+            "dxlink_stdout_not_json",
+            "dxlink_stdout_schema_mismatch",
+            "dxlink_stdout_oversized",
+            "dxlink_stderr_oversized",
+            "dxlink_stderr_unexpected",
             "dxlink_output_malformed",
             "dxlink_secret_leak_detected",
         ),
@@ -1368,6 +1419,7 @@ def _blocked_result(
     raw_payload: dict[str, Any] | None,
     normalized_snapshot: dict[str, Any] | None,
     sample: SandboxMarketDataSample | None,
+    client: TastytradeSandboxReadOnlyClient | None = None,
 ) -> SandboxSmokeTestResult:
     result = SandboxSmokeTestResult(
         as_of=as_of,
@@ -1378,7 +1430,7 @@ def _blocked_result(
         account_evidence=account_evidence or {"redacted": True, "raw_account_identifiers_present": False},
         market_data_evidence={
             **(_market_data_evidence(raw_payload, sample, as_of) if raw_payload and sample else {}),
-            **_client_request_evidence(None),
+            **_client_request_evidence(client),
         },
         normalized_snapshot=normalized_snapshot,
         checksums=_checksums(raw_payload, normalized_snapshot),
@@ -1443,6 +1495,122 @@ def _dxlink_stdin_payload(
     if len(text.encode("utf-8")) > DXLINK_STDIN_MAX_BYTES:
         raise SandboxClientError("dxlink_output_malformed")
     return text
+
+
+def _dxlink_output_failure_code(completed: DXLinkSidecarCompleted, *, preflight: bool = False) -> str | None:
+    stdout_bytes = len(completed.stdout.encode("utf-8"))
+    stderr_bytes = len(completed.stderr.encode("utf-8"))
+    if stdout_bytes > DXLINK_STDOUT_MAX_BYTES:
+        return "dxlink_stdout_oversized"
+    if stderr_bytes > DXLINK_STDERR_MAX_BYTES:
+        return "dxlink_stderr_oversized"
+    if completed.stderr:
+        if completed.stderr not in DXLINK_ALLOWED_STDERR_CODES:
+            return "dxlink_stderr_unexpected"
+        if completed.returncode == 0:
+            return "dxlink_stderr_unexpected"
+        return None
+    if completed.returncode != 0:
+        return None
+    return _classify_dxlink_stdout(completed.stdout, preflight=preflight)
+
+
+def _classify_dxlink_stdout(stdout: str, *, preflight: bool = False) -> str | None:
+    stripped = stdout.strip()
+    if not stripped:
+        return "dxlink_stdout_empty"
+    try:
+        envelope = json.loads(stripped)
+    except json.JSONDecodeError as exc:
+        if exc.msg == "Extra data":
+            return "dxlink_stdout_not_json"
+        if _looks_like_truncated_json(stripped):
+            return "dxlink_stdout_truncated"
+        return "dxlink_stdout_not_json"
+    if stripped != stdout:
+        return "dxlink_stdout_not_json"
+    if preflight:
+        return None if _valid_dxlink_preflight_envelope(envelope) else "dxlink_stdout_schema_mismatch"
+    return None if _valid_dxlink_success_envelope(envelope) else "dxlink_stdout_schema_mismatch"
+
+
+def _looks_like_truncated_json(text: str) -> bool:
+    if not text or text[0] not in "[{":
+        return False
+    expected = "}" if text[0] == "{" else "]"
+    return not text.endswith(expected)
+
+
+def _valid_dxlink_preflight_envelope(envelope: Any) -> bool:
+    return envelope == {
+        "ok": True,
+        "sdk": "@dxfeed/dxlink-api",
+        "contract": "0.3.0",
+        "connection_attempted": False,
+        "credentials_accepted": False,
+    }
+
+
+def _valid_dxlink_success_envelope(envelope: Any) -> bool:
+    if not isinstance(envelope, dict):
+        return False
+    if set(envelope) != {"ok", "connected", "disconnected", "reconnect_count", "terminal_stage", "counts", "events"}:
+        return False
+    if envelope.get("ok") is not True or envelope.get("connected") is not True:
+        return False
+    if not isinstance(envelope.get("disconnected"), bool):
+        return False
+    if not isinstance(envelope.get("reconnect_count"), int) or envelope["reconnect_count"] < 0:
+        return False
+    if envelope.get("terminal_stage") not in DXLINK_ALLOWED_STAGES:
+        return False
+    counts = envelope.get("counts")
+    if not isinstance(counts, dict):
+        return False
+    required_counts = ("quote_records", "candle_records", "logical_records", "raw_batches_processed", "raw_records_processed")
+    if set(counts) != set(required_counts):
+        return False
+    if any(not isinstance(counts[key], int) or counts[key] < 0 for key in required_counts):
+        return False
+    if counts["quote_records"] != 2 or counts["candle_records"] != 2 or counts["logical_records"] != 4:
+        return False
+    events = envelope.get("events")
+    if not isinstance(events, list) or len(events) != 4:
+        return False
+    logical_keys: set[tuple[str, str]] = set()
+    for event in events:
+        if not isinstance(event, dict):
+            return False
+        event_type = event.get("event_type") or event.get("eventType")
+        symbol = event.get("symbol") or event.get("eventSymbol")
+        try:
+            normalized_symbol = _normalize_dxlink_symbol(symbol)
+        except SandboxClientError:
+            return False
+        if event_type == "Quote":
+            required = {"event_type", "symbol", "provider_timestamp", "exchange_timestamp", "acquisition_timestamp"}
+            if not required.issubset(event) or not (("bidPrice" in event and "askPrice" in event) or ("bid" in event and "ask" in event)):
+                return False
+            logical_keys.add(("quote", normalized_symbol))
+        elif event_type == "Candle":
+            required = {
+                "event_type",
+                "symbol",
+                "provider_timestamp",
+                "exchange_timestamp",
+                "acquisition_timestamp",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+            }
+            if not required.issubset(event):
+                return False
+            logical_keys.add(("bar", normalized_symbol))
+        else:
+            return False
+    return logical_keys == {("quote", "SPY"), ("quote", "QQQ"), ("bar", "SPY"), ("bar", "QQQ")}
 
 
 def _dxlink_sanitized_stage_evidence(stdout: str) -> tuple[str | None, dict[str, int]]:

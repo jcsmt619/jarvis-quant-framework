@@ -1,6 +1,14 @@
 import { readFile, lstat, realpath } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  AtomicOutputFailure,
+  quarantineConsole,
+  writeFinalStderrCode,
+  writeFinalStdoutJson,
+} from "./atomic_output.mjs";
+
+quarantineConsole();
 
 const SDK_PACKAGE = "@dxfeed/dxlink-api";
 const SDK_VERSION = "0.3.0";
@@ -23,7 +31,16 @@ main().catch((error) => {
   const code = error instanceof PreflightFailure && FAILURE_CODES.has(error.code)
     ? error.code
     : "dxlink_process_failed";
-  process.stderr.write(code);
+  try {
+    writeFinalStderrCode(code);
+  } catch (writeError) {
+    if (writeError instanceof AtomicOutputFailure && writeError.code !== code) {
+      try {
+        writeFinalStderrCode(writeError.code);
+      } catch {
+      }
+    }
+  }
   process.exit(1);
 });
 
@@ -64,13 +81,13 @@ async function main() {
   assertMethod(feed, "addSubscriptions");
   assertMethod(feed, "addEventListener");
 
-  process.stdout.write(JSON.stringify({
+  writeFinalStdoutJson({
     ok: true,
     sdk: SDK_PACKAGE,
     contract: SDK_VERSION,
     connection_attempted: false,
     credentials_accepted: false,
-  }));
+  });
 }
 
 async function resolveSdkEntryPath() {

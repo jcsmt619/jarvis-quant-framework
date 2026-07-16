@@ -573,6 +573,9 @@ def test_br30b4_dxlink_child_process_uses_fixed_argv_and_stdin_only_secret_trans
         "raw_batches_processed": 1,
         "raw_records_processed": 4,
     }
+    assert dxlink_record["return_code"] == 0
+    assert dxlink_record["timed_out"] is False
+    assert dxlink_record["output_classification"] is None
     assert dxlink_record["stdin_only_secret_transport"] is True
     assert dxlink_record["environment_values_written"] is False
     assert dxlink_record["command_line_secret_values_written"] is False
@@ -598,6 +601,13 @@ def test_br30b4e_safety_manifest_records_bounded_dxlink_timing_and_reasons() -> 
         "dxlink_quote_timeout",
         "dxlink_candle_timeout",
         "dxlink_sample_timeout",
+        "dxlink_stdout_empty",
+        "dxlink_stdout_truncated",
+        "dxlink_stdout_not_json",
+        "dxlink_stdout_schema_mismatch",
+        "dxlink_stdout_oversized",
+        "dxlink_stderr_oversized",
+        "dxlink_stderr_unexpected",
     ):
         assert reason in manifest["dxlink_stage_rejection_reasons_supported"]
 
@@ -613,6 +623,11 @@ def test_br30b4_dxlink_sidecar_source_uses_official_sdk_compact_quote_and_candle
     assert lock["packages"][""]["dependencies"]["@dxfeed/dxlink-api"] == "0.3.0"
     assert lock["packages"]["node_modules/@dxfeed/dxlink-api"]["version"] == "0.3.0"
     assert "DXLinkWebSocketClient" in sidecar
+    assert "quarantineConsole();" in sidecar
+    assert "writeFinalStdoutJson" in sidecar
+    assert "writeFinalStderrCode" in sidecar
+    assert "process.stdout.write" not in sidecar
+    assert "process.stderr.write" not in sidecar
     assert "setAuthToken" in sidecar
     assert "DXLinkFeed" in sidecar
     assert "FeedContract.AUTO" in sidecar
@@ -624,6 +639,11 @@ def test_br30b4_dxlink_sidecar_source_uses_official_sdk_compact_quote_and_candle
     assert 'const SDK_PACKAGE = "@dxfeed/dxlink-api"' in preflight
     assert "fileURLToPath" in preflight
     assert "readFile(manifestPath" in preflight
+    assert "quarantineConsole();" in preflight
+    assert "writeFinalStdoutJson" in preflight
+    assert "writeFinalStderrCode" in preflight
+    assert "process.stdout.write" not in preflight
+    assert "process.stderr.write" not in preflight
     assert "JSON.parse(text)" in preflight
     assert "dxlink_package_metadata_unavailable" in preflight
     assert "dxlink_contract_mismatch" in preflight
@@ -906,10 +926,16 @@ class _StaticPreflightRunner:
 def test_br30b4c_dxlink_runtime_preflight_sanitizes_timeout_returncode_and_bounded_output() -> None:
     cases = [
         (_StaticPreflightRunner(timed_out=True, stdout="raw assertion text"), "dxlink_sample_timeout"),
-        (_StaticPreflightRunner(returncode=134, stderr="node assertion stack"), "dxlink_output_malformed"),
-        (_StaticPreflightRunner(stdout="x" * (DXLINK_STDOUT_MAX_BYTES + 1)), "dxlink_output_malformed"),
-        (_StaticPreflightRunner(stderr="x" * (DXLINK_STDERR_MAX_BYTES + 1)), "dxlink_output_malformed"),
+        (_StaticPreflightRunner(returncode=134, stderr="node assertion stack"), "dxlink_stderr_unexpected"),
+        (_StaticPreflightRunner(stdout="x" * (DXLINK_STDOUT_MAX_BYTES + 1)), "dxlink_stdout_oversized"),
+        (_StaticPreflightRunner(stderr="x" * (DXLINK_STDERR_MAX_BYTES + 1)), "dxlink_stderr_oversized"),
         (_StaticPreflightRunner(returncode=1, stderr="dxlink_contract_mismatch"), "dxlink_contract_mismatch"),
+        (_StaticPreflightRunner(stdout=""), "dxlink_stdout_empty"),
+        (_StaticPreflightRunner(stdout='{"ok":true'), "dxlink_stdout_truncated"),
+        (_StaticPreflightRunner(stdout="not-json"), "dxlink_stdout_not_json"),
+        (_StaticPreflightRunner(stdout='x{"ok":true}'), "dxlink_stdout_not_json"),
+        (_StaticPreflightRunner(stdout='{"ok":true}x'), "dxlink_stdout_not_json"),
+        (_StaticPreflightRunner(stdout=json_message({"ok": True})), "dxlink_stdout_schema_mismatch"),
     ]
 
     for runner, expected_stderr in cases:
@@ -919,6 +945,61 @@ def test_br30b4c_dxlink_runtime_preflight_sanitizes_timeout_returncode_and_bound
         assert completed.stderr == expected_stderr
         assert "assertion" not in completed.stderr
         assert "stack" not in completed.stderr
+
+
+def test_br30b4f_atomic_output_helper_retries_partial_writes_and_rejects_zero_progress() -> None:
+    node = shutil.which("node.exe") or shutil.which("node")
+    if node is None:
+        pytest.skip("Node is not installed in this environment")
+    script = textwrap.dedent(
+        """
+        import {
+          AtomicOutputFailure,
+          writeBoundedFd,
+        } from "./integrations/tastytrade_dxlink/atomic_output.mjs";
+
+        let chunks = [];
+        let calls = 0;
+        writeBoundedFd(1, "abcdef", 6, "dxlink_stdout_oversized", (fd, bytes, offset, length) => {
+          calls += 1;
+          const size = Math.min(2, length);
+          chunks.push(bytes.subarray(offset, offset + size).toString("utf8"));
+          return size;
+        });
+        if (chunks.join("") !== "abcdef" || calls !== 3) {
+          throw new Error("partial-write-retry-failed");
+        }
+        try {
+          writeBoundedFd(1, "abc", 3, "dxlink_stdout_oversized", () => 0);
+          throw new Error("zero-progress-not-rejected");
+        } catch (error) {
+          if (!(error instanceof AtomicOutputFailure) || error.code !== "dxlink_process_failed") {
+            throw error;
+          }
+        }
+        try {
+          writeBoundedFd(1, "abcd", 3, "dxlink_stdout_oversized", () => 1);
+          throw new Error("oversize-not-rejected");
+        } catch (error) {
+          if (!(error instanceof AtomicOutputFailure) || error.code !== "dxlink_stdout_oversized") {
+            throw error;
+          }
+        }
+        """
+    )
+    completed = subprocess.run(
+        [node, "--input-type=module"],
+        input=script,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=5,
+        shell=False,
+    )
+
+    assert completed.returncode == 0
+    assert completed.stdout == ""
+    assert completed.stderr == ""
 
 
 def test_br30b4c_dxlink_runtime_preflight_rejects_stdin_and_secret_inputs() -> None:
@@ -950,6 +1031,10 @@ def test_br30b4a_fake_sdk_harness_runs_actual_sidecar_offline() -> None:
     shutil.copyfile(
         Path("integrations/tastytrade_dxlink/dxlink_read_only_sidecar.mjs"),
         sidecar_dir / "dxlink_read_only_sidecar.mjs",
+    )
+    shutil.copyfile(
+        Path("integrations/tastytrade_dxlink/atomic_output.mjs"),
+        sidecar_dir / "atomic_output.mjs",
     )
     fake_sdk_dir = sidecar_dir / "node_modules" / "@dxfeed" / "dxlink-api"
     fake_sdk_dir.mkdir(parents=True)
@@ -1070,7 +1155,40 @@ def test_br30b4b_python_wrapper_rejects_mixed_or_additional_stderr() -> None:
         dxlink_runner=runner,
     )
 
-    assert _blocked_reason_for_client(client) == "dxlink_output_malformed"
+    assert _blocked_reason_for_client(client) == "dxlink_stderr_unexpected"
+
+
+def test_br30b4f_blocked_report_preserves_sanitized_sidecar_evidence_after_parse_failure() -> None:
+    runner = FakeDXLinkRunner(stdout=dxlink_stdout_without_candle())
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+        http_transport=FakeHttpTransport.valid(),
+        dxlink_runner=runner,
+    )
+
+    result = build_tastytrade_sandbox_read_only_connectivity_smoke_test(
+        SandboxSmokeTestRequest(mode="sandbox_network", as_of=AS_OF),
+        oauth_bridge=valid_bridge(),
+        sandbox_client=client,
+    )
+    payload = tastytrade_sandbox_read_only_connectivity_payload(result)
+    record = payload["market_data_evidence"]["dxlink_sidecar_records"][0]
+
+    assert payload["accepted_for_monitoring"] is False
+    assert payload["rejection_reasons"] == ("dxlink_stdout_schema_mismatch",)
+    assert payload["market_data_evidence"]["request_records"]
+    assert record["argv"] == DXLINK_NODE_ARGV
+    assert record["shell"] is False
+    assert record["stdin_size_bytes"] > 0
+    assert record["stdout_size_bytes"] > 0
+    assert record["stderr_size_bytes"] == 0
+    assert record["return_code"] == 0
+    assert record["timed_out"] is False
+    assert record["sanitized_terminal_stage"] is None
+    assert record["output_classification"] == "dxlink_stdout_schema_mismatch"
+    assert "mock-quote-token" not in str(payload)
+    assert "wss://streamer.cert.tastyworks.com/quote" not in str(payload)
+    assert "bidPrice" not in str(payload)
+    assert "askPrice" not in str(payload)
 
 
 def test_br30b3_concrete_client_parses_nested_and_direct_account_number_variants() -> None:
@@ -1300,7 +1418,7 @@ def test_br30b1_rejects_cross_host_redirect_and_websocket_substitution() -> None
     [
         ("timeout", "timeout"),
         ("malformed_json", "account_payload_malformed"),
-        ("missing_symbols", "missing_symbol"),
+        ("missing_symbols", "dxlink_stdout_schema_mismatch"),
         ("disconnect", "dxlink_process_failed"),
     ],
 )
@@ -1863,6 +1981,10 @@ def _make_fake_preflight_tree(
         Path("integrations/tastytrade_dxlink/dxlink_runtime_preflight.mjs"),
         sidecar_dir / "dxlink_runtime_preflight.mjs",
     )
+    shutil.copyfile(
+        Path("integrations/tastytrade_dxlink/atomic_output.mjs"),
+        sidecar_dir / "atomic_output.mjs",
+    )
     fake_sdk_dir = sidecar_dir / "node_modules" / "@dxfeed" / "dxlink-api"
     fake_sdk_dir.mkdir(parents=True)
     resolved_manifest = manifest or {
@@ -1932,15 +2054,20 @@ def _run_node_preflight(node: str, sidecar_dir: Path) -> subprocess.CompletedPro
 @pytest.mark.parametrize(
     ("runner", "expected_reason"),
     [
-        (FakeDXLinkRunner(messages_for=("SPY",)), "missing_symbol"),
-        (FakeDXLinkRunner(stdout=dxlink_stdout_without_candle()), "missing_symbol"),
-        (FakeDXLinkRunner(stdout=dxlink_stdout_with_extra_quote()), "missing_symbol"),
-        (FakeDXLinkRunner(stdout=dxlink_stdout_with_event("Trade")), "unsupported_event"),
-        (FakeDXLinkRunner(stdout="{not-json"), "dxlink_output_malformed"),
-        (FakeDXLinkRunner(stdout="x" * (DXLINK_STDOUT_MAX_BYTES + 1)), "dxlink_output_malformed"),
+        (FakeDXLinkRunner(messages_for=("SPY",)), "dxlink_stdout_schema_mismatch"),
+        (FakeDXLinkRunner(stdout=dxlink_stdout_without_candle()), "dxlink_stdout_schema_mismatch"),
+        (FakeDXLinkRunner(stdout=dxlink_stdout_with_extra_quote()), "dxlink_stdout_schema_mismatch"),
+        (FakeDXLinkRunner(stdout=dxlink_stdout_with_event("Trade")), "dxlink_stdout_schema_mismatch"),
+        (FakeDXLinkRunner(stdout=""), "dxlink_stdout_empty"),
+        (FakeDXLinkRunner(stdout="{not-json"), "dxlink_stdout_truncated"),
+        (FakeDXLinkRunner(stdout="not-json"), "dxlink_stdout_not_json"),
+        (FakeDXLinkRunner(stdout="x" + dxlink_stdout()), "dxlink_stdout_not_json"),
+        (FakeDXLinkRunner(stdout=dxlink_stdout() + "x"), "dxlink_stdout_not_json"),
+        (FakeDXLinkRunner(stdout="x" * (DXLINK_STDOUT_MAX_BYTES + 1)), "dxlink_stdout_oversized"),
+        (FakeDXLinkRunner(stderr="x" * (DXLINK_STDERR_MAX_BYTES + 1)), "dxlink_stderr_oversized"),
         (FakeDXLinkRunner(timed_out=True), "dxlink_sample_timeout"),
         (FakeDXLinkRunner(returncode=1, stderr="dxlink_dependency_unavailable"), "dxlink_dependency_unavailable"),
-        (FakeDXLinkRunner(returncode=1, stderr="provider raw failure"), "dxlink_output_malformed"),
+        (FakeDXLinkRunner(returncode=1, stderr="provider raw failure"), "dxlink_stderr_unexpected"),
         (FakeDXLinkRunner(stdout=json_message({"ok": True, "connected": True, "events": [], "leak": "mock-quote-token"})), "dxlink_secret_leak_detected"),
     ],
 )

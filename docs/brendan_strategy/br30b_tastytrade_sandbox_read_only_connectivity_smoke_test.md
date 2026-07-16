@@ -6,7 +6,7 @@ LIVE TRADING: DISABLED
 
 ## Purpose
 
-BR-30B defines the tastytrade sandbox read-only connectivity smoke test. BR-30B1 adds the concrete tastytrade sandbox read-only network client and operator smoke runner. BR-30B2 aligns the sandbox OAuth refresh exchange with the official tastytrade SDK token request contract. BR-30B3 aligns the read-only REST response parsers for customer accounts and API quote tokens. BR-30B4 replaces the earlier handwritten generic WebSocket market-data messages with a repository-owned Node 20+ DXLink sidecar that follows the official `@dxfeed/dxlink-api` SDK pattern used by tastytrade. BR-30B4E corrects the bounded DXLink sample timing and one-minute historical Candle contract.
+BR-30B defines the tastytrade sandbox read-only connectivity smoke test. BR-30B1 adds the concrete tastytrade sandbox read-only network client and operator smoke runner. BR-30B2 aligns the sandbox OAuth refresh exchange with the official tastytrade SDK token request contract. BR-30B3 aligns the read-only REST response parsers for customer accounts and API quote tokens. BR-30B4 replaces the earlier handwritten generic WebSocket market-data messages with a repository-owned Node 20+ DXLink sidecar that follows the official `@dxfeed/dxlink-api` SDK pattern used by tastytrade. BR-30B4E corrects the bounded DXLink sample timing and one-minute historical Candle contract. BR-30B4F makes DXLink child output atomic and preserves sanitized failure evidence.
 
 Default execution is fixture-only/offline and fail closed. The separate `sandbox_network` mode is explicit operator-invoked only and requires both `--mode sandbox_network` and the exact confirmation value `I_CONFIRM_BR30B1_SANDBOX_READ_ONLY_NETWORK_SMOKE`.
 
@@ -113,6 +113,25 @@ The repository-owned local preflight runner invokes `dxlink_runtime_preflight.mj
 The sidecar stdout is a bounded machine-readable result envelope containing normalized non-secret event fields, sanitized terminal stage, and aggregate counts only. Stderr is restricted to exactly one allowlisted sanitized status code. Raw DXLink protocol messages, authentication states, provider payloads, quote tokens, full WSS URLs, paths, stacks, payloads, and SDK diagnostics must never be written or printed.
 
 The Python parent enforces stdout and stderr size limits, hard timeout, approved-symbol validation, event-type validation, finite numeric validation, duplicate detection, timestamp parsing, 15-minute sandbox-delay classification, malformed output rejection, secret-leak detection, and deterministic process cleanup. The DXLink client is closed after each bounded sample. No orphan Node process may remain.
+
+## BR-30B4F Atomic Output And Failure Evidence
+
+The DXLink sidecars use `integrations/tastytrade_dxlink/atomic_output.mjs` for final output. The helper encodes UTF-8 once, enforces the stdout and stderr byte limits before writing, performs synchronous file-descriptor writes to fd 1 or fd 2, retries partial writes until every byte is written, and rejects zero-progress writes. `stdout` is reserved for exactly one final success JSON envelope. `stderr` is reserved for exactly one allowlisted failure code. The sidecars do not call asynchronous `process.stdout.write` or `process.stderr.write`.
+
+`console.log`, `console.info`, `console.debug`, `console.warn`, and `console.error` are quarantined before the DXLink SDK is imported. Suppressed console diagnostics are discarded and are not counted, stored, forwarded, or reported.
+
+The Python parent classifies child-output failures without printing or persisting raw stdout or stderr:
+
+- `dxlink_stdout_empty`
+- `dxlink_stdout_truncated`
+- `dxlink_stdout_not_json`
+- `dxlink_stdout_schema_mismatch`
+- `dxlink_stdout_oversized`
+- `dxlink_stderr_oversized`
+- `dxlink_stderr_unexpected`
+- `dxlink_output_malformed` remains only as a backward-compatible fallback
+
+Blocked JSON and Markdown reports preserve only sanitized subprocess evidence: fixed argv metadata, `shell=false`, timeout values, stdin/stdout/stderr byte counts, return code, timed-out flag, sanitized terminal stage, sanitized stage counts, output classification, and the existing zero call counters. They never include raw stdout, raw stderr, argv secret values, environment values, quote tokens, URLs, event prices, event payloads, account identifiers, provider messages, exception text, stacks, or paths.
 
 ## BR-30B4D DXLink Dependency Lock Graph
 
@@ -243,6 +262,20 @@ Mocked tests cover:
 - 30-minute Candle `fromTime` in epoch milliseconds
 - parent cleanup grace
 - sidecar crash
+- atomic bounded fd output
+- partial-write retry
+- zero-progress write failure
+- immediate-exit output regression prevention
+- console quarantine before SDK import
+- empty stdout
+- truncated JSON stdout
+- non-JSON stdout
+- prefix and suffix stdout contamination
+- oversized stdout
+- oversized stderr
+- unexpected stderr
+- schema-mismatched success envelopes
+- sanitized blocked-report sidecar evidence preservation after parsing failure
 - listener installation before connection
 - void `connect` handling
 - exact Quote and Candle subscriptions
