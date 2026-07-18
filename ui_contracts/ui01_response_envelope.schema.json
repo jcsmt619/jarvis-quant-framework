@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "jarvis.ui01.response_envelope.v1",
+  "title": "UI-01 Read-Only Response Envelope",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "request_id",
+    "correlation_id",
+    "generated_at",
+    "source_mode",
+    "provider_validation_status",
+    "safety_state",
+    "data",
+    "warnings",
+    "errors"
+  ],
+  "properties": {
+    "schema_version": { "const": "ui01.local_service.v1" },
+    "request_id": { "type": "string" },
+    "correlation_id": { "type": "string" },
+    "generated_at": { "type": "string" },
+    "source_mode": { "enum": ["fixture", "recorded_response", "live_provider"] },
+    "provider_validation_status": { "const": "pending" },
+    "safety_state": {
+      "type": "object",
+      "required": [
+        "live_trading_enabled",
+        "broker_order_call_performed",
+        "real_paper_wrapper_connected",
+        "is_live",
+        "live_trading_status"
+      ]
+    },
+    "data": { "type": "object" },
+    "warnings": { "type": "array" },
+    "errors": { "type": "array" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,12 @@
+[
+  "system_health_updated",
+  "safety_state_updated",
+  "data_status_updated",
+  "research_refreshed",
+  "screener_refreshed",
+  "risk_gate_updated",
+  "portfolio_snapshot_updated",
+  "alert_created",
+  "backtest_completed",
+  "paper_activity_updated"
+]

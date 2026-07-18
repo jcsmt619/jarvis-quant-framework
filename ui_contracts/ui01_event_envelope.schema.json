@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "jarvis.ui01.event_envelope.v1",
+  "title": "UI-01 Event Envelope",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "event_id",
+    "event_type",
+    "sequence",
+    "occurred_at",
+    "correlation_id",
+    "source",
+    "source_mode",
+    "provider_validation_status",
+    "safety_state",
+    "payload",
+    "warnings"
+  ],
+  "properties": {
+    "schema_version": { "const": "ui01.event.v1" },
+    "event_id": { "type": "string" },
+    "event_type": { "type": "string" },
+    "sequence": { "type": "integer", "minimum": 0 },
+    "occurred_at": { "type": "string" },
+    "correlation_id": { "type": "string" },
+    "source": { "type": "string" },
+    "source_mode": { "enum": ["fixture", "recorded_response", "live_provider"] },
+    "provider_validation_status": { "const": "pending" },
+    "safety_state": { "type": "object" },
+    "payload": { "type": "object" },
+    "warnings": { "type": "array" }
+  },
+  "additionalProperties": false
+}
