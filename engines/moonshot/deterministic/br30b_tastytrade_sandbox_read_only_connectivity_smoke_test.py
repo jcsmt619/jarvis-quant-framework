@@ -75,16 +75,24 @@ DXLINK_STDOUT_MAX_BYTES = 16384
 DXLINK_STDERR_MAX_BYTES = 2048
 DXLINK_RUNTIME_PREFLIGHT_TIMEOUT_SECONDS = 8.0
 DXLINK_ALLOWED_STAGES = (
+    "child_started",
+    "sdk_loaded",
     "client_created",
+    "listeners_registered",
+    "auth_token_set",
     "connect_called",
     "transport_connected",
     "authentication_authorized",
+    "feed_created",
     "feed_opened",
-    "subscriptions_queued",
+    "quote_subscription_created",
+    "candle_subscription_created",
+    "subscriptions_active",
     "quote_received",
     "candle_received",
     "sample_complete",
-    "cleanup",
+    "cleanup_started",
+    "cleanup_complete",
 )
 DXLINK_ALLOWED_STDERR_CODES = (
     "dxlink_dependency_unavailable",
@@ -95,9 +103,11 @@ DXLINK_ALLOWED_STDERR_CODES = (
     "dxlink_connect_timeout",
     "dxlink_auth_timeout",
     "dxlink_feed_open_timeout",
+    "dxlink_subscription_timeout",
     "dxlink_quote_timeout",
     "dxlink_candle_timeout",
     "dxlink_sample_timeout",
+    "dxlink_cleanup_failed",
     "dxlink_process_failed",
     "dxlink_runtime_environment_unavailable",
     "dxlink_stdout_empty",
@@ -230,9 +240,11 @@ REJECTION_REASONS = (
     "dxlink_connect_timeout",
     "dxlink_auth_timeout",
     "dxlink_feed_open_timeout",
+    "dxlink_subscription_timeout",
     "dxlink_quote_timeout",
     "dxlink_candle_timeout",
     "dxlink_sample_timeout",
+    "dxlink_cleanup_failed",
     "dxlink_process_failed",
     "dxlink_runtime_environment_unavailable",
     "dxlink_stdout_empty",
@@ -652,6 +664,9 @@ class TastytradeSandboxConcreteReadOnlyNetworkClient:
             raise SandboxClientError("dxlink_sample_timeout")
         if output_failure:
             raise SandboxClientError(output_failure)
+        failure_code = _dxlink_failure_code_from_stdout(completed.stdout)
+        if failure_code:
+            raise SandboxClientError(failure_code)
         stderr_code = completed.stderr
         if completed.returncode != 0:
             raise SandboxClientError(stderr_code if stderr_code in REJECTION_REASONS else "dxlink_process_failed")
@@ -919,6 +934,7 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
         "quote_token_values_written": False,
         "quote_token_level_metadata_supported": True,
         "dxlink_protocol_phase": "BR-30B4",
+        "dxlink_verified_lifecycle_phase": "BR-30B4G",
         "dxlink_runtime_environment_phase": "BR-30B4C",
         "dxlink_official_sdk_required": True,
         "dxlink_sidecar_directory": str(DXLINK_SIDECAR_DIR),
@@ -971,9 +987,11 @@ def safety_manifest(mode: str = "offline", sandbox_network_attempted: bool = Fal
             "dxlink_connect_timeout",
             "dxlink_auth_timeout",
             "dxlink_feed_open_timeout",
+            "dxlink_subscription_timeout",
             "dxlink_quote_timeout",
             "dxlink_candle_timeout",
             "dxlink_sample_timeout",
+            "dxlink_cleanup_failed",
             "dxlink_process_failed",
             "dxlink_runtime_environment_unavailable",
             "dxlink_stdout_empty",
@@ -1511,7 +1529,7 @@ def _dxlink_output_failure_code(completed: DXLinkSidecarCompleted, *, preflight:
             return "dxlink_stderr_unexpected"
         return None
     if completed.returncode != 0:
-        return None
+        return _classify_dxlink_stdout(completed.stdout, preflight=preflight) if completed.stdout else None
     return _classify_dxlink_stdout(completed.stdout, preflight=preflight)
 
 
@@ -1531,7 +1549,7 @@ def _classify_dxlink_stdout(stdout: str, *, preflight: bool = False) -> str | No
         return "dxlink_stdout_not_json"
     if preflight:
         return None if _valid_dxlink_preflight_envelope(envelope) else "dxlink_stdout_schema_mismatch"
-    return None if _valid_dxlink_success_envelope(envelope) else "dxlink_stdout_schema_mismatch"
+    return None if (_valid_dxlink_success_envelope(envelope) or _valid_dxlink_failure_envelope(envelope)) else "dxlink_stdout_schema_mismatch"
 
 
 def _looks_like_truncated_json(text: str) -> bool:
@@ -1554,7 +1572,7 @@ def _valid_dxlink_preflight_envelope(envelope: Any) -> bool:
 def _valid_dxlink_success_envelope(envelope: Any) -> bool:
     if not isinstance(envelope, dict):
         return False
-    if set(envelope) != {"ok", "connected", "disconnected", "reconnect_count", "terminal_stage", "counts", "events"}:
+    if set(envelope) != {"ok", "connected", "disconnected", "reconnect_count", "terminal_stage", "stage_counts", "counts", "events"}:
         return False
     if envelope.get("ok") is not True or envelope.get("connected") is not True:
         return False
@@ -1564,15 +1582,12 @@ def _valid_dxlink_success_envelope(envelope: Any) -> bool:
         return False
     if envelope.get("terminal_stage") not in DXLINK_ALLOWED_STAGES:
         return False
+    if not _valid_dxlink_stage_counts(envelope.get("stage_counts"), envelope.get("terminal_stage")):
+        return False
+    if envelope["stage_counts"]["sample_complete"] <= 0 or envelope["stage_counts"]["cleanup_complete"] <= 0:
+        return False
     counts = envelope.get("counts")
-    if not isinstance(counts, dict):
-        return False
-    required_counts = ("quote_records", "candle_records", "logical_records", "raw_batches_processed", "raw_records_processed")
-    if set(counts) != set(required_counts):
-        return False
-    if any(not isinstance(counts[key], int) or counts[key] < 0 for key in required_counts):
-        return False
-    if counts["quote_records"] != 2 or counts["candle_records"] != 2 or counts["logical_records"] != 4:
+    if not _valid_dxlink_record_counts(counts, require_complete=True):
         return False
     events = envelope.get("events")
     if not isinstance(events, list) or len(events) != 4:
@@ -1613,6 +1628,122 @@ def _valid_dxlink_success_envelope(envelope: Any) -> bool:
     return logical_keys == {("quote", "SPY"), ("quote", "QQQ"), ("bar", "SPY"), ("bar", "QQQ")}
 
 
+def _valid_dxlink_failure_envelope(envelope: Any) -> bool:
+    if not isinstance(envelope, dict):
+        return False
+    required_keys = {
+        "ok",
+        "failure_code",
+        "terminal_stage",
+        "stage_counts",
+        "counts",
+        "approved_symbols",
+        "approved_event_types",
+        "child_timeout_ms",
+        "cleanup_status",
+        "real_paper_order_submitted",
+        "broker_order_call_performed",
+        "live_trading_enabled",
+    }
+    if set(envelope) != required_keys:
+        return False
+    if envelope.get("ok") is not False:
+        return False
+    if envelope.get("failure_code") not in {
+        "dxlink_connect_timeout",
+        "dxlink_auth_timeout",
+        "dxlink_feed_open_timeout",
+        "dxlink_subscription_timeout",
+        "dxlink_quote_timeout",
+        "dxlink_candle_timeout",
+        "dxlink_sample_timeout",
+        "dxlink_cleanup_failed",
+        "dxlink_dependency_unavailable",
+        "dxlink_contract_mismatch",
+        "dxlink_process_failed",
+    }:
+        return False
+    if envelope.get("terminal_stage") not in DXLINK_ALLOWED_STAGES:
+        return False
+    if not _valid_dxlink_stage_counts(envelope.get("stage_counts"), envelope.get("terminal_stage")):
+        return False
+    if not _valid_dxlink_record_counts(envelope.get("counts"), require_complete=False):
+        return False
+    if tuple(envelope.get("approved_symbols", ())) != APPROVED_SYMBOLS:
+        return False
+    if tuple(envelope.get("approved_event_types", ())) != ("Quote", "Candle"):
+        return False
+    if not isinstance(envelope.get("child_timeout_ms"), int) or not 2_000 <= envelope["child_timeout_ms"] <= 30_000:
+        return False
+    if envelope.get("cleanup_status") not in {"complete", "failed"}:
+        return False
+    if envelope["cleanup_status"] == "complete" and envelope["stage_counts"]["cleanup_complete"] <= 0:
+        return False
+    if envelope["cleanup_status"] == "failed" and envelope["stage_counts"]["cleanup_complete"] > 0:
+        return False
+    for flag in ("real_paper_order_submitted", "broker_order_call_performed", "live_trading_enabled"):
+        if envelope.get(flag) is not False:
+            return False
+    return not _contains_forbidden_dxlink_value(envelope)
+
+
+def _valid_dxlink_record_counts(counts: Any, *, require_complete: bool) -> bool:
+    if not isinstance(counts, dict):
+        return False
+    required_counts = ("quote_records", "candle_records", "logical_records", "raw_batches_processed", "raw_records_processed")
+    if set(counts) != set(required_counts):
+        return False
+    if any(not isinstance(counts[key], int) or counts[key] < 0 or counts[key] > 64 for key in required_counts):
+        return False
+    if require_complete and (
+        counts["quote_records"] != 2 or counts["candle_records"] != 2 or counts["logical_records"] != 4
+    ):
+        return False
+    if counts["logical_records"] != counts["quote_records"] + counts["candle_records"]:
+        return False
+    if counts["raw_records_processed"] < counts["logical_records"]:
+        return False
+    return True
+
+
+def _valid_dxlink_stage_counts(stage_counts: Any, terminal_stage: Any) -> bool:
+    if not isinstance(stage_counts, dict) or set(stage_counts) != set(DXLINK_ALLOWED_STAGES):
+        return False
+    if any(not isinstance(stage_counts[stage], int) or stage_counts[stage] < 0 or stage_counts[stage] > 64 for stage in DXLINK_ALLOWED_STAGES):
+        return False
+    if not isinstance(terminal_stage, str) or terminal_stage not in DXLINK_ALLOWED_STAGES:
+        return False
+    terminal_index = DXLINK_ALLOWED_STAGES.index(terminal_stage)
+    for index, stage in enumerate(DXLINK_ALLOWED_STAGES):
+        count = stage_counts[stage]
+        if index <= terminal_index:
+            if count < 1 and stage not in {"quote_received", "candle_received", "sample_complete", "cleanup_started", "cleanup_complete"}:
+                return False
+        elif stage not in {"cleanup_started", "cleanup_complete"} and count != 0:
+            return False
+    prerequisites = {
+        "sdk_loaded": ("child_started",),
+        "listeners_registered": ("client_created",),
+        "auth_token_set": ("listeners_registered",),
+        "connect_called": ("auth_token_set",),
+        "transport_connected": ("connect_called",),
+        "authentication_authorized": ("transport_connected",),
+        "feed_created": ("authentication_authorized",),
+        "feed_opened": ("feed_created",),
+        "quote_subscription_created": ("feed_opened",),
+        "candle_subscription_created": ("quote_subscription_created",),
+        "subscriptions_active": ("candle_subscription_created",),
+        "quote_received": ("subscriptions_active",),
+        "candle_received": ("subscriptions_active",),
+        "sample_complete": ("quote_received", "candle_received"),
+        "cleanup_complete": ("cleanup_started",),
+    }
+    for stage, required in prerequisites.items():
+        if stage_counts[stage] > 0 and any(stage_counts[prereq] <= 0 for prereq in required):
+            return False
+    return True
+
+
 def _dxlink_sanitized_stage_evidence(stdout: str) -> tuple[str | None, dict[str, int]]:
     if not stdout or len(stdout.encode("utf-8")) > DXLINK_STDOUT_MAX_BYTES:
         return None, {}
@@ -1628,9 +1759,44 @@ def _dxlink_sanitized_stage_evidence(stdout: str) -> tuple[str | None, dict[str,
     if isinstance(counts, dict):
         for key in ("quote_records", "candle_records", "logical_records", "raw_batches_processed", "raw_records_processed"):
             value = counts.get(key)
-            if isinstance(value, int) and value >= 0:
+            if isinstance(value, int) and 0 <= value <= 64:
                 clean_counts[key] = value
     return (stage if stage in DXLINK_ALLOWED_STAGES else None), clean_counts
+
+
+def _dxlink_failure_code_from_stdout(stdout: str) -> str | None:
+    try:
+        envelope = json.loads(stdout)
+    except json.JSONDecodeError:
+        return None
+    if not _valid_dxlink_failure_envelope(envelope):
+        return None
+    code = envelope.get("failure_code")
+    return code if isinstance(code, str) else None
+
+
+def _contains_forbidden_dxlink_value(value: Any) -> bool:
+    text = json.dumps(value, sort_keys=True, separators=(",", ":")).lower()
+    return any(
+        marker in text
+        for marker in (
+            "quote-token",
+            "access-token",
+            "refresh-token",
+            "client-secret",
+            "authorization",
+            "oauth",
+            "wss://",
+            "https://",
+            "api.cert.tasty",
+            "tastyworks.com",
+            "bidprice",
+            "askprice",
+            "stack",
+            "error:",
+            "account-number",
+        )
+    )
 
 
 def _dxlink_child_environment(source_env: dict[str, str] | None = None) -> dict[str, str]:

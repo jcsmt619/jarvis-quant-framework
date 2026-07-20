@@ -1,7 +1,6 @@
 import {
   AtomicOutputFailure,
   quarantineConsole,
-  writeFinalStderrCode,
   writeFinalStdoutJson,
 } from "./atomic_output.mjs";
 
@@ -19,88 +18,197 @@ const COMPACT_FIELDS = Object.freeze({
   Candle: ["eventSymbol", "time", "eventTime", "open", "high", "low", "close", "volume"],
 });
 const STAGES = Object.freeze([
+  "child_started",
+  "sdk_loaded",
   "client_created",
+  "listeners_registered",
+  "auth_token_set",
   "connect_called",
   "transport_connected",
   "authentication_authorized",
+  "feed_created",
   "feed_opened",
-  "subscriptions_queued",
+  "quote_subscription_created",
+  "candle_subscription_created",
+  "subscriptions_active",
   "quote_received",
   "candle_received",
   "sample_complete",
-  "cleanup",
+  "cleanup_started",
+  "cleanup_complete",
 ]);
+const FAILURE_CODES = Object.freeze([
+  "dxlink_dependency_unavailable",
+  "dxlink_contract_mismatch",
+  "dxlink_connect_timeout",
+  "dxlink_auth_timeout",
+  "dxlink_feed_open_timeout",
+  "dxlink_subscription_timeout",
+  "dxlink_quote_timeout",
+  "dxlink_candle_timeout",
+  "dxlink_sample_timeout",
+  "dxlink_cleanup_failed",
+  "dxlink_process_failed",
+]);
+const SAFETY_FLAGS = Object.freeze({
+  real_paper_order_submitted: false,
+  broker_order_call_performed: false,
+  live_trading_enabled: false,
+});
 
 let outputWritten = false;
-let cleanupStarted = false;
 
 main().catch((error) => {
-  safeExit(classifyError(error));
+  const stage = error?.stage && typeof error.stage.safeFailure === "function" ? error.stage : createStageTracker();
+  const counts = error?.counts && typeof error.counts === "object" ? error.counts : emptyRecordCounts();
+  const terminalStage = typeof error?.terminalStage === "string" ? error.terminalStage : stage.current;
+  stage.safeFailure(classifyError(error), counts, terminalStage);
 });
 
 async function main() {
-  const {
-    DXLinkWebSocketClient,
-    DXLinkFeed,
-    FeedContract,
-    FeedDataFormat,
-  } = await import("@dxfeed/dxlink-api");
-  const inputText = await readBoundedStdin();
-  const request = parseRequest(inputText);
   const stage = createStageTracker();
-  const latest = createLatestMap();
-  const counts = {
-    quote_records: 0,
-    candle_records: 0,
-    logical_records: 0,
-    raw_batches_processed: 0,
-    raw_records_processed: 0,
-  };
-  const client = new DXLinkWebSocketClient();
-  stage.mark("client_created");
+  stage.mark("child_started");
+  const counts = emptyRecordCounts();
+  let client = null;
   let feed = null;
-  let timeoutReason = "dxlink_connect_timeout";
-  const timeout = setTimeout(() => safeExit(timeoutReason, client, feed, stage, counts), request.timeoutMs);
+  let subscriptions = [];
 
   try {
-    attachClientListeners(client, stage);
+    const sdk = await import("@dxfeed/dxlink-api");
+    stage.mark("sdk_loaded");
+    const {
+      DXLinkWebSocketClient,
+      DXLinkFeed,
+      DXLinkConnectionState,
+      DXLinkAuthState,
+      DXLinkChannelState,
+      FeedContract,
+      FeedDataFormat,
+    } = sdk;
+    assertSdkContract({ DXLinkConnectionState, DXLinkAuthState, DXLinkChannelState, FeedContract, FeedDataFormat });
+
+    const inputText = await readBoundedStdin();
+    const request = parseRequest(inputText);
+    const latest = createLatestMap();
+    client = new DXLinkWebSocketClient({ maxReconnectAttempts: 0 });
+    stage.mark("client_created");
+
+    const lifecycle = createLifecycleWaiters(client, { DXLinkConnectionState, DXLinkAuthState }, stage);
+    stage.mark("listeners_registered");
+
+    const timer = setTimeout(() => {
+      const failure = timeoutCode(stage, latest);
+      const terminalStage = stage.current;
+      cleanup(client, feed, subscriptions, stage);
+      stage.safeFailure(failure, counts, terminalStage);
+    }, request.timeoutMs);
+
     client.setAuthToken(request.quoteToken);
-    feed = new DXLinkFeed(client, FeedContract.AUTO);
-    stage.mark("feed_opened");
+    stage.mark("auth_token_set");
+    client.connect(request.dxlinkUrl);
+    stage.mark("connect_called");
+
+    await lifecycle.transportConnected;
+    stage.mark("transport_connected");
+    await lifecycle.authAuthorized;
+    stage.mark("authentication_authorized");
+
+    feed = new DXLinkFeed(client, FeedContract.AUTO, { batchSubscriptionsTime: 0 });
+    stage.mark("feed_created");
     configureFeed(feed, FeedDataFormat, request.timeoutMs);
     attachEvents(feed, (eventBatch) => {
-      timeoutReason = updateTimeoutReason(latest);
       processBatch(eventBatch, request, latest, counts, stage);
-      timeoutReason = updateTimeoutReason(latest);
       if (hasCompleteSample(latest)) {
         counts.logical_records = 4;
         stage.mark("sample_complete");
-        clearTimeout(timeout);
-        cleanup(client, feed, stage);
+        clearTimeout(timer);
+        const cleanupOk = cleanup(client, feed, subscriptions, stage);
+        if (!cleanupOk) {
+          stage.safeFailure("dxlink_cleanup_failed", counts, "sample_complete");
+          return;
+        }
         writeResult(latest, stage, counts);
       }
     });
-    const dxlinkUrl = request.dxlinkUrl;
-    client.connect(dxlinkUrl);
-    stage.mark("connect_called");
-    stage.mark("transport_connected");
-    stage.mark("authentication_authorized");
-    timeoutReason = "dxlink_feed_open_timeout";
-    subscribe(feed, "Quote", request.symbols);
-    subscribe(feed, "Candle", request.symbols.map((symbol) => `${symbol}{=1m}`), request.fromTime);
-    stage.mark("subscriptions_queued");
-    timeoutReason = "dxlink_quote_timeout";
+
+    await waitForFeedOpen(feed, DXLinkChannelState, stage, counts);
+    stage.mark("feed_opened");
+    subscriptions = createSubscriptions(request);
+    stage.mark("quote_subscription_created");
+    stage.mark("candle_subscription_created");
+    feed.addSubscriptions(subscriptions);
+    stage.mark("subscriptions_active");
   } catch (error) {
-    clearTimeout(timeout);
-    cleanup(client, feed, stage);
+    const terminalStage = stage.current;
+    cleanup(client, feed, subscriptions, stage);
+    error.stage = stage;
+    error.terminalStage = terminalStage;
+    error.counts = counts;
     throw error;
   }
+}
 
-  await sleep(request.timeoutMs + 1);
-  if (!outputWritten) {
-    clearTimeout(timeout);
-    safeExit(updateTimeoutReason(latest), client, feed, stage, counts);
+function assertSdkContract({ DXLinkConnectionState, DXLinkAuthState, DXLinkChannelState, FeedContract, FeedDataFormat }) {
+  if (
+    DXLinkConnectionState?.CONNECTED !== "CONNECTED" ||
+    DXLinkAuthState?.AUTHORIZED !== "AUTHORIZED" ||
+    DXLinkChannelState?.OPENED !== "OPENED" ||
+    FeedContract?.AUTO === undefined ||
+    FeedDataFormat?.COMPACT === undefined
+  ) {
+    throw new Error("contract");
   }
+}
+
+function createLifecycleWaiters(client, { DXLinkConnectionState, DXLinkAuthState }) {
+  if (
+    typeof client.addConnectionStateChangeListener !== "function" ||
+    typeof client.addAuthStateChangeListener !== "function" ||
+    typeof client.addErrorListener !== "function"
+  ) {
+    throw new Error("contract");
+  }
+  let rejectAll = () => undefined;
+  const transportConnected = new Promise((resolve, reject) => {
+    rejectAll = reject;
+    client.addConnectionStateChangeListener((state) => {
+      if (state === DXLinkConnectionState.CONNECTED || state === "CONNECTED") {
+        resolve();
+      }
+    });
+  });
+  const authAuthorized = new Promise((resolve, reject) => {
+    const previousReject = rejectAll;
+    rejectAll = (error) => {
+      previousReject(error);
+      reject(error);
+    };
+    client.addAuthStateChangeListener((state) => {
+      if (state === DXLinkAuthState.AUTHORIZED || state === "AUTHORIZED") {
+        resolve();
+      }
+    });
+  });
+  client.addErrorListener(() => rejectAll(new Error("process")));
+  return { transportConnected, authAuthorized };
+}
+
+function waitForFeedOpen(feed, DXLinkChannelState, stage, counts) {
+  if (typeof feed.addStateChangeListener !== "function" || typeof feed.getState !== "function") {
+    throw new Error("contract");
+  }
+  return new Promise((resolve, reject) => {
+    const onState = (state) => {
+      if (state === DXLinkChannelState.OPENED || state === "OPENED") {
+        resolve();
+      }
+      if (state === DXLinkChannelState.CLOSED || state === "CLOSED") {
+        reject(Object.assign(new Error("subscription"), { stage, counts }));
+      }
+    };
+    feed.addStateChangeListener(onState);
+    onState(feed.getState());
+  });
 }
 
 function configureFeed(feed, FeedDataFormat, timeoutMs) {
@@ -117,29 +225,15 @@ function configureFeed(feed, FeedDataFormat, timeoutMs) {
   });
 }
 
-function subscribe(feed, eventType, symbols, fromTime = undefined) {
-  if (!EVENT_TYPES.includes(eventType)) {
-    throw new Error("subscription");
+function createSubscriptions(request) {
+  const subscriptions = [];
+  for (const symbol of request.symbols) {
+    subscriptions.push({ type: "Quote", symbol });
   }
-  for (const symbol of symbols) {
-    const subscription = { type: eventType, symbol };
-    if (eventType === "Candle") {
-      subscription.fromTime = fromTime;
-    }
-    feed.addSubscriptions(subscription);
+  for (const symbol of request.symbols) {
+    subscriptions.push({ type: "Candle", symbol: `${symbol}{=1m}`, fromTime: request.fromTime });
   }
-}
-
-function attachClientListeners(client, stage) {
-  const listener = () => stage.mark("transport_connected");
-  for (const method of ["addEventListener", "addConnectionStateListener", "on"]) {
-    if (typeof client[method] === "function") {
-      try {
-        method === "on" ? client[method]("state", listener) : client[method](listener);
-      } catch {
-      }
-    }
-  }
+  return subscriptions;
 }
 
 function attachEvents(feed, listener) {
@@ -255,6 +349,7 @@ function writeResult(latest, stage, counts) {
     disconnected: false,
     reconnect_count: 0,
     terminal_stage: stage.current,
+    stage_counts: stage.counts,
     counts,
     events: sample,
   });
@@ -347,18 +442,53 @@ function isoFromProviderTime(value, acquisitionTimestampMs) {
 }
 
 function createLatestMap() {
-  return new Map(APPROVED_SYMBOLS.flatMap((symbol) => []));
+  return new Map(APPROVED_SYMBOLS.flatMap(() => []));
+}
+
+function emptyRecordCounts() {
+  return {
+    quote_records: 0,
+    candle_records: 0,
+    logical_records: 0,
+    raw_batches_processed: 0,
+    raw_records_processed: 0,
+  };
 }
 
 function createStageTracker() {
   return {
-    current: "client_created",
+    current: "child_started",
     counts: Object.fromEntries(STAGES.map((stage) => [stage, 0])),
     mark(stage) {
       if (STAGES.includes(stage)) {
         this.current = stage;
         this.counts[stage] += 1;
       }
+    },
+    safeFailure(code, counts, terminalStage = this.current) {
+      if (outputWritten) {
+        return;
+      }
+      outputWritten = true;
+      try {
+        writeFinalStdoutJson({
+          ok: false,
+          failure_code: FAILURE_CODES.includes(code) ? code : "dxlink_process_failed",
+          terminal_stage: terminalStage,
+          stage_counts: this.counts,
+          counts,
+          approved_symbols: APPROVED_SYMBOLS,
+          approved_event_types: EVENT_TYPES,
+          child_timeout_ms: 30000,
+          cleanup_status: this.counts.cleanup_complete > 0 ? "complete" : "failed",
+          ...SAFETY_FLAGS,
+        });
+      } catch (error) {
+        if (error instanceof AtomicOutputFailure) {
+          return;
+        }
+      }
+      process.exit(1);
     },
   };
 }
@@ -373,7 +503,19 @@ function countType(latest, eventType) {
   return count;
 }
 
-function updateTimeoutReason(latest) {
+function timeoutCode(stage, latest) {
+  if (stage.counts.transport_connected === 0) {
+    return "dxlink_connect_timeout";
+  }
+  if (stage.counts.authentication_authorized === 0) {
+    return "dxlink_auth_timeout";
+  }
+  if (stage.counts.feed_opened === 0) {
+    return "dxlink_feed_open_timeout";
+  }
+  if (stage.counts.subscriptions_active === 0) {
+    return "dxlink_subscription_timeout";
+  }
   const quotes = countType(latest, "Quote");
   const candles = countType(latest, "Candle");
   if (quotes < APPROVED_SYMBOLS.length) {
@@ -387,11 +529,14 @@ function updateTimeoutReason(latest) {
 
 function classifyError(error) {
   const message = String(error && error.message ? error.message : "");
+  if (message.includes("contract")) {
+    return "dxlink_contract_mismatch";
+  }
   if (message.includes("auth")) {
     return "dxlink_auth_timeout";
   }
   if (message.includes("subscription")) {
-    return "dxlink_feed_open_timeout";
+    return "dxlink_subscription_timeout";
   }
   if (message.includes("Cannot find package") || message.includes("module")) {
     return "dxlink_dependency_unavailable";
@@ -399,44 +544,35 @@ function classifyError(error) {
   return "dxlink_process_failed";
 }
 
-function cleanup(client, feed, stage) {
-  if (cleanupStarted) {
-    return;
+function cleanup(client, feed, subscriptions, stage) {
+  if (stage.counts.cleanup_started > 0) {
+    return stage.counts.cleanup_complete > 0;
   }
-  cleanupStarted = true;
-  stage.mark("cleanup");
+  stage.mark("cleanup_started");
+  let ok = true;
+  try {
+    if (feed && typeof feed.removeSubscriptions === "function" && subscriptions.length > 0) {
+      feed.removeSubscriptions(subscriptions);
+    }
+  } catch {
+    ok = false;
+  }
   try {
     if (feed && typeof feed.close === "function") {
       feed.close();
     }
   } catch {
+    ok = false;
   }
   try {
     if (client && typeof client.close === "function") {
       client.close();
     }
   } catch {
+    ok = false;
   }
-}
-
-function safeExit(code, client = null, feed = null, stage = createStageTracker(), counts = {}) {
-  cleanup(client, feed, stage);
-  if (!outputWritten) {
-    outputWritten = true;
-    try {
-      writeFinalStderrCode(code);
-    } catch (error) {
-      if (error instanceof AtomicOutputFailure && error.code !== code) {
-        try {
-          writeFinalStderrCode(error.code);
-        } catch {
-        }
-      }
-    }
+  if (ok) {
+    stage.mark("cleanup_complete");
   }
-  process.exit(1);
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return ok;
 }
