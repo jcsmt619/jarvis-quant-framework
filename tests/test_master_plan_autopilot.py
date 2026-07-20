@@ -92,3 +92,31 @@ def test_master_plan_autopilot_handles_missing_codex_log_on_wrapper_crash() -> N
 
     assert "Codex log was not created" in text
     assert "Test-Path $codexLog" in text
+
+
+def test_master_plan_autopilot_salvages_nonzero_codex_changes() -> None:
+    text = Path(
+        "scripts/run_jarvis_master_plan_autopilot.ps1"
+    ).read_text(encoding="utf-8")
+
+    exit_capture = "$codexExitCode = $LASTEXITCODE"
+    discovery = "$changedPaths = Get-ChangedPathsForCheckpoint"
+    nonzero_gate = "if ($codexExitCode -ne 0)"
+    empty_gate = "if ($changedPaths.Count -eq 0)"
+    salvage_marker = (
+        "Codex returned non-zero after writing changes; "
+        "continuing to checkpoint validation."
+    )
+    no_change_failure = (
+        "without producing checkpointable changes. STOP."
+    )
+
+    assert exit_capture in text
+    assert discovery in text
+    assert nonzero_gate in text
+    assert empty_gate in text
+    assert salvage_marker in text
+    assert no_change_failure in text
+
+    assert text.index(exit_capture) < text.index(discovery)
+    assert text.index(discovery) < text.index(nonzero_gate)
