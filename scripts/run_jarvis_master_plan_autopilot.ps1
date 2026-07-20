@@ -294,16 +294,33 @@ foreach ($phase in $phases) {
         --sandbox workspace-write `
         --timeout-seconds 600
 
-    if ($LASTEXITCODE -ne 0) {
+
+$codexExitCode = $LASTEXITCODE
+$changedPaths = Get-ChangedPathsForCheckpoint
+
+if ($codexExitCode -ne 0) {
+    if ($changedPaths.Count -eq 0) {
         if (Test-Path $codexLog) {
             Get-Content -Path $codexLog
-        } else {
-            Write-Host "Codex log was not created: $codexLog" -ForegroundColor Yellow
         }
-        throw "Codex roadmap patch failed for $($phase.phase). STOP."
+        else {
+            Write-Host `
+                "Codex log was not created: $codexLog" `
+                -ForegroundColor Yellow
+        }
+
+        throw `
+            "Codex roadmap patch failed for $($phase.phase) without producing checkpointable changes. STOP."
     }
 
-    $changedPaths = Get-ChangedPathsForCheckpoint
+    Write-Host `
+        "Codex returned non-zero after writing changes; continuing to checkpoint validation." `
+        -ForegroundColor Yellow
+
+    Write-Host "codex_exit_code=$codexExitCode"
+    Write-Host "checkpointable_changed_path_count=$($changedPaths.Count)"
+}
+
 
     try {
         Invoke-PhaseCheckpoint -Phase $phase -ChangedPaths $changedPaths
