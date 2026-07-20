@@ -6,7 +6,7 @@ LIVE TRADING: DISABLED
 
 ## Purpose
 
-BR-30B defines the tastytrade sandbox read-only connectivity smoke test. BR-30B1 adds the concrete tastytrade sandbox read-only network client and operator smoke runner. BR-30B2 aligns the sandbox OAuth refresh exchange with the official tastytrade SDK token request contract. BR-30B3 aligns the read-only REST response parsers for customer accounts and API quote tokens. BR-30B4 replaces the earlier handwritten generic WebSocket market-data messages with a repository-owned Node 20+ DXLink sidecar that follows the official `@dxfeed/dxlink-api` SDK pattern used by tastytrade. BR-30B4E corrects the bounded DXLink sample timing and one-minute historical Candle contract. BR-30B4F makes DXLink child output atomic and preserves sanitized failure evidence.
+BR-30B defines the tastytrade sandbox read-only connectivity smoke test. BR-30B1 adds the concrete tastytrade sandbox read-only network client and operator smoke runner. BR-30B2 aligns the sandbox OAuth refresh exchange with the official tastytrade SDK token request contract. BR-30B3 aligns the read-only REST response parsers for customer accounts and API quote tokens. BR-30B4 replaces the earlier handwritten generic WebSocket market-data messages with a repository-owned Node 20+ DXLink sidecar that follows the official `@dxfeed/dxlink-api` SDK pattern used by tastytrade. BR-30B4E corrects the bounded DXLink sample timing and one-minute historical Candle contract. BR-30B4F makes DXLink child output atomic and preserves sanitized failure evidence. BR-30B4G replaces optimistic DXLink lifecycle markers with verified public SDK state transitions and read-only subscription repair.
 
 Default execution is fixture-only/offline and fail closed. The separate `sandbox_network` mode is explicit operator-invoked only and requires both `--mode sandbox_network` and the exact confirmation value `I_CONFIRM_BR30B1_SANDBOX_READ_ONLY_NETWORK_SMOKE`.
 
@@ -70,18 +70,23 @@ The sidecar never receives OAuth client ID, client secret, refresh token, accoun
 
 The sidecar follows the checked-in SDK `0.3.0` contract before any real DXLink connection:
 
-- construct the client with `new DXLinkWebSocketClient()`
-- call `client.setAuthToken(quoteToken)`
-- construct the feed with `new DXLinkFeed(client, FeedContract.AUTO)`
+- construct the client with `new DXLinkWebSocketClient({ maxReconnectAttempts: 0 })`
+- register client connection, authentication, and error listeners before setting the token or calling `connect`
+- call `client.setAuthToken(quoteToken)` while treating this only as `auth_token_set`, not authorization
+- call `client.connect(dxlinkUrl)` with the authenticated provider-returned WSS endpoint without awaiting it because the pinned SDK contract returns void, and treat this only as `connect_called`
+- confirm transport connection only through `DXLinkConnectionState.CONNECTED`
+- confirm authorization only through `DXLinkAuthState.AUTHORIZED`
+- construct the feed with `new DXLinkFeed(client, FeedContract.AUTO, { batchSubscriptionsTime: 0 })` only after authorization is confirmed
 - configure separately with `feed.configure`, `acceptAggregationPeriod=1`, `FeedDataFormat.COMPACT`, and `acceptEventFields`
-- register connection, authentication, feed-state, error, and data listeners before opening the network connection or before data can be emitted
-- call `client.connect(dxlinkUrl)` with the authenticated provider-returned WSS endpoint without awaiting it because the pinned SDK contract returns void
-- add subscriptions as individual objects with `type` and singular `symbol`
+- register feed-state and data listeners before subscriptions can be active
+- confirm feed readiness only through the feed channel `DXLinkChannelState.OPENED`
+- add a strongly retained subscription array containing only objects with `type` and singular `symbol`
 - subscribe to Quote symbols `SPY` and `QQQ`
 - subscribe to one-minute Candle symbols `SPY{=1m}` and `QQQ{=1m}` with numeric `fromTime`
 - derive Candle `fromTime` only from the validated acquisition timestamp using epoch milliseconds and an exact bounded 30-minute historical lookback
 - reject invalid acquisition timestamps, non-finite values, future provider records, and lookbacks outside the approved window
-- register data with `feed.addEventListener(listener)` using one listener argument before subscriptions are queued
+- register data with `feed.addEventListener(listener)` using one listener argument before subscriptions are attached
+- close retained subscriptions explicitly with `feed.removeSubscriptions(subscriptions)` during cleanup when the SDK exposes the method
 - treat the listener callback as a bounded iterable event batch
 
 Subscription objects must not contain plural `symbols` or subscription-level `fields`. The sidecar subscribes only to Quote and one-minute Candle data for exactly `SPY` and `QQQ`. It does not subscribe to Trade, Greeks, Summary, Profile, Underlying, Order, account-streaming, or arbitrary event types. Compact fields are limited to normalized event symbol, timestamps, bid price, ask price, open, high, low, close, and volume.
@@ -90,7 +95,7 @@ The feed aggregation period is fixed at one second. It must remain positive, bou
 
 The sidecar keeps bounded in-memory latest-record state keyed by event type and normalized approved symbol. It retains at most one validated latest Quote and one validated latest Candle for each of `SPY` and `QQQ`. Historical Candle batches may contain multiple records; the sidecar processes them within strict batch and total-record limits and selects the newest valid non-future record per symbol. It never synthesizes Candles from Quotes and never exits successfully merely because a raw event count was reached. Success requires exactly four logical records: Quote SPY, Quote QQQ, Candle SPY, and Candle QQQ.
 
-Sanitized in-memory stage tracking is limited to `client_created`, `connect_called`, `transport_connected`, `authentication_authorized`, `feed_opened`, `subscriptions_queued`, `quote_received`, `candle_received`, `sample_complete`, and `cleanup`. Reports may record only the sanitized terminal stage and aggregate non-secret counts.
+Sanitized in-memory stage tracking is limited to `child_started`, `sdk_loaded`, `client_created`, `listeners_registered`, `auth_token_set`, `connect_called`, `transport_connected`, `authentication_authorized`, `feed_created`, `feed_opened`, `quote_subscription_created`, `candle_subscription_created`, `subscriptions_active`, `quote_received`, `candle_received`, `sample_complete`, `cleanup_started`, and `cleanup_complete`. A stage is counted only after its real prerequisite state is confirmed by the pinned SDK or by local setup that cannot emit network data. Reports may record only the sanitized terminal stage and bounded non-secret counters.
 
 ## BR-30B4B DXLink Runtime Preflight Package Metadata
 
@@ -116,7 +121,7 @@ The Python parent enforces stdout and stderr size limits, hard timeout, approved
 
 ## BR-30B4F Atomic Output And Failure Evidence
 
-The DXLink sidecars use `integrations/tastytrade_dxlink/atomic_output.mjs` for final output. The helper encodes UTF-8 once, enforces the stdout and stderr byte limits before writing, performs synchronous file-descriptor writes to fd 1 or fd 2, retries partial writes until every byte is written, and rejects zero-progress writes. `stdout` is reserved for exactly one final success JSON envelope. `stderr` is reserved for exactly one allowlisted failure code. The sidecars do not call asynchronous `process.stdout.write` or `process.stderr.write`.
+The DXLink sidecars use `integrations/tastytrade_dxlink/atomic_output.mjs` for final output. The helper encodes UTF-8 once, enforces the stdout and stderr byte limits before writing, performs synchronous file-descriptor writes to fd 1 or fd 2, retries partial writes until every byte is written, and rejects zero-progress writes. For the runtime sidecar, `stdout` is reserved for exactly one final bounded JSON envelope for both success and expected fail-closed lifecycle outcomes. Normal success and expected lifecycle timeouts keep `stderr` empty. The sidecars do not call asynchronous `process.stdout.write` or `process.stderr.write`.
 
 `console.log`, `console.info`, `console.debug`, `console.warn`, and `console.error` are quarantined before the DXLink SDK is imported. Suppressed console diagnostics are discarded and are not counted, stored, forwarded, or reported.
 
@@ -131,7 +136,15 @@ The Python parent classifies child-output failures without printing or persistin
 - `dxlink_stderr_unexpected`
 - `dxlink_output_malformed` remains only as a backward-compatible fallback
 
-Blocked JSON and Markdown reports preserve only sanitized subprocess evidence: fixed argv metadata, `shell=false`, timeout values, stdin/stdout/stderr byte counts, return code, timed-out flag, sanitized terminal stage, sanitized stage counts, output classification, and the existing zero call counters. They never include raw stdout, raw stderr, argv secret values, environment values, quote tokens, URLs, event prices, event payloads, account identifiers, provider messages, exception text, stacks, or paths.
+Blocked JSON and Markdown reports preserve only sanitized subprocess evidence: fixed argv metadata, `shell=false`, timeout values, stdin/stdout/stderr byte counts, return code, timed-out flag, sanitized terminal stage, sanitized bounded counts, output classification, and the existing zero call counters. They never include raw stdout, raw stderr, argv secret values, environment values, quote tokens, URLs, event prices, event payloads, account identifiers, provider messages, SDK state strings, exception text, stacks, paths, or protocol frames.
+
+## BR-30B4G Verified DXLink Lifecycle
+
+BR-30B4G follows only the public lifecycle exposed by the installed `@dxfeed/dxlink-api` `0.3.0` graph. A call to `connect` is not evidence of transport connection, setting an auth token is not evidence of authorization, constructing a feed is not evidence that the feed is open, and creating subscriptions is not evidence that subscriptions are active.
+
+The sidecar waits for `DXLinkConnectionState.CONNECTED`, then `DXLinkAuthState.AUTHORIZED`, then the feed channel `DXLinkChannelState.OPENED`. Quote and Candle subscriptions are attached only after the feed-open state is confirmed. The parent parser accepts only sanitized success envelopes or sanitized expected failure envelopes, rejects impossible stage order, unknown stages, unsafe fields, duplicate or malformed terminal output, oversized output, secret-bearing values, and any output containing provider messages, SDK diagnostics, URLs, account identifiers, prices, stacks, or protocol frames.
+
+UI-01 provider status remains `pending` with `is_live=false`. No UI provider promotion occurs in this phase; promotion requires a later operator-invoked market-hours sample and separate promotion gate.
 
 ## BR-30B4D DXLink Dependency Lock Graph
 
@@ -161,9 +174,11 @@ Stage-specific DXLink rejection reasons:
 - `dxlink_connect_timeout`
 - `dxlink_auth_timeout`
 - `dxlink_feed_open_timeout`
+- `dxlink_subscription_timeout`
 - `dxlink_quote_timeout`
 - `dxlink_candle_timeout`
 - `dxlink_sample_timeout`
+- `dxlink_cleanup_failed`
 - `dxlink_process_failed`
 - `dxlink_runtime_environment_unavailable`
 - `dxlink_output_malformed`

@@ -26,6 +26,7 @@ from engines.moonshot.deterministic.br30a_secure_local_oauth_runtime_bridge impo
 from engines.moonshot.deterministic.br30b_tastytrade_sandbox_read_only_connectivity_smoke_test import (
     APPROVED_SYMBOLS,
     DEFAULT_REPORT_DIR,
+    DXLINK_ALLOWED_STAGES,
     DXLINK_ALLOWED_STDERR_CODES,
     DXLINK_CHILD_SAMPLE_TIMEOUT_SECONDS,
     DXLINK_CHILD_ENV_ALLOWLIST,
@@ -56,6 +57,7 @@ from engines.moonshot.deterministic.br30b_tastytrade_sandbox_read_only_connectiv
     USER_AGENT,
     dxlink_child_environment_audit_keys,
     _dxlink_child_environment,
+    _classify_dxlink_stdout,
     build_tastytrade_sandbox_read_only_connectivity_smoke_test,
     render_markdown_tastytrade_sandbox_read_only_connectivity,
     run_dxlink_runtime_preflight,
@@ -565,7 +567,7 @@ def test_br30b4_dxlink_child_process_uses_fixed_argv_and_stdin_only_secret_trans
     assert dxlink_record["child_timeout_seconds"] == DXLINK_CHILD_SAMPLE_TIMEOUT_SECONDS
     assert dxlink_record["parent_timeout_seconds"] == 35.0
     assert dxlink_record["parent_cleanup_grace_seconds"] >= DXLINK_PARENT_CLEANUP_GRACE_SECONDS
-    assert dxlink_record["sanitized_terminal_stage"] == "cleanup"
+    assert dxlink_record["sanitized_terminal_stage"] == "cleanup_complete"
     assert dxlink_record["sanitized_stage_counts"] == {
         "quote_records": 2,
         "candle_records": 2,
@@ -625,7 +627,7 @@ def test_br30b4_dxlink_sidecar_source_uses_official_sdk_compact_quote_and_candle
     assert "DXLinkWebSocketClient" in sidecar
     assert "quarantineConsole();" in sidecar
     assert "writeFinalStdoutJson" in sidecar
-    assert "writeFinalStderrCode" in sidecar
+    assert "safeFailure" in sidecar
     assert "process.stdout.write" not in sidecar
     assert "process.stderr.write" not in sidecar
     assert "setAuthToken" in sidecar
@@ -665,13 +667,11 @@ def test_br30b4_dxlink_sidecar_source_uses_official_sdk_compact_quote_and_candle
 def test_br30b4a_dxlink_sidecar_source_matches_pinned_sdk_contract() -> None:
     sidecar = Path("integrations/tastytrade_dxlink/dxlink_read_only_sidecar.mjs").read_text(encoding="utf-8")
 
-    assert "new DXLinkWebSocketClient()" in sidecar
+    assert "new DXLinkWebSocketClient({ maxReconnectAttempts: 0 })" in sidecar
     assert "new DXLinkWebSocketClient(request.dxlinkUrl)" not in sidecar
-    assert "connect(dxlinkUrl)" in sidecar
+    assert "connect(request.dxlinkUrl)" in sidecar
     assert "client.connect()" not in sidecar
-    assert "client.connect(dxlinkUrl)" in sidecar
-    assert "new DXLinkFeed(client, FeedContract.AUTO)" in sidecar
-    assert "new DXLinkFeed(client, FeedContract.AUTO," not in sidecar
+    assert "new DXLinkFeed(client, FeedContract.AUTO, { batchSubscriptionsTime: 0 })" in sidecar
     assert "feed.configure" in sidecar
     assert "acceptAggregationPeriod" in sidecar
     assert "FEED_AGGREGATION_PERIOD_SECONDS = 1" in sidecar
@@ -688,8 +688,8 @@ def test_br30b4a_dxlink_sidecar_source_matches_pinned_sdk_contract() -> None:
     assert "dxlink_candle_timeout" in sidecar
     assert "dxlink_sample_timeout" in sidecar
     assert "acceptEventFields" in sidecar
-    assert "feed.addSubscriptions(subscription)" in sidecar
-    assert "symbols:" not in sidecar
+    assert "feed.addSubscriptions(subscriptions)" in sidecar
+    assert "subscription.symbols" not in sidecar
     assert "fields:" not in sidecar
     assert "feed.addEventListener(listener)" in sidecar
     assert "addEventListener(\"event\"" not in sidecar
@@ -1072,12 +1072,99 @@ def test_br30b4a_fake_sdk_harness_runs_actual_sidecar_offline() -> None:
     assert envelope["connected"] is True
     assert {event["event_type"] for event in envelope["events"]} == {"Quote", "Candle"}
     assert {event["symbol"] for event in envelope["events"]} == {"SPY", "QQQ"}
-    assert envelope["terminal_stage"] == "cleanup"
+    assert envelope["terminal_stage"] == "cleanup_complete"
     assert envelope["counts"]["logical_records"] == 4
     assert "stdin-only-quote-token" not in completed.stdout
     assert "streamer.cert.tastyworks.com" not in completed.stdout
     assert "stdin-only-quote-token" not in completed.stderr
     assert "streamer.cert.tastyworks.com" not in completed.stderr
+
+
+def test_br30b4g_sidecar_source_uses_verified_lifecycle_gates_and_retains_subscriptions() -> None:
+    sidecar = Path("integrations/tastytrade_dxlink/dxlink_read_only_sidecar.mjs").read_text(encoding="utf-8")
+
+    assert "addConnectionStateChangeListener" in sidecar
+    assert "addAuthStateChangeListener" in sidecar
+    assert "addErrorListener" in sidecar
+    assert "await lifecycle.transportConnected" in sidecar
+    assert "await lifecycle.authAuthorized" in sidecar
+    assert "await waitForFeedOpen" in sidecar
+    assert "feed.addSubscriptions(subscriptions)" in sidecar
+    assert "feed.removeSubscriptions(subscriptions)" in sidecar
+    assert 'stage.mark("transport_connected")' in sidecar
+    assert 'stage.mark("authentication_authorized")' in sidecar
+    assert 'stage.mark("feed_opened")' in sidecar
+    assert 'stage.mark("subscriptions_active")' in sidecar
+    assert "writeFinalStderrCode" not in sidecar
+
+
+@pytest.mark.parametrize(
+    ("failure_code", "terminal_stage"),
+    [
+        ("dxlink_connect_timeout", "connect_called"),
+        ("dxlink_auth_timeout", "transport_connected"),
+        ("dxlink_feed_open_timeout", "feed_created"),
+        ("dxlink_subscription_timeout", "feed_opened"),
+        ("dxlink_quote_timeout", "subscriptions_active"),
+        ("dxlink_candle_timeout", "quote_received"),
+        ("dxlink_sample_timeout", "candle_received"),
+        ("dxlink_cleanup_failed", "cleanup_started"),
+    ],
+)
+def test_br30b4g_python_accepts_sanitized_failure_envelopes_and_maps_reason(
+    failure_code: str,
+    terminal_stage: str,
+) -> None:
+    stdout = dxlink_failure_stdout(failure_code, terminal_stage)
+    client = TastytradeSandboxConcreteReadOnlyNetworkClient(
+        http_transport=FakeHttpTransport.valid(),
+        dxlink_runner=FakeDXLinkRunner(returncode=1, stdout=stdout),
+    )
+
+    assert _blocked_reason_for_client(client) == failure_code
+
+
+@pytest.mark.parametrize(
+    "mutator",
+    [
+        lambda envelope: {**envelope, "failure_code": "raw_provider_error"},
+        lambda envelope: {**envelope, "provider_message": "raw"},
+        lambda envelope: {**envelope, "approved_event_types": ["Quote", "Trade"]},
+        lambda envelope: {**envelope, "approved_symbols": ["SPY", "IWM"]},
+        lambda envelope: {**envelope, "broker_order_call_performed": True},
+        lambda envelope: {**envelope, "stage_counts": {**envelope["stage_counts"], "authentication_authorized": 1}},
+        lambda envelope: {**envelope, "stage_counts": {**envelope["stage_counts"], "feed_opened": 65}},
+        lambda envelope: {**envelope, "counts": {**envelope["counts"], "quote_records": -1}},
+    ],
+)
+def test_br30b4g_python_rejects_malformed_unsafe_and_impossible_failure_envelopes(mutator) -> None:
+    envelope = json.loads(dxlink_failure_stdout("dxlink_connect_timeout", "connect_called"))
+    mutated = mutator(envelope)
+
+    assert _classify_dxlink_stdout(json_message(mutated)) == "dxlink_stdout_schema_mismatch"
+
+
+def test_br30b4g_stage_allowlist_matches_verified_lifecycle_names() -> None:
+    assert DXLINK_ALLOWED_STAGES == (
+        "child_started",
+        "sdk_loaded",
+        "client_created",
+        "listeners_registered",
+        "auth_token_set",
+        "connect_called",
+        "transport_connected",
+        "authentication_authorized",
+        "feed_created",
+        "feed_opened",
+        "quote_subscription_created",
+        "candle_subscription_created",
+        "subscriptions_active",
+        "quote_received",
+        "candle_received",
+        "sample_complete",
+        "cleanup_started",
+        "cleanup_complete",
+    )
 
 
 def test_br30b4b_runtime_preflight_resolves_physical_manifest_without_package_subpath() -> None:
@@ -1766,7 +1853,8 @@ def dxlink_stdout(symbols: tuple[str, ...] = APPROVED_SYMBOLS) -> str:
             "connected": True,
             "disconnected": False,
             "reconnect_count": 0,
-            "terminal_stage": "cleanup",
+            "terminal_stage": "cleanup_complete",
+            "stage_counts": dxlink_stage_counts("cleanup_complete", quote_count=len(symbols), candle_count=len(symbols)),
             "counts": {
                 "quote_records": len(symbols),
                 "candle_records": len(symbols),
@@ -1797,6 +1885,36 @@ def dxlink_stdout_without_candle() -> str:
     return json_message({"ok": True, "connected": True, "disconnected": False, "reconnect_count": 0, "events": events})
 
 
+def dxlink_stage_counts(terminal_stage: str, *, quote_count: int = 0, candle_count: int = 0) -> dict[str, int]:
+    stages = (
+        "child_started",
+        "sdk_loaded",
+        "client_created",
+        "listeners_registered",
+        "auth_token_set",
+        "connect_called",
+        "transport_connected",
+        "authentication_authorized",
+        "feed_created",
+        "feed_opened",
+        "quote_subscription_created",
+        "candle_subscription_created",
+        "subscriptions_active",
+        "quote_received",
+        "candle_received",
+        "sample_complete",
+        "cleanup_started",
+        "cleanup_complete",
+    )
+    counts = {stage: 0 for stage in stages}
+    terminal_index = stages.index(terminal_stage)
+    for stage in stages[: terminal_index + 1]:
+        counts[stage] = 1
+    counts["quote_received"] = quote_count
+    counts["candle_received"] = candle_count
+    return counts
+
+
 def dxlink_stdout_with_extra_quote() -> str:
     envelope = json.loads(dxlink_stdout())
     extra = dict(envelope["events"][0])
@@ -1821,6 +1939,37 @@ def dxlink_stdout_with_event(event_type: str) -> str:
     return json_message({"ok": True, "connected": True, "disconnected": False, "reconnect_count": 0, "events": [event]})
 
 
+def dxlink_failure_stdout(failure_code: str, terminal_stage: str) -> str:
+    quote_count = 2 if failure_code == "dxlink_cleanup_failed" else 0
+    candle_count = 2 if failure_code == "dxlink_cleanup_failed" else 0
+    cleanup_complete = failure_code != "dxlink_cleanup_failed"
+    stage_counts = dxlink_stage_counts(terminal_stage, quote_count=quote_count, candle_count=candle_count)
+    stage_counts["cleanup_started"] = 1
+    stage_counts["cleanup_complete"] = 1 if cleanup_complete else 0
+    return json_message(
+        {
+            "ok": False,
+            "failure_code": failure_code,
+            "terminal_stage": terminal_stage,
+            "stage_counts": stage_counts,
+            "counts": {
+                "quote_records": quote_count,
+                "candle_records": candle_count,
+                "logical_records": quote_count + candle_count,
+                "raw_batches_processed": 1 if quote_count + candle_count else 0,
+                "raw_records_processed": quote_count + candle_count,
+            },
+            "approved_symbols": list(APPROVED_SYMBOLS),
+            "approved_event_types": ["Quote", "Candle"],
+            "child_timeout_ms": 30000,
+            "cleanup_status": "complete" if cleanup_complete else "failed",
+            "real_paper_order_submitted": False,
+            "broker_order_call_performed": False,
+            "live_trading_enabled": False,
+        }
+    )
+
+
 def json_message(payload: dict[str, object]) -> str:
     import json
 
@@ -1830,44 +1979,98 @@ def json_message(payload: dict[str, object]) -> str:
 def _fake_dxlink_sdk_source() -> str:
     return textwrap.dedent(
         """
+        export const DXLinkConnectionState = Object.freeze({
+          NOT_CONNECTED: "NOT_CONNECTED",
+          CONNECTING: "CONNECTING",
+          CONNECTED: "CONNECTED",
+        });
+        export const DXLinkAuthState = Object.freeze({
+          UNAUTHORIZED: "UNAUTHORIZED",
+          AUTHORIZING: "AUTHORIZING",
+          AUTHORIZED: "AUTHORIZED",
+        });
+        export const DXLinkChannelState = Object.freeze({
+          REQUESTED: "REQUESTED",
+          OPENED: "OPENED",
+          CLOSED: "CLOSED",
+        });
         export const FeedContract = Object.freeze({ AUTO: "AUTO" });
         export const FeedDataFormat = Object.freeze({ COMPACT: "COMPACT" });
 
         export class DXLinkWebSocketClient {
-          constructor() {
-            if (arguments.length !== 0) {
-              throw new Error("url-in-constructor");
-            }
+          constructor(config) {
             globalThis.__client = this;
             this.closed = false;
+            this.config = config;
+            this.connectionListeners = [];
+            this.authListeners = [];
+            this.errorListeners = [];
+            this.channels = [];
           }
+          addConnectionStateChangeListener(listener) { this.connectionListeners.push(listener); }
+          addAuthStateChangeListener(listener) { this.authListeners.push(listener); }
+          addErrorListener(listener) { this.errorListeners.push(listener); }
           setAuthToken(token) {
             if (typeof token !== "string" || token.length < 1) {
               throw new Error("auth");
             }
             this.tokenWasSet = true;
           }
-          async connect(url) {
+          connect(url) {
             if (arguments.length !== 1 || typeof url !== "string" || !url.startsWith("wss://")) {
               throw new Error("connect-contract");
             }
             if (!this.tokenWasSet) {
               throw new Error("auth");
             }
-            this.connected = true;
+            queueMicrotask(() => {
+              this.connected = true;
+              this.connectionListeners.forEach((listener) => listener(DXLinkConnectionState.CONNECTED, DXLinkConnectionState.CONNECTING));
+              this.authListeners.forEach((listener) => listener(DXLinkAuthState.AUTHORIZED, DXLinkAuthState.AUTHORIZING));
+            });
+          }
+          openChannel(service, parameters) {
+            const channel = new FakeChannel(service, parameters);
+            this.channels.push(channel);
+            return channel;
           }
           close() {
             this.closed = true;
           }
         }
 
+        class FakeChannel {
+          constructor(service, parameters) {
+            this.id = 1;
+            this.service = service;
+            this.parameters = parameters;
+            this.state = DXLinkChannelState.REQUESTED;
+            this.messageListeners = [];
+            this.stateListeners = [];
+            this.errorListeners = [];
+            queueMicrotask(() => {
+              this.state = DXLinkChannelState.OPENED;
+              this.stateListeners.forEach((listener) => listener(DXLinkChannelState.OPENED, DXLinkChannelState.REQUESTED));
+            });
+          }
+          addMessageListener(listener) { this.messageListeners.push(listener); }
+          addStateChangeListener(listener) { this.stateListeners.push(listener); }
+          addErrorListener(listener) { this.errorListeners.push(listener); }
+          getState() { return this.state; }
+          send() {}
+          close() { this.state = DXLinkChannelState.CLOSED; }
+        }
+
         export class DXLinkFeed {
           constructor(client, contract) {
-            if (arguments.length !== 2 || contract !== FeedContract.AUTO || !client) {
+            if (![2, 3].includes(arguments.length) || contract !== FeedContract.AUTO || !client) {
               throw new Error("feed-contract");
             }
             this.subscriptions = [];
+            this.channel = client.openChannel("FEED", { contract });
           }
+          getState() { return this.channel.getState(); }
+          addStateChangeListener(listener) { this.channel.addStateChangeListener(listener); }
           configure(config) {
             if (
               config.acceptAggregationPeriod !== 1 ||
@@ -1885,22 +2088,36 @@ def _fake_dxlink_sdk_source() -> str:
             }
             this.listener = listener;
           }
-          addSubscriptions(subscription) {
+          addSubscriptions(subscriptions) {
             if (
               arguments.length !== 1 ||
-              subscription.symbols !== undefined ||
-              subscription.fields !== undefined ||
-              typeof subscription.symbol !== "string" ||
-              !["Quote", "Candle"].includes(subscription.type) ||
-              (subscription.type === "Quote" && subscription.fromTime !== undefined) ||
-              (subscription.type === "Candle" && subscription.fromTime !== 1783784100000)
+              !Array.isArray(subscriptions) ||
+              subscriptions.length !== 4
             ) {
               throw new Error("subscription-contract");
             }
-            this.subscriptions.push(subscription);
+            for (const subscription of subscriptions) {
+              if (
+                subscription.symbols !== undefined ||
+                subscription.fields !== undefined ||
+                typeof subscription.symbol !== "string" ||
+                !["Quote", "Candle"].includes(subscription.type) ||
+                (subscription.type === "Quote" && subscription.fromTime !== undefined) ||
+                (subscription.type === "Candle" && subscription.fromTime !== 1783784100000)
+              ) {
+                throw new Error("subscription-contract");
+              }
+              this.subscriptions.push(subscription);
+            }
             if (this.subscriptions.length === 4) {
               queueMicrotask(() => this.listener(events()));
             }
+          }
+          removeSubscriptions(subscriptions) {
+            this.removed = subscriptions;
+          }
+          close() {
+            this.closed = true;
           }
         }
 
