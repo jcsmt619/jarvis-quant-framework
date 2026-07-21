@@ -44,12 +44,13 @@ test("reconnect delay is bounded exponential", () => {
 });
 
 test("safe envelope requires pending provider and disabled live trading", () => {
-  assert.equal(reducers.isSafeEnvelope({ provider_validation_status: "pending", safety_state: { live_trading_enabled: false } }), true);
-  assert.equal(reducers.isSafeEnvelope({ provider_validation_status: "ready", safety_state: { live_trading_enabled: false } }), false);
+  assert.equal(reducers.isSafeEnvelope({ provider_validation_status: "pending", safety_state: { live_trading_enabled: false, is_live: false } }), true);
+  assert.equal(reducers.isSafeEnvelope({ provider_validation_status: "ready", safety_state: { live_trading_enabled: false, is_live: false } }), false);
   const unsafeLiveTradingEnvelope = {
     provider_validation_status: "pending",
     safety_state: {
       ["live_trading_" + "enabled"]: Boolean(1),
+      is_live: false,
     },
   };
   assert.equal(
