@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="referrer" content="no-referrer">
-    <title>Jarvis UI-02 Desktop Shell</title>
+    <title>Jarvis UI-02A Command Center</title>
     <link rel="stylesheet" href="/assets/theme.css">
     <script src="/assets/state.js" defer></script>
     <script src="/assets/app.js" defer></script>
@@ -13,10 +13,12 @@
     <a class="skip-link" href="#workspace">Skip to workspace</a>
     <div class="shell" data-theme="standard">
       <header class="top-strip" role="banner">
-        <div class="identity" aria-label="Jarvis identity">
-          <span class="identity-mark" aria-hidden="true">J</span>
+        <div class="identity" aria-label="Jarvis Quant identity">
+          <svg class="identity-mark" aria-hidden="true" focusable="false">
+            <use href="/assets/icons.svg#icon-emblem"></use>
+          </svg>
           <div>
-            <strong>Jarvis Quant</strong>
+            <strong>JARVIS QUANT</strong>
             <span>RESEARCH_ONLY / MONITOR_ONLY / PAPER_ONLY</span>
           </div>
         </div>
@@ -24,6 +26,7 @@
           <span id="connectionState" class="badge badge-warn">connecting</span>
           <span id="sourceMode" class="badge">source: fixture</span>
           <span id="providerStatus" class="badge badge-warn">provider_validation_status pending</span>
+          <span id="providerValidationTop" class="badge badge-warn">provider-validation pending</span>
           <span id="utcClock" class="badge">UTC --:--:--</span>
           <span id="localClock" class="badge">Local --:--:--</span>
         </div>
@@ -57,6 +60,16 @@
         <div id="streamMeta" class="stream-meta">Waiting for heartbeat</div>
         <ol id="eventTimeline" class="timeline" aria-label="Accepted event timeline"></ol>
       </aside>
+
+      <footer class="bottom-strip" aria-label="Bottom system status">
+        <span id="cliStatus">CLI independent</span>
+        <span id="bottomStreamState">stream connecting</span>
+        <span id="bottomSourceMode">source fixture</span>
+        <span id="bottomUtcClock">UTC --:--:--</span>
+        <span id="bottomLocalClock">Local --:--:--</span>
+        <span id="bottomEnvironment">environment loopback</span>
+        <span id="bottomPaperStatus">paper status PAPER_ONLY</span>
+      </footer>
     </div>
 
     <dialog id="commandPalette" aria-labelledby="paletteTitle">
