@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>Jarvis UI-02 Desktop Shell</title>
+    <link rel="stylesheet" href="/assets/theme.css">
+    <script src="/assets/state.js" defer></script>
+    <script src="/assets/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace">Skip to workspace</a>
+    <div class="shell" data-theme="standard">
+      <header class="top-strip" role="banner">
+        <div class="identity" aria-label="Jarvis identity">
+          <span class="identity-mark" aria-hidden="true">J</span>
+          <div>
+            <strong>Jarvis Quant</strong>
+            <span>RESEARCH_ONLY / MONITOR_ONLY / PAPER_ONLY</span>
+          </div>
+        </div>
+        <div class="system-pills" aria-label="System status">
+          <span id="connectionState" class="badge badge-warn">connecting</span>
+          <span id="sourceMode" class="badge">source: fixture</span>
+          <span id="providerStatus" class="badge badge-warn">provider_validation_status pending</span>
+          <span id="utcClock" class="badge">UTC --:--:--</span>
+          <span id="localClock" class="badge">Local --:--:--</span>
+        </div>
+        <strong class="live-badge" aria-label="Live trading disabled">LIVE TRADING: DISABLED</strong>
+      </header>
+
+      <aside class="nav-rail" aria-label="Jarvis modules">
+        <nav id="navList"></nav>
+      </aside>
+
+      <main id="workspace" class="workspace" tabindex="-1">
+        <section class="module-header" aria-labelledby="routeTitle">
+          <div>
+            <p id="routeKicker">Read-only local shell</p>
+            <h1 id="routeTitle">Overview</h1>
+          </div>
+          <div class="module-actions">
+            <button id="refreshButton" type="button" aria-label="Refresh approved read endpoints">Refresh</button>
+            <button id="paletteButton" type="button" aria-label="Open command palette">Command</button>
+          </div>
+        </section>
+        <div id="statusRegion" class="sr-only" role="status" aria-live="polite"></div>
+        <section id="content" class="content-grid" aria-label="Module workspace"></section>
+      </main>
+
+      <aside id="eventRail" class="event-rail" aria-label="Event and alert rail">
+        <div class="rail-header">
+          <h2>Events</h2>
+          <button id="collapseRail" type="button" aria-label="Collapse event rail">Hide</button>
+        </div>
+        <div id="streamMeta" class="stream-meta">Waiting for heartbeat</div>
+        <ol id="eventTimeline" class="timeline" aria-label="Accepted event timeline"></ol>
+      </aside>
+    </div>
+
+    <dialog id="commandPalette" aria-labelledby="paletteTitle">
+      <form method="dialog" class="palette">
+        <h2 id="paletteTitle">Command Palette</h2>
+        <input id="paletteInput" type="search" aria-label="Filter navigation commands" autocomplete="off">
+        <div id="paletteResults" role="listbox" aria-label="Navigation commands"></div>
+        <div class="theme-row" aria-label="Visual preferences">
+          <button value="standard" data-theme-choice="standard">Standard dark</button>
+          <button value="reduced" data-theme-choice="reduced">Reduced effects</button>
+          <button value="contrast" data-theme-choice="contrast">High contrast</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>
