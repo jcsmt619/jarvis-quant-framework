@@ -1,0 +1,191 @@
+{
+  "schema_version": "ui03.research_workbench.view_model.v1",
+  "source_mode": "fixture",
+  "provider_validation_status": "pending",
+  "is_live": false,
+  "live_trading_status": "LIVE TRADING: DISABLED",
+  "generated_at": "2026-07-21T00:00:00Z",
+  "observation_time": "2026-07-11T06:26:51Z",
+  "freshness": {
+    "state": "stale",
+    "as_of": "2026-07-11T06:26:51Z",
+    "reason": "committed_offline_evidence_only"
+  },
+  "provenance": {
+    "source_ids": ["BR-24", "BR-25", "BR-29"],
+    "source_paths": [
+      "reports\\br24_consolidated_research_dossier\\consolidated_research_dossier.json",
+      "reports\\br25_paper_candidate_lifecycle_state_machine\\paper_candidate_lifecycle_state_machine.json",
+      "reports\\br29_offline_snapshot_research_replay_evidence_pack\\offline_snapshot_research_replay_evidence_pack.json"
+    ],
+    "validation_state": "partial-evidence",
+    "provider_validation": "pending"
+  },
+  "research": {
+    "run_id": "UI03-BR29-OFFLINE-REPLAY",
+    "title": "Offline Snapshot Research Replay Evidence Pack",
+    "status": "HUMAN_REVIEW_REQUIRED",
+    "strategy_context": "offline replay / paper-only research review",
+    "supporting_evidence": [
+      "BR-29 replay loaded two human-review-required snapshot candidates.",
+      "Safety and lifecycle gates remained explicit in committed evidence."
+    ],
+    "contradicting_evidence": [
+      "Post-decision exit prices and outcome return series are unavailable.",
+      "Benchmark return series and fold history are unavailable."
+    ],
+    "unresolved_questions": [
+      "Can future approved evidence supply post-decision outcomes?",
+      "Does benchmark context remain adequate for later paper-only review?"
+    ],
+    "warnings": ["stale", "partial-evidence", "provider-validation-pending"],
+    "human_review_requirements": [
+      "Review BR-29 offline replay evidence before any research promotion decision.",
+      "Do not claim alpha or approve live trading from this offline evidence pack."
+    ],
+    "evidence_links": ["BR-29", "BR-24", "BR-25"]
+  },
+  "candidates": [
+    {
+      "id": "br28-7eb903a69e21c8ab",
+      "rank": 1,
+      "symbol": "QQQ",
+      "engine": "offline_snapshot_replay",
+      "strategy_family": "index_etf_replay",
+      "signal_score": null,
+      "regime_compatibility": "unavailable",
+      "liquidity_state": "validated_in_source",
+      "data_quality_state": "partial-evidence",
+      "lifecycle_state": "paper_only",
+      "prior_state": "review_required",
+      "risk_state": "PAPER_ONLY",
+      "validation_state": "partial-evidence",
+      "freshness": "stale",
+      "source_mode": "fixture",
+      "rejection_reasons": [],
+      "evidence_refs": ["BR-29", "BR-28"],
+      "opportunity_label": "paper-only replay review",
+      "supporting_factors": ["BR-29 gate results were true for replay reporting.", "Human review actions are present."],
+      "contradicting_factors": ["Outcome return series is missing.", "Alpha claim remains blocked."],
+      "review_horizon": "unavailable",
+      "surfaced_reason": "Offline replay advanced the candidate to paper-only research-reportable status.",
+      "may_reject_reason": "Missing post-decision outcomes prevent performance interpretation.",
+      "required_human_action": "Review offline replay evidence and confirm missing outcomes before promotion decisions."
+    },
+    {
+      "id": "br28-f90aa6a950622bf1",
+      "rank": 2,
+      "symbol": "SPY",
+      "engine": "offline_snapshot_replay",
+      "strategy_family": "index_etf_replay",
+      "signal_score": null,
+      "regime_compatibility": "unavailable",
+      "liquidity_state": "validated_in_source",
+      "data_quality_state": "partial-evidence",
+      "lifecycle_state": "paper_only",
+      "prior_state": "review_required",
+      "risk_state": "PAPER_ONLY",
+      "validation_state": "partial-evidence",
+      "freshness": "stale",
+      "source_mode": "fixture",
+      "rejection_reasons": [],
+      "evidence_refs": ["BR-29", "BR-28"],
+      "opportunity_label": "paper-only replay review",
+      "supporting_factors": ["Replay gates preserved safety boundaries.", "Candidate remained human-review-required."],
+      "contradicting_factors": ["Benchmark return series is unavailable.", "No live provider readiness is asserted."],
+      "review_horizon": "unavailable",
+      "surfaced_reason": "Offline replay identified the candidate as research-reportable under paper-only constraints.",
+      "may_reject_reason": "Unsupported benchmark and outcome metrics block performance claims.",
+      "required_human_action": "Review BR-29 evidence and keep live trading disabled."
+    },
+    {
+      "id": "BR29-ALL-BLOCKERS",
+      "rank": 3,
+      "symbol": "ALL",
+      "engine": "offline_snapshot_replay",
+      "strategy_family": "evidence_quality",
+      "signal_score": null,
+      "regime_compatibility": "unavailable",
+      "liquidity_state": "unavailable",
+      "data_quality_state": "blocked",
+      "lifecycle_state": "blocked",
+      "prior_state": "needs_more_evidence",
+      "risk_state": "BLOCKED_BY_SAFETY_GATE",
+      "validation_state": "blocked",
+      "freshness": "stale",
+      "source_mode": "fixture",
+      "rejection_reasons": ["post_decision_exit_prices_missing", "outcome_return_series_missing", "benchmark_return_series_missing", "fold_history_missing"],
+      "evidence_refs": ["BR-29"],
+      "opportunity_label": "evidence blocker review",
+      "supporting_factors": ["Blockers are explicit and auditable."],
+      "contradicting_factors": ["Evidence is insufficient for promotion."],
+      "review_horizon": "unavailable",
+      "surfaced_reason": "Jarvis surfaced unresolved blockers to prevent a healthy-looking research screen.",
+      "may_reject_reason": "Missing evidence keeps the item blocked by safety gate.",
+      "required_human_action": "Collect approved offline evidence in a future phase before changing resolution."
+    }
+  ],
+  "theses": [
+    {
+      "id": "UI03-THESIS-BR29-QQQ",
+      "candidate_id": "br28-7eb903a69e21c8ab",
+      "summary": "QQQ remains a paper-only research review item from offline replay evidence.",
+      "supporting_evidence": ["Replay gate results were complete for reportability.", "Required human actions are attached."],
+      "contradicting_evidence": ["Outcome return data is unavailable."],
+      "uncertainty": "Performance interpretation is blocked by missing outcome evidence.",
+      "invalidation_conditions": ["Approved evidence shows replay inputs were malformed.", "Safety boundary no longer matches committed disabled state."],
+      "validation_state": "partial-evidence",
+      "confidence": null,
+      "status": "HUMAN_REVIEW_REQUIRED"
+    },
+    {
+      "id": "UI03-THESIS-BR29-SPY",
+      "candidate_id": "br28-f90aa6a950622bf1",
+      "summary": "SPY remains a paper-only research review item with unsupported benchmark metrics.",
+      "supporting_evidence": ["Replay preserved safety gates.", "Human review actions are present."],
+      "contradicting_evidence": ["Benchmark return series is unavailable."],
+      "uncertainty": "Benchmark context is incomplete.",
+      "invalidation_conditions": ["Benchmark source remains missing in future approved evidence.", "Candidate loses human-review-required status."],
+      "validation_state": "partial-evidence",
+      "confidence": null,
+      "status": "HUMAN_REVIEW_REQUIRED"
+    }
+  ],
+  "market_regime": {
+    "label": "unavailable",
+    "confidence": null,
+    "model_version": "unavailable",
+    "as_of": "unavailable",
+    "freshness": "no-data",
+    "volatility_state": "unavailable",
+    "breadth_state": "unavailable",
+    "trend_state": "unavailable",
+    "transition_state": "unavailable",
+    "supporting_factors": [],
+    "contradicting_factors": ["No committed UI-03 market-regime evidence is available."],
+    "affected_strategy_families": ["index_etf_replay"],
+    "status": "unavailable"
+  },
+  "lifecycle": {
+    "stage_counts": {
+      "blocked": 1,
+      "review_required": 0,
+      "paper_only": 2,
+      "stale": 0,
+      "duplicate": 0,
+      "closed": 0,
+      "needs_more_evidence": 0
+    },
+    "allowed_transitions": [
+      {"from": "review_required", "to": "paper_only", "gate": "promotion_gate_required", "label": "PAPER_ONLY"},
+      {"from": "blocked", "to": "needs_more_evidence", "gate": "missing_evidence_category", "label": "HUMAN_REVIEW_REQUIRED"},
+      {"from": "paper_only", "to": "closed", "gate": "outcome_tracker_reference", "label": "HUMAN_REVIEW_REQUIRED"}
+    ],
+    "promotion_gate_state": "blocked_by_live_trading_disabled",
+    "human_review_state": "HUMAN_REVIEW_REQUIRED",
+    "duplicate_state": "none",
+    "stale_state": "stale",
+    "evidence_requirements": ["source_evidence_reference", "audit_trail_event", "safety_boundary_snapshot", "review_resolution_reference"],
+    "unresolved_blockers": ["post_decision_exit_prices_missing", "outcome_return_series_missing", "benchmark_return_series_missing"]
+  }
+}

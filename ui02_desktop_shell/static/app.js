@@ -10,6 +10,9 @@
   let activeEventSource = null;
   let activeConnectionId = 0;
   let routeCache = {};
+  let selectedCandidateId = null;
+  let ui03Filters = { query: "", sort: "rank", direction: "asc", engine: "all", strategyFamily: "all", lifecycleState: "all", riskState: "all", validationState: "all", freshness: "all", sourceMode: "all" };
+  let visibleColumns = { rank: true, symbol: true, engine: true, strategyFamily: true, signalScore: true, regimeCompatibility: true, liquidityState: true, lifecycleState: true, riskState: true, freshness: true };
 
   const nodes = {};
   document.addEventListener("DOMContentLoaded", start);
@@ -105,8 +108,12 @@
     const safety = cache.safety || {};
     const dataStatus = cache["data-status"] || {};
     const research = cache.research || {};
+    const researchVm = reducers.normalizeUi03Envelope(research, "research");
+    const screenerVm = reducers.normalizeUi03Envelope(cache.screener || {}, "screener");
+    const opportunitiesVm = reducers.normalizeUi03Envelope(cache.opportunities || {}, "opportunities");
     const riskGate = cache["risk-gate"] || {};
     const marketRegime = cache["market-regime"] || {};
+    const marketRegimeVm = reducers.normalizeUi03Envelope(marketRegime, "market-regime");
     const portfolio = cache.portfolio || {};
     const alerts = cache.alerts || {};
     const paper = cache["paper-activity"] || {};
@@ -114,11 +121,11 @@
 
     nodes.content.append(
       metricPanel("Market Regime", "regime", [
-        ["Regime", pick(marketRegime, "data.summary.regime", "unavailable")],
-        ["Confidence", formatPercent(pick(marketRegime, "data.summary.confidence", null))],
-        ["Model", pick(marketRegime, "data.summary.model_version", "ui01-fixture")],
-        ["As of", formatTimestamp(pick(marketRegime, "data.summary.as_of", "unavailable"))]
-      ], "No live market regime is asserted by UI-02A."),
+        ["Regime", marketRegimeVm.marketRegime.label || "unavailable"],
+        ["Confidence", formatPercent(marketRegimeVm.marketRegime.confidence)],
+        ["Model", marketRegimeVm.marketRegime.model_version || "unavailable"],
+        ["As of", formatTimestamp(marketRegimeVm.marketRegime.as_of || "unavailable")]
+      ], "No live market regime is asserted by UI-03."),
       metricPanel("Risk Gate", "shield", [
         ["Decision", pick(riskGate, "data.summary.decision", "BLOCKED_BY_SAFETY_GATE")],
         ["Live", String(pick(riskGate, "data.is_live", false))],
@@ -126,11 +133,11 @@
         ["Labels", formatArray(pick(riskGate, "data.summary.required_labels", reducers.SAFETY_LABELS))]
       ], "Execution remains blocked by safety policy."),
       metricPanel("Opportunity Radar", "radar", [
-        ["State", pick(cache.opportunities || {}, "data.status", "pending")],
-        ["Read model", pick(cache.opportunities || {}, "data.read_model", "opportunities")],
+        ["State", opportunitiesVm.status],
+        ["Candidates", opportunitiesVm.opportunities.length],
         ["Mode", sourceMode],
-        ["Detail", "UI-03 pending"]
-      ], "No fake opportunities are rendered without fixture data."),
+        ["Review", "HUMAN_REVIEW_REQUIRED"]
+      ], "Opportunity Radar is a read-only review queue, not a trade-signal screen."),
       metricPanel("Portfolio and Exposure", "portfolio", [
         ["Mode", pick(portfolio, "data.summary.mode", "PAPER_ONLY")],
         ["Positions", pick(portfolio, "data.summary.position_count", "unavailable")],
@@ -143,10 +150,10 @@
       distributionPanel("Signal-Strength Distribution", research),
       allocationPanel("Exposure Allocation", portfolio),
       metricPanel("Research State", "research", [
-        ["Phase", pick(research, "data.summary.phase", "unavailable")],
-        ["Module", pick(research, "data.summary.module", "unavailable")],
-        ["Label", pick(research, "data.summary.label", "HUMAN_REVIEW_REQUIRED")],
-        ["Readiness", pick(research, "data.summary.readiness_state", "READ_ONLY_UNAVAILABLE")]
+        ["Run", researchVm.research.run_id || "unavailable"],
+        ["Status", researchVm.research.status || "HUMAN_REVIEW_REQUIRED"],
+        ["Freshness", researchVm.freshnessState],
+        ["Candidates", screenerVm.candidates.length]
       ], "Research output is informational only."),
       metricPanel("Data Source", "data", [
         ["Source mode", pick(dataStatus, "source_mode", sourceMode)],
@@ -179,6 +186,10 @@
   }
 
   function renderModule(found, payload) {
+    if (reducers.UI03_ROUTES.indexOf(found[0]) !== -1) {
+      renderUi03Route(found, payload);
+      return;
+    }
     nodes.content.innerHTML = "";
     nodes.content.className = "content-grid module-grid";
     const title = found[1];
@@ -193,6 +204,334 @@
       emptyPanel(title, payload),
       diagnosticsPanel(title + " Diagnostics", payload, false)
     );
+  }
+
+  function renderUi03Route(found, payload) {
+    const vm = reducers.normalizeUi03Envelope(payload, found[0]);
+    const allCandidates = candidatesForRoute(vm);
+    if (!selectedCandidateId && allCandidates.length) {
+      selectedCandidateId = allCandidates[0].id;
+    }
+    const selected = reducers.selectCandidate(allCandidates, selectedCandidateId);
+    nodes.content.innerHTML = "";
+    nodes.content.className = "content-grid ui03-grid";
+    nodes.content.append(
+      ui03StatusPanel(found[1], vm),
+      ui03ProvenancePanel(vm)
+    );
+    if (found[0] === "research") renderResearchWorkbench(vm, selected);
+    if (found[0] === "screener") renderScreener(vm, allCandidates, selected);
+    if (found[0] === "opportunities") renderOpportunities(vm, allCandidates, selected);
+    if (found[0] === "analyst-theses") renderTheses(vm, selected);
+    if (found[0] === "market-regime") renderMarketRegime(vm);
+    if (found[0] === "lifecycle") renderLifecycle(vm, allCandidates, selected);
+    if (selected) nodes.content.append(candidateDetailPanel(selected));
+    nodes.content.append(diagnosticsPanel(found[1] + " Diagnostics", payload, true));
+  }
+
+  function renderResearchWorkbench(vm, selected) {
+    const research = vm.research || {};
+    nodes.content.append(
+      listPanel("Research Workbench", "research", [
+        "Run: " + (research.run_id || "unavailable"),
+        "Context: " + (research.strategy_context || "unavailable"),
+        "Status: " + (research.status || "HUMAN_REVIEW_REQUIRED"),
+        "Selected candidate: " + (selected ? selected.symbol + " / " + selected.id : "unavailable")
+      ], "Selected run and evidence-pack summary."),
+      listPanel("Supporting Evidence", "data", research.supporting_evidence || [], "Committed local evidence only."),
+      listPanel("Contradicting Evidence", "alert", research.contradicting_evidence || [], "Contradictions stay visible."),
+      listPanel("Unresolved Questions", "review", research.unresolved_questions || [], "Human review remains required."),
+      listPanel("Human Review Requirements", "shield", research.human_review_requirements || [], "HUMAN_REVIEW_REQUIRED")
+    );
+  }
+
+  function renderScreener(vm, candidates, selected) {
+    nodes.content.append(filterPanel(candidates));
+    const filtered = reducers.sortCandidates(reducers.filterCandidates(candidates, ui03Filters), ui03Filters.sort, ui03Filters.direction);
+    nodes.content.append(candidateTable(filtered, selected));
+  }
+
+  function renderOpportunities(vm, candidates, selected) {
+    const filtered = reducers.sortCandidates(reducers.filterCandidates(candidates, ui03Filters), ui03Filters.sort, ui03Filters.direction);
+    nodes.content.append(filterPanel(candidates));
+    const queue = document.createElement("section");
+    queue.className = "panel wide queue-grid";
+    queue.innerHTML = "<div class=\"panel-title\">" + iconMarkup("radar", true) + "<h2>Opportunity Review Queue</h2><span class=\"status-chip pending\">HUMAN_REVIEW_REQUIRED</span></div><div class=\"card-grid\"></div>";
+    const grid = queue.querySelector(".card-grid");
+    filtered.forEach((item) => grid.appendChild(candidateCard(item)));
+    if (!filtered.length) grid.appendChild(noDataBlock("No candidates match the in-memory filters."));
+    nodes.content.append(queue);
+  }
+
+  function renderTheses(vm, selected) {
+    const theses = selected ? vm.theses.filter((item) => item.candidateId === selected.id) : vm.theses;
+    const panel = document.createElement("section");
+    panel.className = "panel wide thesis-grid";
+    panel.innerHTML = "<div class=\"panel-title\">" + iconMarkup("review", true) + "<h2>Analyst Theses</h2><span class=\"status-chip pending\">HUMAN_REVIEW_REQUIRED</span></div><div class=\"card-grid\"></div>";
+    const grid = panel.querySelector(".card-grid");
+    theses.forEach((item) => grid.appendChild(thesisCard(item)));
+    if (!theses.length) grid.appendChild(noDataBlock("No thesis evidence is available for the selected candidate."));
+    nodes.content.append(panel);
+  }
+
+  function renderMarketRegime(vm) {
+    const regime = vm.marketRegime || {};
+    nodes.content.append(
+      metricPanel("Regime Evidence", "regime", [
+        ["Regime", regime.label || "unavailable"],
+        ["Confidence", formatPercent(regime.confidence)],
+        ["Model", regime.model_version || "unavailable"],
+        ["As of", formatTimestamp(regime.as_of || "unavailable")],
+        ["Freshness", regime.freshness || "no-data"],
+        ["Volatility", regime.volatility_state || "unavailable"],
+        ["Breadth", regime.breadth_state || "unavailable"],
+        ["Trend", regime.trend_state || "unavailable"],
+        ["Transition", regime.transition_state || "unavailable"]
+      ], "Market regime is unavailable unless committed evidence supports it."),
+      listPanel("Supporting Factors", "data", regime.supporting_factors || [], "No support is fabricated."),
+      listPanel("Contradicting Factors", "alert", regime.contradicting_factors || [], "Unavailable state remains explicit."),
+      listPanel("Affected Strategy Families", "models", regime.affected_strategy_families || [], "Research-only context.")
+    );
+  }
+
+  function renderLifecycle(vm, candidates, selected) {
+    const lifecycle = vm.lifecycle || {};
+    nodes.content.append(
+      lifecycleFunnel(lifecycle.stage_counts || {}, selected),
+      listPanel("Allowed Transitions", "lifecycle", (lifecycle.allowed_transitions || []).map((item) => item.from + " -> " + item.to + " / " + item.gate + " / " + item.label), "Read-only transition table."),
+      listPanel("Evidence Requirements", "data", lifecycle.evidence_requirements || [], "Required before any future lifecycle change."),
+      listPanel("Unresolved Blockers", "alert", lifecycle.unresolved_blockers || [], "Promotion gate remains blocked."),
+      metricPanel("Lifecycle Safety", "shield", [
+        ["Promotion gate", lifecycle.promotion_gate_state || "blocked"],
+        ["Human review", lifecycle.human_review_state || "HUMAN_REVIEW_REQUIRED"],
+        ["Duplicate", lifecycle.duplicate_state || "unavailable"],
+        ["Stale", lifecycle.stale_state || "unavailable"]
+      ], "Timeline is interactive only for candidate selection.")
+    );
+  }
+
+  function ui03StatusPanel(title, vm) {
+    return metricPanel(title + " Status", "shield", [
+      ["Status", vm.status],
+      ["Validation", vm.provenance.validationState],
+      ["Freshness", vm.freshnessState],
+      ["Observed", formatTimestamp(vm.observationTime)],
+      ["Generated", formatTimestamp(vm.generatedAt)],
+      ["Provider", vm.providerValidationStatus],
+      ["is_live", String(vm.isLive)],
+      ["Safety", vm.liveTradingStatus]
+    ], vm.safe ? "Canonical UI-03 view model boundary." : "Envelope failed safety normalization.");
+  }
+
+  function ui03ProvenancePanel(vm) {
+    return listPanel("Provenance", "data", [
+      "Source ids: " + formatArray(vm.provenance.sourceIds),
+      "Source mode: " + vm.sourceMode,
+      "Provider validation: " + vm.provenance.providerValidation
+    ].concat(vm.provenance.sourcePaths), "Source identifiers and local evidence paths are preserved.");
+  }
+
+  function filterPanel(candidates) {
+    const panel = document.createElement("section");
+    panel.className = "panel wide filter-panel";
+    panel.innerHTML = "<div class=\"panel-title\">" + iconMarkup("screener", true) + "<h2>In-Memory Controls</h2><span class=\"status-chip pending\">not persisted</span></div><div class=\"filter-grid\"></div><div class=\"column-controls\" aria-label=\"Column controls\"></div>";
+    const grid = panel.querySelector(".filter-grid");
+    grid.appendChild(controlInput("Search", "query", ui03Filters.query));
+    grid.appendChild(controlSelect("Sort", "sort", ["rank", "symbol", "engine", "strategyFamily", "lifecycleState", "riskState", "freshness"], ui03Filters.sort));
+    grid.appendChild(controlSelect("Direction", "direction", ["asc", "desc"], ui03Filters.direction));
+    [
+      ["Engine", "engine", "engine"],
+      ["Strategy", "strategyFamily", "strategyFamily"],
+      ["Lifecycle", "lifecycleState", "lifecycleState"],
+      ["Risk", "riskState", "riskState"],
+      ["Validation", "validationState", "validationState"],
+      ["Freshness", "freshness", "freshness"],
+      ["Source", "sourceMode", "sourceMode"]
+    ].forEach(([label, filterKey, candidateKey]) => {
+      grid.appendChild(controlSelect(label, filterKey, ["all"].concat(reducers.candidateOptions(candidates, candidateKey)), ui03Filters[filterKey]));
+    });
+    Object.keys(visibleColumns).forEach((key) => {
+      const label = document.createElement("label");
+      label.innerHTML = "<input type=\"checkbox\"> <span></span>";
+      const input = label.querySelector("input");
+      input.checked = visibleColumns[key];
+      input.addEventListener("change", () => {
+        visibleColumns[key] = input.checked;
+        renderUi03Route(routeInfo(route), routeCache[routeInfo(route)[2]]);
+      });
+      label.querySelector("span").textContent = key;
+      panel.querySelector(".column-controls").appendChild(label);
+    });
+    return panel;
+  }
+
+  function controlInput(labelText, key, value) {
+    const label = document.createElement("label");
+    label.innerHTML = "<span></span><input type=\"search\" autocomplete=\"off\">";
+    label.querySelector("span").textContent = labelText;
+    const input = label.querySelector("input");
+    input.value = value || "";
+    input.addEventListener("input", () => {
+      ui03Filters[key] = input.value;
+      renderUi03Route(routeInfo(route), routeCache[routeInfo(route)[2]]);
+    });
+    return label;
+  }
+
+  function controlSelect(labelText, key, options, value) {
+    const label = document.createElement("label");
+    label.innerHTML = "<span></span><select></select>";
+    label.querySelector("span").textContent = labelText;
+    const select = label.querySelector("select");
+    options.forEach((option) => {
+      const item = document.createElement("option");
+      item.value = option;
+      item.textContent = option;
+      select.appendChild(item);
+    });
+    select.value = value || options[0];
+    select.addEventListener("change", () => {
+      ui03Filters[key] = select.value;
+      renderUi03Route(routeInfo(route), routeCache[routeInfo(route)[2]]);
+    });
+    return label;
+  }
+
+  function candidateTable(candidates, selected) {
+    const panel = document.createElement("section");
+    panel.className = "panel wide table-panel";
+    panel.innerHTML = "<div class=\"panel-title\">" + iconMarkup("screener", true) + "<h2>Candidate Screener</h2><span class=\"status-chip pending\">read-only</span></div><div class=\"table-scroll\"><table><thead><tr></tr></thead><tbody></tbody></table></div>";
+    const columns = [
+      ["rank", "Rank"], ["symbol", "Identifier"], ["engine", "Engine"], ["strategyFamily", "Strategy"], ["signalScore", "Score"], ["regimeCompatibility", "Regime"], ["liquidityState", "Quality"], ["lifecycleState", "Lifecycle"], ["riskState", "Risk"], ["freshness", "Freshness"]
+    ].filter(([key]) => visibleColumns[key]);
+    columns.concat([["detail", "Detail"]]).forEach(([_key, label]) => {
+      const th = document.createElement("th");
+      th.scope = "col";
+      th.textContent = label;
+      panel.querySelector("thead tr").appendChild(th);
+    });
+    const tbody = panel.querySelector("tbody");
+    candidates.forEach((item) => {
+      const tr = document.createElement("tr");
+      if (selected && selected.id === item.id) tr.className = "selected-row";
+      columns.forEach(([key]) => {
+        const td = document.createElement("td");
+        td.textContent = key === "signalScore" ? formatNullable(item[key]) : formatValue(item[key]);
+        tr.appendChild(td);
+      });
+      const action = document.createElement("td");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Open details";
+      button.addEventListener("click", () => selectCandidateAndRender(item.id));
+      action.appendChild(button);
+      tr.appendChild(action);
+      tbody.appendChild(tr);
+    });
+    if (!candidates.length) tbody.appendChild(emptyTableRow(columns.length + 1, "No candidates match the in-memory filters."));
+    return panel;
+  }
+
+  function candidateCard(item) {
+    const card = document.createElement("article");
+    card.className = "candidate-card";
+    card.innerHTML = "<h3></h3><p></p><dl></dl><button type=\"button\">Open details</button>";
+    card.querySelector("h3").textContent = item.symbol + " / " + item.opportunityLabel;
+    card.querySelector("p").textContent = item.requiredHumanAction;
+    const dl = card.querySelector("dl");
+    [["Risk", item.riskState], ["Lifecycle", item.lifecycleState], ["Data quality", item.dataQualityState], ["Review horizon", item.reviewHorizon], ["Why surfaced", item.surfacedReason], ["Why may be withheld", item.mayRejectReason]].forEach((row) => addMetric(dl, row[0], row[1]));
+    card.querySelector("button").addEventListener("click", () => selectCandidateAndRender(item.id));
+    return card;
+  }
+
+  function thesisCard(item) {
+    const card = document.createElement("article");
+    card.className = "candidate-card";
+    card.innerHTML = "<h3></h3><p></p><dl></dl>";
+    card.querySelector("h3").textContent = item.id;
+    card.querySelector("p").textContent = item.summary;
+    const dl = card.querySelector("dl");
+    [["Candidate", item.candidateId], ["Confidence", item.confidence === null ? "unavailable" : item.confidence], ["Validation", item.validationState], ["Status", item.status], ["Uncertainty", item.uncertainty], ["Invalidation", formatArray(item.invalidationConditions)]].forEach((row) => addMetric(dl, row[0], row[1]));
+    return card;
+  }
+
+  function lifecycleFunnel(counts, selected) {
+    const panel = document.createElement("section");
+    panel.className = "panel wide lifecycle-funnel";
+    panel.innerHTML = "<div class=\"panel-title\">" + iconMarkup("lifecycle", true) + "<h2>Lifecycle Funnel</h2><span class=\"status-chip pending\">read-only</span></div><div class=\"funnel-steps\"></div>";
+    Object.keys(counts).forEach((state) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.innerHTML = "<strong></strong><span></span>";
+      button.querySelector("strong").textContent = state;
+      button.querySelector("span").textContent = String(counts[state]);
+      button.disabled = true;
+      if (selected && selected.lifecycleState === state) button.className = "active-step";
+      panel.querySelector(".funnel-steps").appendChild(button);
+    });
+    return panel;
+  }
+
+  function candidateDetailPanel(item) {
+    const panel = document.createElement("aside");
+    panel.className = "panel wide detail-panel";
+    panel.setAttribute("aria-label", "Selected candidate detail");
+    panel.innerHTML = "<div class=\"panel-title\">" + iconMarkup("review", true) + "<h2>Candidate Detail</h2><span class=\"status-chip pending\">HUMAN_REVIEW_REQUIRED</span></div><dl></dl><div class=\"route-links\"></div>";
+    const dl = panel.querySelector("dl");
+    [["Identifier", item.id], ["Symbol", item.symbol], ["Engine", item.engine], ["Strategy", item.strategyFamily], ["Score", formatNullable(item.signalScore)], ["Regime", item.regimeCompatibility], ["Liquidity", item.liquidityState], ["Data quality", item.dataQualityState], ["Current state", item.lifecycleState], ["Prior state", item.priorState], ["Risk", item.riskState], ["Validation", item.validationState], ["Freshness", item.freshness], ["Evidence", formatArray(item.evidenceRefs)], ["Supporting", formatArray(item.supportingFactors)], ["Contradicting", formatArray(item.contradictingFactors)], ["Rejection reasons", formatArray(item.rejectionReasons)], ["Required human action", item.requiredHumanAction]].forEach((row) => addMetric(dl, row[0], row[1]));
+    [["#/screener", "Screener"], ["#/opportunities", "Opportunities"], ["#/analyst-theses", "Theses"], ["#/lifecycle", "Lifecycle"]].forEach(([href, label]) => {
+      const link = document.createElement("a");
+      link.href = href;
+      link.textContent = label;
+      panel.querySelector(".route-links").appendChild(link);
+    });
+    return panel;
+  }
+
+  function selectCandidateAndRender(id) {
+    selectedCandidateId = id;
+    nodes.statusRegion.textContent = "Candidate " + id + " selected in memory";
+    renderUi03Route(routeInfo(route), routeCache[routeInfo(route)[2]]);
+  }
+
+  function candidatesForRoute(vm) {
+    return vm.opportunities.length ? vm.opportunities : vm.candidates;
+  }
+
+  function listPanel(title, icon, items, note) {
+    const section = document.createElement("section");
+    section.className = "panel list-panel";
+    section.innerHTML = "<div class=\"panel-title\">" + iconMarkup(icon, true) + "<h2></h2></div><ul></ul><p class=\"panel-note\"></p>";
+    section.querySelector("h2").textContent = title;
+    const ul = section.querySelector("ul");
+    (items || []).forEach((item) => {
+      const li = document.createElement("li");
+      li.textContent = String(item);
+      ul.appendChild(li);
+    });
+    if (!ul.children.length) {
+      const li = document.createElement("li");
+      li.textContent = "unavailable";
+      ul.appendChild(li);
+    }
+    section.querySelector(".panel-note").textContent = note || "";
+    return section;
+  }
+
+  function noDataBlock(text) {
+    const block = document.createElement("p");
+    block.className = "no-data";
+    block.textContent = text;
+    return block;
+  }
+
+  function emptyTableRow(span, text) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = span;
+    td.appendChild(noDataBlock(text));
+    tr.appendChild(td);
+    return tr;
   }
 
   function metricPanel(title, icon, rows, note) {
@@ -541,6 +880,10 @@
     if (typeof value === "boolean") return value ? "true" : "false";
     if (typeof value === "object") return JSON.stringify(value);
     return String(value);
+  }
+
+  function formatNullable(value) {
+    return value === undefined || value === null || value === "" || Number.isNaN(value) ? "unavailable" : String(value);
   }
 
   function formatArray(value) {

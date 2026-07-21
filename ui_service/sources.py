@@ -12,12 +12,15 @@ BR14_REPORT = ROOT / "reports" / "br14_local_paper_research_session_runner" / "m
 BR26_REPORT = ROOT / "reports" / "br26_read_only_data_snapshot_import_contract" / "read_only_data_snapshot_import_contract.json"
 BR29_REPORT = ROOT / "reports" / "br29_offline_snapshot_research_replay_evidence_pack" / "offline_snapshot_research_replay_evidence_pack.json"
 BR30_REPORT = ROOT / "reports" / "br30_read_only_live_market_data_adapter" / "read_only_live_market_data_adapter.json"
+UI03_FIXTURE = ROOT / "ui_contracts" / "fixtures" / "ui03_research_workbench.fixture.json"
+UI03_MODELS = {"research", "screener", "opportunities", "analyst_theses", "market_regime", "lifecycle"}
 
 
 class ReadModelSource:
     def __init__(self, source_mode: str = "fixture") -> None:
         self.source_mode = source_mode
         self._ui00 = _load_json(UI00_FIXTURE)
+        self._ui03 = _load_json(UI03_FIXTURE)
 
     def read(self, model_name: str) -> tuple[dict[str, Any], list[str]]:
         if self.source_mode == "live_provider":
@@ -65,7 +68,7 @@ class ReadModelSource:
         contract_model = _contract_read_model(self._ui00, model_name)
         if not report and model_name not in {"portfolio", "alerts", "models", "market_regime"}:
             return _unavailable(model_name, "source_artifact_missing")
-        return {
+        data = {
             "read_model": model_name,
             "required_fields": contract_model.get("required_fields", []),
             "status": "available" if report or model_name in {"portfolio", "alerts", "models", "market_regime"} else "unavailable",
@@ -76,6 +79,10 @@ class ReadModelSource:
             "provider_validation_status": "pending",
             "live_trading_status": LIVE_TRADING_STATUS,
         }
+        if model_name in UI03_MODELS:
+            data["ui03"] = _ui03_for_model(self._ui03, model_name, self.source_mode)
+            data["status"] = data["ui03"].get("status", data["status"])
+        return data
 
 
 def _contract_read_model(contract: dict[str, Any], name: str) -> dict[str, Any]:
@@ -158,6 +165,38 @@ def _unavailable(model_name: str, reason: str) -> dict[str, Any]:
         "provider_validation_status": "pending",
         "live_trading_status": LIVE_TRADING_STATUS,
     }
+
+
+def _ui03_for_model(payload: dict[str, Any], model_name: str, source_mode: str) -> dict[str, Any]:
+    if not payload:
+        return {"status": "unavailable", "reason": "ui03_fixture_missing", "is_live": False, "live_trading_status": LIVE_TRADING_STATUS}
+    common = {
+        "schema_version": payload.get("schema_version", "ui03.research_workbench.view_model.v1"),
+        "source_mode": source_mode,
+        "provider_validation_status": "pending",
+        "is_live": False,
+        "live_trading_status": LIVE_TRADING_STATUS,
+        "generated_at": payload.get("generated_at", "unavailable"),
+        "observation_time": payload.get("observation_time", "unavailable"),
+        "freshness": payload.get("freshness", {"state": "unavailable"}),
+        "provenance": payload.get("provenance", {}),
+        "safety_labels": SAFETY_STATE["labels"],
+        "status": "available",
+    }
+    if model_name == "research":
+        return {**common, "research": payload.get("research", {}), "candidates": payload.get("candidates", [])[:3]}
+    if model_name == "screener":
+        return {**common, "candidates": payload.get("candidates", [])[:25]}
+    if model_name == "opportunities":
+        return {**common, "opportunities": payload.get("candidates", [])[:25]}
+    if model_name == "analyst_theses":
+        return {**common, "theses": payload.get("theses", [])[:25], "candidates": payload.get("candidates", [])[:25]}
+    if model_name == "market_regime":
+        regime = payload.get("market_regime", {})
+        return {**common, "status": regime.get("status", "unavailable"), "market_regime": regime}
+    if model_name == "lifecycle":
+        return {**common, "lifecycle": payload.get("lifecycle", {}), "candidates": payload.get("candidates", [])[:25]}
+    return {**common, "status": "unavailable", "reason": "ui03_model_unknown"}
 
 
 def _pick(payload: dict[str, Any], key: str, *, default: Any = None) -> Any:
