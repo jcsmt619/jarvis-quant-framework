@@ -115,6 +115,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, main:focus-visible, 
   background: rgba(7, 17, 31, 0.72);
   font-size: 0.82rem;
   white-space: nowrap;
+  overflow-wrap: normal;
 }
 .badge-ok, .status-chip.ok { color: var(--green); border-color: rgba(71, 209, 140, 0.6); }
 .badge-warn, .status-chip.pending { color: var(--amber); border-color: rgba(255, 181, 71, 0.58); }
@@ -319,9 +320,26 @@ dd { margin: 0; overflow-wrap: anywhere; color: var(--text); }
   font-size: 0.78rem;
 }
 
-table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; padding: 0.45rem; border-bottom: 1px solid rgba(46, 233, 255, 0.14); overflow-wrap: anywhere; }
+table { width: 100%; border-collapse: collapse; table-layout: auto; }
+th, td {
+  text-align: left;
+  padding: 0.45rem;
+  border-bottom: 1px solid rgba(46, 233, 255, 0.14);
+  overflow-wrap: normal;
+  word-break: normal;
+  vertical-align: top;
+}
 th { color: var(--cyan); font-weight: 600; }
+td:first-child,
+td:nth-child(2),
+th:first-child,
+th:nth-child(2) { white-space: nowrap; }
+td .status-chip {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 18rem;
+  line-height: 1.25;
+}
 
 .filter-panel { min-height: 0; }
 .filter-grid {
@@ -351,8 +369,9 @@ th { color: var(--cyan); font-weight: 600; }
   margin-top: 0.75rem;
 }
 .column-controls label { display: inline-flex; align-items: center; }
-.table-scroll { overflow: auto; max-width: 100%; }
-.table-panel table { min-width: 58rem; }
+.table-scroll { overflow-x: auto; overflow-y: visible; max-width: 100%; }
+.table-panel table { min-width: 68rem; }
+.ui04-grid .table-panel table { min-width: 76rem; }
 .selected-row { background: rgba(46, 233, 255, 0.08); }
 .card-grid {
   display: grid;
@@ -373,8 +392,16 @@ th { color: var(--cyan); font-weight: 600; }
   overflow-wrap: anywhere;
 }
 .candidate-card p, .list-panel li, .no-data { overflow-wrap: anywhere; }
+.candidate-card p { margin: 0 0 0.6rem; }
 .candidate-card dl { grid-template-columns: minmax(6rem, 0.75fr) minmax(0, 1.25fr); }
-.detail-panel dl { grid-template-columns: minmax(8rem, 0.7fr) minmax(0, 1.3fr); }
+.detail-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.detail-panel dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.9rem;
+}
 .route-links {
   display: flex;
   gap: 0.5rem;

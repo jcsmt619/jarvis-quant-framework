@@ -23,6 +23,7 @@
   const OVERVIEW_ENDPOINTS = ["health", "safety", "data-status", "research", "screener", "opportunities", "analyst-theses", "lifecycle", "risk-gate", "market-regime", "portfolio", "alerts", "paper-activity", "moonshot-research"];
   const SAFETY_LABELS = ["RESEARCH_ONLY", "MONITOR_ONLY", "PAPER_ONLY", "HUMAN_REVIEW_REQUIRED", "BLOCKED_BY_SAFETY_GATE"];
   const UI03_ROUTES = ["research", "screener", "opportunities", "analyst-theses", "market-regime", "lifecycle"];
+  const UI04_ROUTES = ["risk-gate", "portfolio", "alerts", "models", "performance", "backtests", "paper-activity", "options", "moonshot-research"];
   const MAX_REJECT_COUNT = 25;
   const MAX_ACCEPTED_IDS = 96;
   const MAX_EVENTS = 48;
@@ -224,6 +225,173 @@
     };
   }
 
+  function normalizeUi04Envelope(envelope, routeId) {
+    const data = envelope && envelope.data ? envelope.data : {};
+    const ui04 = data.ui04 || {};
+    const provenance = ui04.provenance || {};
+    const freshness = ui04.freshness || {};
+    const safe = isSafeEnvelope(envelope) && ui04.is_live !== true;
+    const status = safe ? (ui04.status || data.status || "unavailable") : "blocked";
+    return {
+      routeId: routeId || "",
+      schemaVersion: ui04.schema_version || "ui04.operator_workbench.view_model.v1",
+      status,
+      sourceMode: envelope && envelope.source_mode ? envelope.source_mode : (ui04.source_mode || "fixture"),
+      sourceIdentifier: text(ui04.source_identifier || "unavailable"),
+      providerValidationStatus: envelope && envelope.provider_validation_status ? envelope.provider_validation_status : "pending",
+      isLive: Boolean(data.is_live || ui04.is_live),
+      liveTradingStatus: (envelope && envelope.safety_state && envelope.safety_state.live_trading_status) || ui04.live_trading_status || "LIVE TRADING: DISABLED",
+      generatedAt: ui04.generated_at || (envelope && envelope.generated_at) || "unavailable",
+      observationTime: ui04.observation_time || "unavailable",
+      freshnessState: freshness.state || "unavailable",
+      freshnessReason: freshness.reason || "unavailable",
+      validationState: ui04.validation_state || (provenance && provenance.validation_state) || "unavailable",
+      safetyLabels: arrayOfText(ui04.safety_labels),
+      provenance: {
+        sourceIds: arrayOfText(provenance.source_ids),
+        sourcePaths: arrayOfText(provenance.source_paths || data.source_artifacts),
+        validationState: provenance.validation_state || ui04.validation_state || "unavailable",
+        providerValidation: provenance.provider_validation || "pending"
+      },
+      riskGate: normalizeRiskGate(ui04.risk_gate),
+      portfolio: normalizePortfolio(ui04.portfolio),
+      alerts: normalizeAlerts(ui04.alerts),
+      models: normalizeModels(ui04.models),
+      performance: ui04.performance || {},
+      backtests: normalizeBacktests(ui04.backtests),
+      paperActivity: normalizePaperActivity(ui04.paper_activity),
+      options: ui04.options || {},
+      moonshotResearch: normalizeMoonshots(ui04.moonshot_research),
+      warnings: arrayOfText((envelope && envelope.warnings) || []).concat(arrayOfText(ui04.warnings)),
+      errors: Array.isArray((envelope && envelope.errors) || ui04.errors) ? ((envelope && envelope.errors) || ui04.errors) : [],
+      safe
+    };
+  }
+
+  function normalizeRiskGate(value) {
+    const gate = value || {};
+    return {
+      decision: text(gate.decision || "BLOCKED_BY_SAFETY_GATE"),
+      blockedReasons: arrayOfText(gate.blocked_reasons),
+      requiredLabels: arrayOfText(gate.required_labels),
+      providerGate: text(gate.provider_gate || "pending"),
+      dataFreshnessGate: text(gate.data_freshness_gate || "unavailable"),
+      modelValidationGate: text(gate.model_validation_gate || "unavailable"),
+      portfolioRiskGate: text(gate.portfolio_risk_gate || "unavailable"),
+      humanReviewRequirement: text(gate.human_review_requirement || "HUMAN_REVIEW_REQUIRED"),
+      executionUnavailableReason: text(gate.execution_unavailable_reason || "Execution unavailable."),
+      evidenceRefs: arrayOfText(gate.evidence_refs)
+    };
+  }
+
+  function normalizePortfolio(value) {
+    const portfolio = value || {};
+    return {
+      snapshotId: text(portfolio.snapshot_id),
+      mode: text(portfolio.mode || "PAPER_ONLY"),
+      freshness: text(portfolio.freshness || "unavailable"),
+      positionCount: portfolio.position_count === undefined ? "unavailable" : portfolio.position_count,
+      positions: Array.isArray(portfolio.positions) ? portfolio.positions : [],
+      cash: portfolio.cash || { state: "unavailable" },
+      grossExposure: portfolio.gross_exposure || { state: "unavailable" },
+      netExposure: portfolio.net_exposure || { state: "unavailable" },
+      concentration: text(portfolio.concentration),
+      drawdown: text(portfolio.drawdown),
+      allocation: Array.isArray(portfolio.allocation) ? portfolio.allocation : [],
+      wealthEngine: portfolio.wealth_engine || { state: "separate" },
+      moonshotEngine: portfolio.moonshot_engine || { state: "separate" },
+      warnings: arrayOfText(portfolio.warnings)
+    };
+  }
+
+  function normalizeAlerts(value) {
+    return Array.isArray(value) ? value.map((item) => ({
+      id: text(item.id),
+      severity: text(item.severity),
+      category: text(item.category),
+      state: text(item.state),
+      createdAt: text(item.created_at),
+      freshness: text(item.freshness),
+      source: text(item.source),
+      related: text(item.related),
+      humanReviewRequired: Boolean(item.human_review_required),
+      evidenceDetails: arrayOfText(item.evidence_details)
+    })) : [];
+  }
+
+  function normalizeModels(value) {
+    return Array.isArray(value) ? value.map((item) => ({
+      id: text(item.id),
+      family: text(item.family),
+      version: text(item.version),
+      validationState: text(item.validation_state),
+      driftState: text(item.drift_state),
+      supportedStrategyFamilies: arrayOfText(item.supported_strategy_families),
+      lastValidatedAt: text(item.last_validated_at),
+      freshness: text(item.freshness),
+      warnings: arrayOfText(item.warnings),
+      promotionEligibility: text(item.promotion_eligibility),
+      evidenceRefs: arrayOfText(item.evidence_refs)
+    })) : [];
+  }
+
+  function normalizeBacktests(value) {
+    return Array.isArray(value) ? value.map((item) => ({
+      runId: text(item.run_id),
+      strategyFamily: text(item.strategy_family),
+      symbols: arrayOfText(item.symbols),
+      dateRange: text(item.date_range),
+      inSampleState: text(item.in_sample_state),
+      outOfSampleState: text(item.out_of_sample_state),
+      walkForwardState: text(item.walk_forward_state),
+      slippageAssumptions: text(item.slippage_assumptions),
+      benchmark: text(item.benchmark),
+      drawdown: text(item.drawdown),
+      resultLabel: text(item.result_label || "HUMAN_REVIEW_REQUIRED"),
+      overfitWarning: text(item.overfit_warning),
+      insufficientTradeWarning: text(item.insufficient_trade_warning),
+      promotionGateState: text(item.promotion_gate_state),
+      evidenceRefs: arrayOfText(item.evidence_refs)
+    })) : [];
+  }
+
+  function normalizePaperActivity(value) {
+    return Array.isArray(value) ? value.map((item) => ({
+      paperRunId: text(item.paper_run_id),
+      approvalOrReviewState: text(item.approval_or_review_state),
+      ledgerRefs: arrayOfText(item.ledger_refs),
+      proposedActions: arrayOfText(item.proposed_actions),
+      simulatedFills: text(item.simulated_fills),
+      rejectedActions: arrayOfText(item.rejected_actions),
+      safetyGateReasons: arrayOfText(item.safety_gate_reasons),
+      timestamps: arrayOfText(item.timestamps),
+      freshness: text(item.freshness)
+    })) : [];
+  }
+
+  function normalizeMoonshots(value) {
+    return Array.isArray(value) ? value.map((item, index) => ({
+      candidateId: text(item.candidate_id || "moonshot-" + (index + 1)),
+      underlying: text(item.underlying),
+      thesis: text(item.thesis),
+      strategyFamily: text(item.strategy_family),
+      catalystEvidence: arrayOfText(item.catalyst_evidence),
+      expirationOrHorizon: text(item.expiration_or_horizon),
+      premiumOrMaxLoss: text(item.premium_or_max_loss),
+      scenarioOutcomes: text(item.scenario_outcomes),
+      convexityOrPayoffEvidence: text(item.convexity_or_payoff_evidence),
+      impliedVolatilityContext: text(item.implied_volatility_context),
+      thetaTimeDecayContext: text(item.theta_time_decay_context),
+      invalidationConditions: arrayOfText(item.invalidation_conditions),
+      contradictingEvidence: arrayOfText(item.contradicting_evidence),
+      uncertainty: text(item.uncertainty),
+      lifecycleState: text(item.lifecycle_state),
+      riskState: text(item.risk_state || "HUMAN_REVIEW_REQUIRED"),
+      engine: text(item.engine || "Moonshot Engine"),
+      evidenceRefs: arrayOfText(item.evidence_refs)
+    })) : [];
+  }
+
   function filterCandidates(candidates, filters) {
     const query = lower(filters && filters.query);
     return normalizeCandidates(candidates).filter((item) => {
@@ -359,6 +527,7 @@
     OVERVIEW_ENDPOINTS,
     SAFETY_LABELS,
     UI03_ROUTES,
+    UI04_ROUTES,
     DESIGN_TOKENS,
     MAX_REJECT_COUNT,
     MAX_RECONNECTS,
@@ -372,6 +541,7 @@
     reconnectDelay,
     isSafeEnvelope,
     normalizeUi03Envelope,
+    normalizeUi04Envelope,
     filterCandidates,
     sortCandidates,
     candidateOptions,
