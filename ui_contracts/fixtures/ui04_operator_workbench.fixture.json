@@ -1,0 +1,120 @@
+{
+  "schema_version": "ui04.operator_workbench.view_model.v1",
+  "source_mode": "fixture",
+  "source_identifier": "UI04-CANONICAL-OFFLINE-FIXTURE",
+  "provider_validation_status": "pending",
+  "is_live": false,
+  "live_trading_status": "LIVE TRADING: DISABLED",
+  "generated_at": "2026-07-21T00:00:00Z",
+  "observation_time": "2026-07-11T06:26:51Z",
+  "freshness": {
+    "state": "stale",
+    "as_of": "2026-07-11T06:26:51Z",
+    "reason": "committed_offline_evidence_only"
+  },
+  "validation_state": "partial-evidence",
+  "safety_labels": ["RESEARCH_ONLY", "MONITOR_ONLY", "PAPER_ONLY", "HUMAN_REVIEW_REQUIRED", "BLOCKED_BY_SAFETY_GATE"],
+  "provenance": {
+    "source_ids": ["BR-14", "BR-22", "BR-23", "BR-24", "BR-25", "BR-29"],
+    "source_paths": [
+      "reports\\br14_local_paper_research_session_runner\\manual_20260709T194500\\local_paper_research_session.json",
+      "reports\\br22_paper_outcome_tracker\\paper_outcome_tracker.json",
+      "reports\\br23_promotion_gate_evidence_checklist\\promotion_gate_evidence_checklist.json",
+      "reports\\br24_consolidated_research_dossier\\consolidated_research_dossier.json",
+      "reports\\br25_paper_candidate_lifecycle_state_machine\\paper_candidate_lifecycle_state_machine.json",
+      "reports\\br29_offline_snapshot_research_replay_evidence_pack\\offline_snapshot_research_replay_evidence_pack.json"
+    ],
+    "validation_state": "partial-evidence",
+    "provider_validation": "pending"
+  },
+  "warnings": ["provider-validation-pending", "stale", "partial-evidence"],
+  "errors": [],
+  "risk_gate": {
+    "decision": "BLOCKED_BY_SAFETY_GATE",
+    "blocked_reasons": ["provider_validation_pending", "stale_data", "model_validation_partial", "portfolio_exposure_unavailable", "human_review_required", "live_trading_disabled"],
+    "required_labels": ["RESEARCH_ONLY", "MONITOR_ONLY", "PAPER_ONLY", "HUMAN_REVIEW_REQUIRED", "BLOCKED_BY_SAFETY_GATE"],
+    "provider_gate": "blocked",
+    "data_freshness_gate": "stale",
+    "model_validation_gate": "partial-evidence",
+    "portfolio_risk_gate": "unavailable",
+    "human_review_requirement": "HUMAN_REVIEW_REQUIRED",
+    "execution_unavailable_reason": "Execution remains unavailable because UI-04 is read-only, provider validation is pending, evidence is stale, portfolio risk is incomplete, and live trading is permanently disabled.",
+    "evidence_refs": ["BR-14", "BR-23", "BR-29"]
+  },
+  "portfolio": {
+    "snapshot_id": "UI04-PAPER-SNAPSHOT-REDACTED",
+    "mode": "PAPER_ONLY",
+    "freshness": "stale",
+    "position_count": 2,
+    "positions": [
+      {"candidate_id": "br28-7eb903a69e21c8ab", "engine": "Moonshot Engine", "summary": "QQQ paper-only research item; quantities and value unavailable.", "risk_state": "PAPER_ONLY", "evidence_refs": ["BR-29"]},
+      {"candidate_id": "br28-f90aa6a950622bf1", "engine": "Wealth Engine", "summary": "SPY paper-only research item; quantities and value unavailable.", "risk_state": "PAPER_ONLY", "evidence_refs": ["BR-29"]}
+    ],
+    "cash": {"state": "unavailable", "reason": "cash_snapshot_not_in_committed_evidence"},
+    "gross_exposure": {"state": "unavailable", "reason": "exposure_values_not_in_committed_evidence"},
+    "net_exposure": {"state": "unavailable", "reason": "exposure_values_not_in_committed_evidence"},
+    "concentration": "unavailable",
+    "drawdown": "unavailable",
+    "allocation": [
+      {"bucket": "Wealth Engine", "state": "separate", "count": 1},
+      {"bucket": "Moonshot Engine", "state": "separate", "count": 1}
+    ],
+    "wealth_engine": {"state": "separate", "position_count": 1, "exposure": "unavailable"},
+    "moonshot_engine": {"state": "separate", "position_count": 1, "exposure": "unavailable"},
+    "warnings": ["cash_unavailable", "exposure_unavailable", "drawdown_unavailable"]
+  },
+  "alerts": [
+    {"id": "UI04-ALERT-RISK-GATE", "severity": "critical", "category": "safety", "state": "open-read-only", "created_at": "2026-07-11T06:26:51Z", "freshness": "stale", "source": "BR-23", "related": "risk_gate", "human_review_required": true, "evidence_details": ["provider_validation_pending", "live_trading_disabled"]},
+    {"id": "UI04-ALERT-EVIDENCE", "severity": "warning", "category": "evidence", "state": "open-read-only", "created_at": "2026-07-11T06:26:51Z", "freshness": "stale", "source": "BR-29", "related": "performance", "human_review_required": true, "evidence_details": ["outcome_return_series_missing", "benchmark_return_series_missing"]}
+  ],
+  "models": [
+    {"id": "UI04-MODEL-OFFLINE-REPLAY", "family": "offline_snapshot_replay", "version": "fixture-v1", "validation_state": "partial-evidence", "drift_state": "unavailable", "supported_strategy_families": ["index_etf_replay"], "last_validated_at": "2026-07-11T06:26:51Z", "freshness": "stale", "warnings": ["drift_not_supported"], "promotion_eligibility": "blocked", "evidence_refs": ["BR-29"]},
+    {"id": "UI04-MODEL-MARKET-REGIME", "family": "market_regime", "version": "unavailable", "validation_state": "no-data", "drift_state": "unavailable", "supported_strategy_families": [], "last_validated_at": "unavailable", "freshness": "no-data", "warnings": ["model_evidence_missing"], "promotion_eligibility": "blocked", "evidence_refs": []}
+  ],
+  "performance": {
+    "metric_set_id": "UI04-PERFORMANCE-NO-DATA",
+    "benchmark": "unavailable",
+    "period": "unavailable",
+    "equity_series": {"state": "unavailable", "reason": "equity_series_missing"},
+    "return_series": {"state": "unavailable", "reason": "outcome_return_series_missing"},
+    "drawdown": "unavailable",
+    "sharpe": "unavailable",
+    "win_rate": "unavailable",
+    "trade_count": "unavailable",
+    "rolling_metrics": [],
+    "regime_slices": [],
+    "wealth_engine": {"state": "no-data", "reason": "wealth_performance_evidence_missing"},
+    "moonshot_engine": {"state": "no-data", "reason": "moonshot_outcomes_missing"},
+    "warnings": ["do_not_infer_performance_from_incomplete_outcomes"]
+  },
+  "backtests": [
+    {"run_id": "UI04-BACKTEST-BR29-REPLAY", "strategy_family": "index_etf_replay", "symbols": ["QQQ", "SPY"], "date_range": "unavailable", "in_sample_state": "partial-evidence", "out_of_sample_state": "unavailable", "walk_forward_state": "unavailable", "slippage_assumptions": "unavailable", "benchmark": "unavailable", "drawdown": "unavailable", "result_label": "HUMAN_REVIEW_REQUIRED", "overfit_warning": "cannot_assess", "insufficient_trade_warning": "trade_count_unavailable", "promotion_gate_state": "blocked", "evidence_refs": ["BR-29"]}
+  ],
+  "paper_activity": [
+    {"paper_run_id": "UI04-PAPER-RUN-BR14", "approval_or_review_state": "HUMAN_REVIEW_REQUIRED", "ledger_refs": ["BR-20", "BR-21", "BR-22"], "proposed_actions": ["paper-only research review"], "simulated_fills": "unavailable", "rejected_actions": ["live_order_routing", "broker_submission"], "safety_gate_reasons": ["BLOCKED_BY_SAFETY_GATE", "live_trading_disabled"], "timestamps": ["2026-07-11T06:26:51Z"], "freshness": "stale"}
+  ],
+  "options": {
+    "chain_quality_state": "no-data",
+    "underlying_identifier": "unavailable",
+    "expiration": "unavailable",
+    "dte": "unavailable",
+    "strike": "unavailable",
+    "call_or_put": "unavailable",
+    "bid": "unavailable",
+    "ask": "unavailable",
+    "delta": "unavailable",
+    "gamma": "unavailable",
+    "theta": "unavailable",
+    "vega": "unavailable",
+    "implied_volatility": "unavailable",
+    "open_interest": "unavailable",
+    "freshness": "no-data",
+    "scenario_context": "unavailable",
+    "risk_warnings": ["option_chain_data_unavailable", "do_not_infer_greeks_or_iv"],
+    "evidence_refs": ["BR-03"]
+  },
+  "moonshot_research": [
+    {"candidate_id": "br28-7eb903a69e21c8ab", "underlying": "QQQ", "thesis": "Paper-only offline replay candidate requiring human review.", "strategy_family": "LEAPS_RESEARCH", "catalyst_evidence": ["BR-24 dossier reference"], "expiration_or_horizon": "unavailable", "premium_or_max_loss": "unavailable", "scenario_outcomes": "unavailable", "convexity_or_payoff_evidence": "unavailable", "implied_volatility_context": "unavailable", "theta_time_decay_context": "unavailable", "invalidation_conditions": ["outcome evidence remains missing", "provider evidence malformed"], "contradicting_evidence": ["no option-chain support", "no outcome return series"], "uncertainty": "high", "lifecycle_state": "paper_only", "risk_state": "HUMAN_REVIEW_REQUIRED", "engine": "Moonshot Engine", "evidence_refs": ["BR-24", "BR-29"]},
+    {"candidate_id": "BR29-ALL-BLOCKERS", "underlying": "ALL", "thesis": "Evidence blocker item, not a trade candidate.", "strategy_family": "evidence_quality", "catalyst_evidence": [], "expiration_or_horizon": "unavailable", "premium_or_max_loss": "unavailable", "scenario_outcomes": "unavailable", "convexity_or_payoff_evidence": "unavailable", "implied_volatility_context": "unavailable", "theta_time_decay_context": "unavailable", "invalidation_conditions": ["missing evidence resolved in a future approved phase"], "contradicting_evidence": ["promotion evidence missing"], "uncertainty": "blocked", "lifecycle_state": "blocked", "risk_state": "BLOCKED_BY_SAFETY_GATE", "engine": "Moonshot Engine", "evidence_refs": ["BR-29"]}
+  ]
+}

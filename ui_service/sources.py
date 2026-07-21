@@ -13,7 +13,9 @@ BR26_REPORT = ROOT / "reports" / "br26_read_only_data_snapshot_import_contract" 
 BR29_REPORT = ROOT / "reports" / "br29_offline_snapshot_research_replay_evidence_pack" / "offline_snapshot_research_replay_evidence_pack.json"
 BR30_REPORT = ROOT / "reports" / "br30_read_only_live_market_data_adapter" / "read_only_live_market_data_adapter.json"
 UI03_FIXTURE = ROOT / "ui_contracts" / "fixtures" / "ui03_research_workbench.fixture.json"
+UI04_FIXTURE = ROOT / "ui_contracts" / "fixtures" / "ui04_operator_workbench.fixture.json"
 UI03_MODELS = {"research", "screener", "opportunities", "analyst_theses", "market_regime", "lifecycle"}
+UI04_MODELS = {"risk_gate", "portfolio", "alerts", "models", "performance_analytics", "backtests", "paper_activity", "options", "moonshot_research"}
 
 
 class ReadModelSource:
@@ -21,6 +23,7 @@ class ReadModelSource:
         self.source_mode = source_mode
         self._ui00 = _load_json(UI00_FIXTURE)
         self._ui03 = _load_json(UI03_FIXTURE)
+        self._ui04 = _load_json(UI04_FIXTURE)
 
     def read(self, model_name: str) -> tuple[dict[str, Any], list[str]]:
         if self.source_mode == "live_provider":
@@ -82,6 +85,9 @@ class ReadModelSource:
         if model_name in UI03_MODELS:
             data["ui03"] = _ui03_for_model(self._ui03, model_name, self.source_mode)
             data["status"] = data["ui03"].get("status", data["status"])
+        if model_name in UI04_MODELS:
+            data["ui04"] = _ui04_for_model(self._ui04, model_name, self.source_mode)
+            data["status"] = data["ui04"].get("status", data["status"])
         return data
 
 
@@ -197,6 +203,46 @@ def _ui03_for_model(payload: dict[str, Any], model_name: str, source_mode: str) 
     if model_name == "lifecycle":
         return {**common, "lifecycle": payload.get("lifecycle", {}), "candidates": payload.get("candidates", [])[:25]}
     return {**common, "status": "unavailable", "reason": "ui03_model_unknown"}
+
+
+def _ui04_for_model(payload: dict[str, Any], model_name: str, source_mode: str) -> dict[str, Any]:
+    if not payload:
+        return {"status": "unavailable", "reason": "ui04_fixture_missing", "is_live": False, "live_trading_status": LIVE_TRADING_STATUS}
+    common = {
+        "schema_version": payload.get("schema_version", "ui04.operator_workbench.view_model.v1"),
+        "source_mode": source_mode,
+        "source_identifier": payload.get("source_identifier", "UI04-CANONICAL-OFFLINE-FIXTURE"),
+        "provider_validation_status": "pending",
+        "is_live": False,
+        "live_trading_status": LIVE_TRADING_STATUS,
+        "generated_at": payload.get("generated_at", "unavailable"),
+        "observation_time": payload.get("observation_time", "unavailable"),
+        "freshness": payload.get("freshness", {"state": "unavailable"}),
+        "validation_state": payload.get("validation_state", "unavailable"),
+        "provenance": payload.get("provenance", {}),
+        "safety_labels": SAFETY_STATE["labels"],
+        "warnings": payload.get("warnings", []),
+        "errors": payload.get("errors", []),
+        "status": "available",
+    }
+    key_map = {
+        "risk_gate": "risk_gate",
+        "portfolio": "portfolio",
+        "alerts": "alerts",
+        "models": "models",
+        "performance_analytics": "performance",
+        "backtests": "backtests",
+        "paper_activity": "paper_activity",
+        "options": "options",
+        "moonshot_research": "moonshot_research",
+    }
+    key = key_map.get(model_name)
+    if not key:
+        return {**common, "status": "unavailable", "reason": "ui04_model_unknown"}
+    value = payload.get(key)
+    if value is None:
+        return {**common, "status": "unavailable", "reason": f"{key}_missing"}
+    return {**common, key: value}
 
 
 def _pick(payload: dict[str, Any], key: str, *, default: Any = None) -> Any:

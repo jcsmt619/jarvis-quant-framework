@@ -112,12 +112,17 @@
     const screenerVm = reducers.normalizeUi03Envelope(cache.screener || {}, "screener");
     const opportunitiesVm = reducers.normalizeUi03Envelope(cache.opportunities || {}, "opportunities");
     const riskGate = cache["risk-gate"] || {};
+    const riskGateVm = reducers.normalizeUi04Envelope(riskGate, "risk-gate");
     const marketRegime = cache["market-regime"] || {};
     const marketRegimeVm = reducers.normalizeUi03Envelope(marketRegime, "market-regime");
     const portfolio = cache.portfolio || {};
+    const portfolioVm = reducers.normalizeUi04Envelope(portfolio, "portfolio");
     const alerts = cache.alerts || {};
+    const alertsVm = reducers.normalizeUi04Envelope(alerts, "alerts");
     const paper = cache["paper-activity"] || {};
     const moonshot = cache["moonshot-research"] || {};
+    const moonshotVm = reducers.normalizeUi04Envelope(moonshot, "moonshot-research");
+    const modelsVm = reducers.normalizeUi04Envelope(cache.models || {}, "models");
 
     nodes.content.append(
       metricPanel("Market Regime", "regime", [
@@ -127,10 +132,10 @@
         ["As of", formatTimestamp(marketRegimeVm.marketRegime.as_of || "unavailable")]
       ], "No live market regime is asserted by UI-03."),
       metricPanel("Risk Gate", "shield", [
-        ["Decision", pick(riskGate, "data.summary.decision", "BLOCKED_BY_SAFETY_GATE")],
-        ["Live", String(pick(riskGate, "data.is_live", false))],
-        ["Provider", pick(riskGate, "provider_validation_status", "pending")],
-        ["Labels", formatArray(pick(riskGate, "data.summary.required_labels", reducers.SAFETY_LABELS))]
+        ["Decision", riskGateVm.riskGate.decision],
+        ["Live", String(riskGateVm.isLive)],
+        ["Provider", riskGateVm.providerValidationStatus],
+        ["Blocked", formatArray(riskGateVm.riskGate.blockedReasons)]
       ], "Execution remains blocked by safety policy."),
       metricPanel("Opportunity Radar", "radar", [
         ["State", opportunitiesVm.status],
@@ -139,13 +144,18 @@
         ["Review", "HUMAN_REVIEW_REQUIRED"]
       ], "Opportunity Radar is a read-only review queue, not a trade-signal screen."),
       metricPanel("Portfolio and Exposure", "portfolio", [
-        ["Mode", pick(portfolio, "data.summary.mode", "PAPER_ONLY")],
-        ["Positions", pick(portfolio, "data.summary.position_count", "unavailable")],
-        ["Snapshot", pick(portfolio, "data.summary.snapshot_id", "unavailable")],
-        ["Exposure", "no-data"]
-      ], "Position values stay redacted or unavailable in this shell."),
+        ["Mode", portfolioVm.portfolio.mode],
+        ["Positions", portfolioVm.portfolio.positionCount],
+        ["Snapshot", portfolioVm.portfolio.snapshotId],
+        ["Exposure", stateReason(portfolioVm.portfolio.grossExposure)]
+      ], "Position values stay redacted or unavailable unless committed evidence supports them."),
       enginePanel("Wealth Engine", "performance", research),
-      enginePanel("Moonshot Engine", "moonshot", moonshot),
+      metricPanel("Moonshot Engine", "moonshot", [
+        ["State", moonshotVm.status],
+        ["Candidates", moonshotVm.moonshotResearch.length],
+        ["Safety", "HUMAN_REVIEW_REQUIRED"],
+        ["Exposure", stateReason(portfolioVm.portfolio.moonshotEngine)]
+      ], "Moonshot research is visually separate from Wealth Engine exposure."),
       chartPanel("Market / System Data", dataStatus),
       distributionPanel("Signal-Strength Distribution", research),
       allocationPanel("Exposure Allocation", portfolio),
@@ -176,9 +186,15 @@
       metricPanel("Human Review", "review", [
         ["State", "HUMAN_REVIEW_REQUIRED"],
         ["Analyst path", "research-only"],
-        ["Alerts", pick(alerts, "data.summary.alert_count", "unavailable")],
+        ["Alerts", alertsVm.alerts.length],
         ["Paper activity", pick(paper, "data.status", "pending")]
       ], "Trade-relevant output requires human review."),
+      metricPanel("Model Health", "models", [
+        ["Models", modelsVm.models.length],
+        ["Validation", modelsVm.validationState],
+        ["Drift", modelsVm.models.map((item) => item.driftState).join(", ") || "unavailable"],
+        ["Promotion", modelsVm.models.map((item) => item.promotionEligibility).join(", ") || "blocked"]
+      ], "Model promotion remains blocked unless evidence is complete."),
       streamHealthPanel(),
       safeModePanel(),
       diagnosticsPanel("Overview Diagnostics", cache, true)
@@ -188,6 +204,10 @@
   function renderModule(found, payload) {
     if (reducers.UI03_ROUTES.indexOf(found[0]) !== -1) {
       renderUi03Route(found, payload);
+      return;
+    }
+    if (reducers.UI04_ROUTES.indexOf(found[0]) !== -1) {
+      renderUi04Route(found, payload);
       return;
     }
     nodes.content.innerHTML = "";
@@ -204,6 +224,121 @@
       emptyPanel(title, payload),
       diagnosticsPanel(title + " Diagnostics", payload, false)
     );
+  }
+
+  function renderUi04Route(found, payload) {
+    const vm = reducers.normalizeUi04Envelope(payload, found[0]);
+    if (!selectedCandidateId && vm.moonshotResearch.length) {
+      selectedCandidateId = vm.moonshotResearch[0].candidateId;
+    }
+    nodes.content.innerHTML = "";
+    nodes.content.className = "content-grid ui03-grid ui04-grid";
+    nodes.content.append(ui04StatusPanel(found[1], vm), ui04ProvenancePanel(vm));
+    if (found[0] === "risk-gate") renderRiskGate(vm);
+    if (found[0] === "portfolio") renderPortfolio(vm);
+    if (found[0] === "alerts") renderAlerts(vm);
+    if (found[0] === "models") renderModels(vm);
+    if (found[0] === "performance") renderPerformance(vm);
+    if (found[0] === "backtests") renderBacktests(vm);
+    if (found[0] === "paper-activity") renderPaperActivity(vm);
+    if (found[0] === "options") renderOptions(vm);
+    if (found[0] === "moonshot-research") renderMoonshotResearch(vm);
+    nodes.content.append(diagnosticsPanel(found[1] + " Diagnostics", payload, true));
+  }
+
+  function ui04StatusPanel(title, vm) {
+    return metricPanel(title + " Status", "shield", [
+      ["Status", vm.status],
+      ["Validation", vm.validationState],
+      ["Freshness", vm.freshnessState],
+      ["Observed", formatTimestamp(vm.observationTime)],
+      ["Generated", formatTimestamp(vm.generatedAt)],
+      ["Provider", vm.providerValidationStatus],
+      ["is_live", String(vm.isLive)],
+      ["Safety", vm.liveTradingStatus]
+    ], vm.safe ? "Canonical UI-04 operator view-model boundary." : "Envelope failed safety normalization.");
+  }
+
+  function ui04ProvenancePanel(vm) {
+    return listPanel("Provenance", "data", [
+      "Source identifier: " + vm.sourceIdentifier,
+      "Source ids: " + formatArray(vm.provenance.sourceIds),
+      "Source mode: " + vm.sourceMode,
+      "Provider validation: " + vm.provenance.providerValidation
+    ].concat(vm.provenance.sourcePaths), "Provenance and local evidence links are preserved.");
+  }
+
+  function renderRiskGate(vm) {
+    const gate = vm.riskGate;
+    const section = metricPanel("Execution Availability", "shield", [
+      ["Decision", gate.decision],
+      ["Provider gate", gate.providerGate],
+      ["Freshness gate", gate.dataFreshnessGate],
+      ["Model gate", gate.modelValidationGate],
+      ["Portfolio gate", gate.portfolioRiskGate],
+      ["Human review", gate.humanReviewRequirement],
+      ["Execution", "unavailable"]
+    ], gate.executionUnavailableReason);
+    section.classList.add("wide", "risk-gate-panel");
+    nodes.content.append(section, listPanel("Blocked Reasons", "alert", gate.blockedReasons, "No override controls are exposed."), listPanel("Required Labels", "shield", gate.requiredLabels, "Labels are safety classifications only."), listPanel("Evidence References", "data", gate.evidenceRefs, "Committed repository evidence only."));
+  }
+
+  function renderPortfolio(vm) {
+    const p = vm.portfolio;
+    nodes.content.append(
+      metricPanel("Paper Snapshot", "portfolio", [["Snapshot", p.snapshotId], ["Mode", p.mode], ["Freshness", p.freshness], ["Positions", p.positionCount], ["Cash", stateReason(p.cash)], ["Gross exposure", stateReason(p.grossExposure)], ["Net exposure", stateReason(p.netExposure)], ["Concentration", p.concentration], ["Drawdown", p.drawdown]], "Portfolio values remain unavailable unless fixture evidence supports them."),
+      tablePanel("Position Summaries", "portfolio", ["Candidate", "Engine", "Summary", "Risk", "Evidence"], p.positions.map((item) => [item.candidate_id, item.engine, item.summary, item.risk_state, formatArray(item.evidence_refs)])),
+      tablePanel("Engine Separation", "allocation", ["Bucket", "State", "Count"], p.allocation.map((item) => [item.bucket, item.state, item.count])),
+      listPanel("Portfolio Warnings", "alert", p.warnings, "Wealth Engine and Moonshot Engine remain separated.")
+    );
+  }
+
+  function renderAlerts(vm) {
+    nodes.content.append(tablePanel("Read-Only Alert Console", "alert", ["Identifier", "Severity", "Category", "State", "Created", "Freshness", "Source", "Related", "Review", "Evidence"], vm.alerts.map((item) => [item.id, item.severity, item.category, item.state, formatTimestamp(item.createdAt), item.freshness, item.source, item.related, item.humanReviewRequired ? "HUMAN_REVIEW_REQUIRED" : "unavailable", formatArray(item.evidenceDetails)]), "Acknowledgement and dismissal mutations are intentionally absent."));
+  }
+
+  function renderModels(vm) {
+    nodes.content.append(tablePanel("Model Registry", "models", ["Identifier", "Family", "Version", "Validation", "Drift", "Strategies", "Last Validated", "Freshness", "Promotion", "Warnings", "Evidence"], vm.models.map((item) => [item.id, item.family, item.version, item.validationState, item.driftState, formatArray(item.supportedStrategyFamilies), formatTimestamp(item.lastValidatedAt), item.freshness, item.promotionEligibility, formatArray(item.warnings), formatArray(item.evidenceRefs)]), "No training, tuning, deployment, or configuration controls are exposed."));
+  }
+
+  function renderPerformance(vm) {
+    const p = vm.performance;
+    nodes.content.append(
+      metricPanel("Performance Evidence", "performance", [["Metric set", p.metric_set_id], ["Benchmark", p.benchmark], ["Period", p.period], ["Equity series", stateReason(p.equity_series)], ["Return series", stateReason(p.return_series)], ["Drawdown", p.drawdown], ["Sharpe", p.sharpe], ["Win rate", p.win_rate], ["Trade count", p.trade_count]], "Performance is not inferred from missing outcome evidence."),
+      metricPanel("Engine Separation", "allocation", [["Wealth Engine", stateReason(p.wealth_engine)], ["Moonshot Engine", stateReason(p.moonshot_engine)], ["Rolling metrics", (p.rolling_metrics || []).length], ["Regime slices", (p.regime_slices || []).length]], "No unsupported return or equity series is fabricated."),
+      listPanel("Performance Warnings", "alert", p.warnings || [], "Unavailable metrics stay unavailable.")
+    );
+  }
+
+  function renderBacktests(vm) {
+    nodes.content.append(tablePanel("Backtest Run Registry", "backtest", ["Run", "Strategy", "Symbols", "Range", "IS", "OOS", "Walk Forward", "Slippage", "Benchmark", "Drawdown", "Result", "Overfit", "Trades", "Promotion", "Evidence"], vm.backtests.map((item) => [item.runId, item.strategyFamily, formatArray(item.symbols), item.dateRange, item.inSampleState, item.outOfSampleState, item.walkForwardState, item.slippageAssumptions, item.benchmark, item.drawdown, item.resultLabel, item.overfitWarning, item.insufficientTradeWarning, item.promotionGateState, formatArray(item.evidenceRefs)]), "Browser launch of backtest processes is not available."));
+  }
+
+  function renderPaperActivity(vm) {
+    nodes.content.append(tablePanel("Paper Activity Ledger", "paper", ["Run", "Review State", "Ledger", "Proposed Actions", "Simulated Fills", "Rejected Actions", "Gate Reasons", "Timestamps", "Freshness"], vm.paperActivity.map((item) => [item.paperRunId, item.approvalOrReviewState, formatArray(item.ledgerRefs), formatArray(item.proposedActions), item.simulatedFills, formatArray(item.rejectedActions), formatArray(item.safetyGateReasons), formatArray(item.timestamps), item.freshness]), "No create, modify, approve, submit, cancel, or route controls are exposed."));
+  }
+
+  function renderOptions(vm) {
+    const o = vm.options || {};
+    nodes.content.append(
+      metricPanel("Option Chain Quality", "options", [["Chain quality", o.chain_quality_state], ["Underlying", o.underlying_identifier], ["Expiration", o.expiration], ["DTE", o.dte], ["Strike", o.strike], ["Type", o.call_or_put], ["Bid", o.bid], ["Ask", o.ask], ["Freshness", o.freshness]], "Missing option-chain data remains unavailable."),
+      metricPanel("Greeks and IV", "options", [["Delta", o.delta], ["Gamma", o.gamma], ["Theta", o.theta], ["Vega", o.vega], ["Implied volatility", o.implied_volatility], ["Open interest", o.open_interest], ["Scenario", o.scenario_context]], "Greeks, IV, bid, and ask are shown only when supported."),
+      listPanel("Options Risk Warnings", "alert", o.risk_warnings || [], "No option orders can be routed."),
+      listPanel("Evidence References", "data", o.evidence_refs || [], "Committed local evidence only.")
+    );
+  }
+
+  function renderMoonshotResearch(vm) {
+    const selected = vm.moonshotResearch.find((item) => item.candidateId === selectedCandidateId) || vm.moonshotResearch[0];
+    nodes.content.append(tablePanel("Moonshot Research Workbench", "moonshot", ["Candidate", "Underlying", "Strategy", "Lifecycle", "Risk", "Uncertainty", "Evidence", "Detail"], vm.moonshotResearch.map((item) => [item.candidateId, item.underlying, item.strategyFamily, item.lifecycleState, item.riskState, item.uncertainty, formatArray(item.evidenceRefs), item.candidateId]), "Research-only LEAPS and asymmetric-opportunity review. HUMAN_REVIEW_REQUIRED."));
+    if (selected) {
+      nodes.content.append(
+        metricPanel("Selected Moonshot Candidate", "moonshot", [["Candidate", selected.candidateId], ["Underlying", selected.underlying], ["Engine", selected.engine], ["Horizon", selected.expirationOrHorizon], ["Premium or max loss", selected.premiumOrMaxLoss], ["Scenario outcomes", selected.scenarioOutcomes], ["Convexity", selected.convexityOrPayoffEvidence], ["IV context", selected.impliedVolatilityContext], ["Theta context", selected.thetaTimeDecayContext], ["Risk", selected.riskState]], selected.thesis),
+        listPanel("Catalyst Evidence", "data", selected.catalystEvidence, "Catalysts require committed evidence."),
+        listPanel("Contradicting Evidence", "alert", selected.contradictingEvidence, "Contradictions stay visible."),
+        listPanel("Invalidation Conditions", "review", selected.invalidationConditions, "Human review remains required.")
+      );
+    }
   }
 
   function renderUi03Route(found, payload) {
@@ -416,7 +551,12 @@
       if (selected && selected.id === item.id) tr.className = "selected-row";
       columns.forEach(([key]) => {
         const td = document.createElement("td");
-        td.textContent = key === "signalScore" ? formatNullable(item[key]) : formatValue(item[key]);
+        const value = key === "signalScore" ? formatNullable(item[key]) : item[key];
+        if (key !== "signalScore" && isStateLabel(value)) {
+          td.appendChild(chip(readableLabel(value), toneForLabel(value)));
+        } else {
+          td.textContent = formatValue(value);
+        }
         tr.appendChild(td);
       });
       const action = document.createElement("td");
@@ -491,11 +631,51 @@
   function selectCandidateAndRender(id) {
     selectedCandidateId = id;
     nodes.statusRegion.textContent = "Candidate " + id + " selected in memory";
-    renderUi03Route(routeInfo(route), routeCache[routeInfo(route)[2]]);
+    if (reducers.UI04_ROUTES.indexOf(route) !== -1) {
+      renderUi04Route(routeInfo(route), routeCache[routeInfo(route)[2]]);
+    } else {
+      renderUi03Route(routeInfo(route), routeCache[routeInfo(route)[2]]);
+    }
   }
 
   function candidatesForRoute(vm) {
     return vm.opportunities.length ? vm.opportunities : vm.candidates;
+  }
+
+  function tablePanel(title, icon, headers, rows, note) {
+    const panel = document.createElement("section");
+    panel.className = "panel wide table-panel";
+    panel.innerHTML = "<div class=\"panel-title\">" + iconMarkup(icon, true) + "<h2></h2><span class=\"status-chip pending\">read-only</span></div><div class=\"table-scroll\"><table><thead><tr></tr></thead><tbody></tbody></table></div><p class=\"panel-note\"></p>";
+    panel.querySelector("h2").textContent = title;
+    headers.forEach((label) => {
+      const th = document.createElement("th");
+      th.scope = "col";
+      th.textContent = label;
+      panel.querySelector("thead tr").appendChild(th);
+    });
+    const tbody = panel.querySelector("tbody");
+    (rows || []).forEach((row) => {
+      const tr = document.createElement("tr");
+      row.forEach((value, index) => {
+        const td = document.createElement("td");
+        if (headers[index] === "Detail") {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = "Open details";
+          button.addEventListener("click", () => selectCandidateAndRender(String(value)));
+          td.appendChild(button);
+        } else if (isStateLabel(value)) {
+          td.appendChild(chip(readableLabel(value), toneForLabel(value)));
+        } else {
+          td.textContent = formatValue(value);
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    if (!tbody.children.length) tbody.appendChild(emptyTableRow(headers.length, "No committed evidence is available for this table."));
+    panel.querySelector(".panel-note").textContent = note || "Read-only local evidence.";
+    return panel;
   }
 
   function listPanel(title, icon, items, note) {
@@ -880,6 +1060,29 @@
     if (typeof value === "boolean") return value ? "true" : "false";
     if (typeof value === "object") return JSON.stringify(value);
     return String(value);
+  }
+
+  function stateReason(value) {
+    if (!value || typeof value !== "object") return formatValue(value);
+    const state = value.state || "unavailable";
+    const reason = value.reason ? " / " + value.reason : "";
+    const exposure = value.exposure ? " / " + value.exposure : "";
+    return state + reason + exposure;
+  }
+
+  function readableLabel(value) {
+    return String(value || "unavailable").replace(/_/g, " ");
+  }
+
+  function isStateLabel(value) {
+    return typeof value === "string" && (value.indexOf("_") !== -1 || /^(blocked|pending|stale|no-data|unavailable|partial-evidence|critical|warning|open-read-only)$/i.test(value));
+  }
+
+  function toneForLabel(value) {
+    const lowerValue = String(value || "").toLowerCase();
+    if (lowerValue.indexOf("blocked") !== -1 || lowerValue.indexOf("critical") !== -1) return "blocked";
+    if (lowerValue.indexOf("paper") !== -1 || lowerValue.indexOf("research") !== -1) return "ok";
+    return "pending";
   }
 
   function formatNullable(value) {
