@@ -46,7 +46,18 @@
           <div class="module-actions">
             <button id="refreshButton" type="button" aria-label="Refresh approved read endpoints">Refresh</button>
             <button id="paletteButton" type="button" aria-label="Open command palette">Command</button>
+            <button id="aboutButton" type="button" aria-label="Open desktop help and about">About</button>
           </div>
+        </section>
+        <section class="app-status-overlay" aria-label="Desktop application status">
+          <span id="desktopLocalService">local-service pending</span>
+          <span id="desktopGateway">gateway pending</span>
+          <span id="desktopEventStream">event-stream connecting</span>
+          <span id="desktopSourceMode">source fixture</span>
+          <span id="desktopProviderValidation">provider pending</span>
+          <span id="desktopVersion">UI-05.0</span>
+          <span id="desktopRestartCount">restarts 0</span>
+          <strong>LIVE TRADING: DISABLED</strong>
         </section>
         <div id="statusRegion" class="sr-only" role="status" aria-live="polite"></div>
         <section id="content" class="content-grid" aria-label="Module workspace"></section>
@@ -82,6 +93,21 @@
           <button value="reduced" data-theme-choice="reduced">Reduced effects</button>
           <button value="contrast" data-theme-choice="contrast">High contrast</button>
         </div>
+      </form>
+    </dialog>
+    <dialog id="aboutPanel" aria-labelledby="aboutTitle">
+      <form method="dialog" class="about-panel">
+        <h2 id="aboutTitle">Jarvis Desktop Help</h2>
+        <dl>
+          <dt>Architecture</dt><dd>Python standard-library launcher, local UI service, read-only same-origin gateway, and installed browser app window.</dd>
+          <dt>Local only</dt><dd>Services bind to 127.0.0.1. The CLI, research engines, tests, automation, Cline, and Codex remain independent.</dd>
+          <dt>Sources</dt><dd>Fixture mode and sanitized recorded-response mode are supported. Provider validation remains pending.</dd>
+          <dt>Shutdown</dt><dd>Closing the desktop app stops only UI-05-owned UI processes and removes the temporary browser profile.</dd>
+          <dt>Logs</dt><dd>Bounded sanitized operational logs are stored under local application data outside Git.</dd>
+          <dt>Shortcuts</dt><dd>Shortcuts are created only by explicit operator installer invocation.</dd>
+          <dt>Stale lock</dt><dd>Run the launcher inspect-lock or clean-shutdown command to review or remove stale UI-05 locks.</dd>
+        </dl>
+        <button value="close">Close</button>
       </form>
     </dialog>
   </body>

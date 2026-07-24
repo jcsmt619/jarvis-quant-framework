@@ -23,7 +23,9 @@
       "providerStatus", "utcClock", "localClock", "refreshButton", "paletteButton", "commandPalette",
       "paletteInput", "paletteResults", "eventTimeline", "streamMeta", "collapseRail", "eventRail",
       "cliStatus", "bottomStreamState", "bottomSourceMode", "bottomUtcClock", "bottomLocalClock",
-      "bottomEnvironment", "bottomPaperStatus", "providerValidationTop"
+      "bottomEnvironment", "bottomPaperStatus", "providerValidationTop", "aboutButton", "aboutPanel",
+      "desktopLocalService", "desktopGateway", "desktopEventStream", "desktopSourceMode",
+      "desktopProviderValidation", "desktopVersion", "desktopRestartCount"
     ].forEach((id) => {
       nodes[id] = document.getElementById(id);
     });
@@ -94,10 +96,14 @@
   function updateTopStatus(payload) {
     sourceMode = payload.source_mode || sourceMode;
     nodes.sourceMode.textContent = "source: " + sourceMode;
+    nodes.desktopSourceMode.textContent = "source " + sourceMode;
     nodes.bottomSourceMode.textContent = "source " + sourceMode;
     const provider = payload.provider_validation_status || "pending";
     nodes.providerStatus.textContent = "provider " + provider;
     nodes.providerValidationTop.textContent = "provider-validation " + provider;
+    nodes.desktopProviderValidation.textContent = "provider " + provider;
+    nodes.desktopLocalService.textContent = "local-service running";
+    nodes.desktopGateway.textContent = "gateway running";
     setConnection(reducers.deriveFreshnessState(eventState));
   }
 
@@ -535,7 +541,8 @@
   function candidateTable(candidates, selected) {
     const panel = document.createElement("section");
     panel.className = "panel wide table-panel";
-    panel.innerHTML = "<div class=\"panel-title\">" + iconMarkup("screener", true) + "<h2>Candidate Screener</h2><span class=\"status-chip pending\">read-only</span></div><div class=\"table-scroll\"><table><thead><tr></tr></thead><tbody></tbody></table></div>";
+    panel.setAttribute("data-responsive-table", "screener");
+    panel.innerHTML = "<div class=\"panel-title\">" + iconMarkup("screener", true) + "<h2>Candidate Screener</h2><span class=\"status-chip pending\">read-only</span></div><div class=\"table-scroll\" tabindex=\"0\" aria-label=\"Scrollable Candidate Screener table\"><table><thead><tr></tr></thead><tbody></tbody></table></div><div class=\"table-card-grid compact-card-mode\" aria-label=\"Compact Candidate Screener cards\"></div>";
     const columns = [
       ["rank", "Rank"], ["symbol", "Identifier"], ["engine", "Engine"], ["strategyFamily", "Strategy"], ["signalScore", "Score"], ["regimeCompatibility", "Regime"], ["liquidityState", "Quality"], ["lifecycleState", "Lifecycle"], ["riskState", "Risk"], ["freshness", "Freshness"]
     ].filter(([key]) => visibleColumns[key]);
@@ -551,7 +558,9 @@
       if (selected && selected.id === item.id) tr.className = "selected-row";
       columns.forEach(([key]) => {
         const td = document.createElement("td");
+        td.dataset.label = columns.find((item) => item[0] === key)[1];
         const value = key === "signalScore" ? formatNullable(item[key]) : item[key];
+        if (key === "rank" || key === "signalScore") td.className = "tabular-nums";
         if (key !== "signalScore" && isStateLabel(value)) {
           td.appendChild(chip(readableLabel(value), toneForLabel(value)));
         } else {
@@ -560,6 +569,7 @@
         tr.appendChild(td);
       });
       const action = document.createElement("td");
+      action.dataset.label = "Detail";
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = "Open details";
@@ -567,6 +577,7 @@
       action.appendChild(button);
       tr.appendChild(action);
       tbody.appendChild(tr);
+      panel.querySelector(".table-card-grid").appendChild(compactTableCard("Candidate", columns.concat([["detail", "Detail"]]).map(([key, label]) => [label, key === "detail" ? item.id : item[key]]), item.id));
     });
     if (!candidates.length) tbody.appendChild(emptyTableRow(columns.length + 1, "No candidates match the in-memory filters."));
     return panel;
@@ -645,7 +656,8 @@
   function tablePanel(title, icon, headers, rows, note) {
     const panel = document.createElement("section");
     panel.className = "panel wide table-panel";
-    panel.innerHTML = "<div class=\"panel-title\">" + iconMarkup(icon, true) + "<h2></h2><span class=\"status-chip pending\">read-only</span></div><div class=\"table-scroll\"><table><thead><tr></tr></thead><tbody></tbody></table></div><p class=\"panel-note\"></p>";
+    panel.setAttribute("data-responsive-table", title.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
+    panel.innerHTML = "<div class=\"panel-title\">" + iconMarkup(icon, true) + "<h2></h2><span class=\"status-chip pending\">read-only</span></div><div class=\"table-scroll\" tabindex=\"0\" aria-label=\"Scrollable " + title + " table\"><table><thead><tr></tr></thead><tbody></tbody></table></div><div class=\"table-card-grid compact-card-mode\" aria-label=\"Compact " + title + " cards\"></div><p class=\"panel-note\"></p>";
     panel.querySelector("h2").textContent = title;
     headers.forEach((label) => {
       const th = document.createElement("th");
@@ -658,6 +670,8 @@
       const tr = document.createElement("tr");
       row.forEach((value, index) => {
         const td = document.createElement("td");
+        td.dataset.label = headers[index] || "Value";
+        if (isNumericLike(value)) td.className = "tabular-nums";
         if (headers[index] === "Detail") {
           const button = document.createElement("button");
           button.type = "button";
@@ -672,10 +686,21 @@
         tr.appendChild(td);
       });
       tbody.appendChild(tr);
+      panel.querySelector(".table-card-grid").appendChild(compactTableCard(title, headers.map((label, index) => [label, row[index]]), row[0]));
     });
     if (!tbody.children.length) tbody.appendChild(emptyTableRow(headers.length, "No committed evidence is available for this table."));
     panel.querySelector(".panel-note").textContent = note || "Read-only local evidence.";
     return panel;
+  }
+
+  function compactTableCard(title, pairs, detailValue) {
+    const card = document.createElement("article");
+    card.className = "table-card";
+    card.innerHTML = "<h3></h3><dl></dl>";
+    card.querySelector("h3").textContent = title + " / " + formatValue(detailValue);
+    const dl = card.querySelector("dl");
+    pairs.forEach(([label, value]) => addMetric(dl, label, isStateLabel(value) ? readableLabel(value) : formatValue(value)));
+    return card;
   }
 
   function listPanel(title, icon, items, note) {
@@ -958,6 +983,7 @@
   function setConnection(value) {
     const state = value || "connecting";
     nodes.connectionState.textContent = state;
+    nodes.desktopEventStream.textContent = "event-stream " + state;
     nodes.connectionState.className = state === "connected" || state === "fixture_complete" ? "badge badge-ok" : state === "stale" || state === "degraded" || state === "reconnecting" ? "badge badge-warn" : "badge badge-blocked";
   }
 
@@ -974,6 +1000,7 @@
   function installKeyboard() {
     nodes.refreshButton.addEventListener("click", loadRoute);
     nodes.paletteButton.addEventListener("click", openPalette);
+    nodes.aboutButton.addEventListener("click", () => nodes.aboutPanel.showModal());
     nodes.collapseRail.addEventListener("click", () => nodes.eventRail.classList.toggle("collapsed"));
     document.addEventListener("keydown", (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
@@ -1076,6 +1103,10 @@
 
   function isStateLabel(value) {
     return typeof value === "string" && (value.indexOf("_") !== -1 || /^(blocked|pending|stale|no-data|unavailable|partial-evidence|critical|warning|open-read-only)$/i.test(value));
+  }
+
+  function isNumericLike(value) {
+    return typeof value === "number" || (/^-?\d+(\.\d+)?%?$/.test(String(value || "").trim()));
   }
 
   function toneForLabel(value) {
